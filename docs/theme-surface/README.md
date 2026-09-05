@@ -162,7 +162,9 @@ apply-ui-themes --write, dynamic apply-tokens, diff-all --strict,
 contrast-audit, css-region-audit, ui-token-coverage, layout-lint, url-lint,
 recipe-lint, override-debt).
 The git pre-commit hook runs the same pipeline in strict `--check` mode, then
-adds source/cascade/hand-edit/UI contract gates. `scripts/verify.sh` also runs
+adds source/cascade/hand-edit/UI contract gates; a second trigger group on the
+surface HTML/JS runs the consumer-side gates (`layout-lint` inline spacing and
+`scripts/ui-vocabulary-lint.mjs` against `ui-vocabulary.json`, see COMPONENTS.md §10). `scripts/verify.sh` also runs
 the parser, CLI mutation and zero-write integration tests; see §9 for the
 independent `scripts/ui-render-audit.mjs` render oracle. The audit
 fails the run when a token pair drops below WCAG AA — the failure modes that

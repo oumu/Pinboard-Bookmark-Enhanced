@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/ui-consumer-lint.mjs\"",
+            "timeout": 30,
+            "statusMessage": "UI design-language gates (layout-lint + ui-vocabulary)"
+          }
+        ]
+      }
+    ]
+  }
+}

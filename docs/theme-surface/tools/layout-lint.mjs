@@ -143,14 +143,14 @@ if (!userNavbarBody || !/display\s*:\s*flex/.test(userNavbarBody)) {
   blockers++;
 }
 
-// RULE 5 (BLOCK): no inline spacing on the three extension surfaces. Vertical
+// RULE 5 (BLOCK): no inline spacing on the four UI surfaces (reader chrome included). Vertical
 // rhythm on popup/options/library is owned by the hand-maintained relationship
 // rules in each CSS file (.fg / .fg-actions / .hint / --*-sp-* tokens); an
 // inline `style="margin-top:6px"` is a value no gate can see and no theme can
 // reach -- options.html carried 23 of them (2026-09), which is how the same
 // "test connection" row ended up with three different gaps. Display/width
 // toggles that JS drives (`style="display:none"`) are not spacing and pass.
-const HTML_TARGETS = ["popup.html", "options.html", "library.html"].map((f) => resolve(ROOT, f));
+const HTML_TARGETS = ["popup.html", "options.html", "library.html", "md-preview.html"].map((f) => resolve(ROOT, f));
 const reInlineSpacing = /style="[^"]*\b(?:margin|padding|gap|row-gap|column-gap)\b[^"]*"/g;
 for (const path of HTML_TARGETS) {
   const html = readFileSync(path, "utf8");

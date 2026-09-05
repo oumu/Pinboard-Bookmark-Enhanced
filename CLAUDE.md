@@ -131,7 +131,7 @@ popup / options / library 三个扩展表面是短命单次渲染、无暖 shape
 ## 发布流程
 
 ```bash
-git commit -m "fix(...): ..."   # pre-commit 仅守主题相关文件（8 道门）；全套 verify 由 push 后 CI 兜底（禁止 --no-verify）
+git commit -m "fix(...): ..."   # pre-commit 两组触发：主题源/三份 CSS → 8 道工厂门；四个表面 HTML/JS/md-preview.css → layout-lint + ui-vocabulary（+ ui-contract）；全套 verify 由 push 后 CI 兜底（禁止 --no-verify）
 bash scripts/bump-version.sh    # 按 commit 类型 bump manifest（feat→minor / fix→patch）
 git push origin main
 bash scripts/release.sh         # 打 ZIP + GH release + changelog；--build-only 仅构建+冒烟不发布，其余任何运行都会直接发布
@@ -183,3 +183,4 @@ bash scripts/release.sh         # 打 ZIP + GH release + changelog；--build-onl
 | md-embed.js、background.js（DNR 防盗链修复） | `.claude/rules/hotlink-dnr.md` |
 | ai.js、popup-ai.js、options-connectivity.js（关思考 provider 方言） | `.claude/rules/ai-providers.md` |
 | README*.md、_locales/**、docs/privacy.md、docs/index.md | `.claude/rules/l10n.md` |
+| 四个表面 HTML/CSS、shared.js、ui-vocabulary.json（新增任何 UI 元素） | `.claude/rules/ui-primitives.md` |

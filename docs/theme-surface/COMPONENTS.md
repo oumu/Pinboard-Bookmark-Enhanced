@@ -1035,6 +1035,59 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 
 ---
 
+## 10. 布局原语与关系律（消费侧词汇）
+
+§1–§9 管的是**组件**（按钮、chip、字段、融合控件）的配方；本节管的是把组件摆进页面的**结构词汇**——分区、表单组、动作行、提示、折叠——以及它们之间的**间距关系**。2026-09-05 的设置页复盘证明：组件配方全绿，页面仍能长出 27 个各自带 margin 的按钮行包装类、5 种分区标题面、2 套折叠机制，因为没有任何东西在新元素落地时逼问「既有原语能不能用」。本节 + `ui-vocabulary.json` 注册表 + `scripts/ui-vocabulary-lint.mjs` 就是那道逼问。
+
+### 10.1 注册表（`docs/theme-surface/ui-vocabulary.json`）
+
+每个表面三张名单：`primitives`（可复用的结构原语，本节定义契约）、`regions`（页面骨架，合法唯一：header / pane / list-region…）、`components`（§1–§9 已治理的组件族 token）。名字像结构包装（`structuralPattern`：`-row/-actions/-bar/-toolbar/-card/-section/-panel/-list/…`，或 `exactStructural` 里的短名如 `fg`/`hint`/`row`）却不在这三张名单里的类，必须在 `scripts/ui-vocabulary-baseline.json`（遗留基线，只减不增）里，否则 BLOCK。基线 2026-09-05 起算：popup 24 / options 32 / library 28 / md-preview 53 / shared 4 个结构性遗留 token，另 233 个非结构性 token 作观察项（新增只 WARN）。
+
+### 10.2 各表面原语与契约
+
+| 表面 | 原语 | 契约（拥有的几何） |
+|---|---|---|
+| options | `.fg` | 表单组；`margin-bottom: var(--opt-rhythm)`（12px）= 组间节律的唯一主人 |
+| options | `.fg-stack` | `.fg` 修饰：peer 选项堆叠；标题 `.bl` → 首项 6px；行距 2/4px |
+| options | `.fg-indent` | 从属项缩进 `--opt-indent`（20px = 13px 复选框 + sp-3，刻度外故有名） |
+| options | `.fg-actions` | 按钮/状态行：flex + gap sp-4；作 `.fg` 末子元素时 `margin-top: sp-3`；作兄弟时不带 margin |
+| options | `.hint` / `.hint-warn` | 11px 辅助文字；`.fg > .hint` 距控件 sp-1；组外 `margin: sp-1 0 rhythm` |
+| options | `.section-title` | h2，13px/700，上下 sp-4；配 `.divider`（sp-6 0，1px） |
+| options | `.choice-row` | 复选/单选行标记；在 `.fg-stack` 内行距 sp-1 |
+| options | `details.disclosure` + `.disclosure-body` | 唯一折叠原语；标题 = section-title 面 + 右侧 chevron；成员自带上边线，堆叠对称 12px；正文齐平，`> :last-child` 去下 margin |
+| options | `.context-help-host` (+ `-section` / `-action-row`) | 上下文帮助宿主 grid；24px 帮助按钮**不参与行高**（零高 margin box） |
+| options | `.pf` | 带边框子面板（provider 卡）：padding sp-5，radius md |
+| popup | `.row` / `.label` / `.field` | 表单行壳（flex，padding sp-2 sp-5，gap sp-4）/ 52px 标签槽 / 控件槽（flex:1，min-width:0） |
+| popup | `.suggest-area` | chip 流容器 |
+| popup | `.divider` | 表单与快捷区之间的分隔 |
+| library | `.notes-toolbar` | 控件行（flex wrap，gap sp-2，margin sp-2 0 sp-3），vocab/notes 共用 |
+| library | `.vocab-batch-bar` / `.notes-batch-bar` | 粘底批量条（同一选择器列表） |
+| library | `.notes-empty` | 空态块 |
+| md-preview | `.rail-section` / `.rail-label` / `.rail-sec-head` | 侧栏分区容器 / 静态标题 / 可折叠标题（共享 margin 12px 0 8px 契约） |
+| md-preview | `.msg-bar` | 状态/提示/错误条（padding 6px 10px；`data-state`） |
+| md-preview | `.send-menu` / `.send-mi` | 下拉菜单与菜单项 |
+
+清点（2026-09-05 工作流，四表面 138/97/134/273 个 token）同时给出了**候选**原语——popup 的 `actions`/`field-foot`/`banner`/`card`/`list-row`、library 的 `lib-row`/`lib-cluster`/`lib-section`/`lib-block`/`lib-quote`、md-preview 的 `rail-row`/`panel-head`/`panel-actions`/`seg-row`/`stack`/`pop-body`/`scroll-list`——每个都能吸收 5～15 个遗留类。它们**尚未登记**：登记的时机是把对应遗留类真正迁过去的那次施工，不提前占名。
+
+### 10.3 关系律（间距由关系拥有，不由元素拥有）
+
+| ID | 律 | 层 |
+|---|---|---|
+| `fgRhythm` | options `.fg` 内：`label.bl` → 控件 3–6px；任何动作行（`.fg-actions` / 裸按钮）上方 ≥4px | `[render]` family 5 |
+| `noInlineSpacing` | 四个表面 HTML 不得出现 `style="…margin/padding/gap…"` | `[static]` layout-lint RULE 5 |
+| `vocabRegistered` | 结构类名必须在注册表或遗留基线；基线只减不增 | `[static]` ui-vocabulary-lint |
+| `controlRung` | 所有可见 `input/select/.btn` 高度 ∈ {26±1, 20±1}；页签与整行可点元素白名单 | `[render]` 计划 family 6（第 2 步） |
+| `headerFace` | 同表面分区标题（h2 / `.disclosure > summary`）computed 字号/字重/颜色唯一 | `[render]` 计划 family 7 |
+| `actionRowGap` | 含 `.btn` 的 flex 行 gap 取值 ∈ 本表面允许集 | `[render]` 计划 family 8 |
+| `spacingScale` / `radiusScale` | margin/padding/border-radius 值 ∈ 本表面 token 刻度（基线 ratchet） | `[render]` 计划 family 9 |
+
+### 10.4 门与触发面
+
+- 编辑期：`.claude/settings.json` PostToolUse → `scripts/ui-consumer-lint.mjs`（layout-lint + ui-vocabulary，<1s，红即回喂）。
+- 提交期：`scripts/pre-commit-hook.sh` 第二触发组（四 HTML / 表面 JS / md-preview.css / 注册表 / 基线）。
+- push 期：`scripts/verify.sh` `[ui-vocabulary]`（含 `tests/ui-vocabulary-tests.mjs` CLI 契约）+ `[render-audit]` 的类扫描家族。
+- 新增原语的流程：注册表登记 → 本节补一行契约 → CSS 写关系规则 → 门自然放行。顺序反过来（先写 CSS 再想名字）就是本节要消灭的路径。
+
 ## 附录 A：人审清单（不可自动化的判断）
 
 自动门覆盖约八成常规缺陷（对比度、几何比例、token 解析、级联结构）。以下四类结构上无法自动判定，

@@ -30,7 +30,7 @@ paths:
 
 ## 质量门地图
 
-Pre-commit 使用**同一组触发条件**（theme-surface 源、pinboard-themes.js 或三份 CSS 任一改动）：先跑复杂 CSS 语法回归，再跑完整 `sync-all --check` 只读管线，随后补跑 source/cascade/hand-edit/UI contract 门；任一红即 block，禁止 `--no-verify`。`scripts/setup-hooks.sh` 安装的是委托器而非脚本快照，受版本控制的 hook 脚本更新后无需重装；`sh scripts/setup-hooks.sh --check`（verify.sh 的 `[hooks]` 段）检测本机是否残留旧版脚本快照。
+Pre-commit 有两组触发。主题组使用**同一组触发条件**（theme-surface 源、pinboard-themes.js 或三份 CSS 任一改动）：先跑复杂 CSS 语法回归，再跑完整 `sync-all --check` 只读管线，随后补跑 source/cascade/hand-edit/UI contract 门；任一红即 block，禁止 `--no-verify`。`scripts/setup-hooks.sh` 安装的是委托器而非脚本快照，受版本控制的 hook 脚本更新后无需重装；`sh scripts/setup-hooks.sh --check`（verify.sh 的 `[hooks]` 段）检测本机是否残留旧版脚本快照。
 
 `sync-all --check` 覆盖：`validate-contracts`、`render-all --check`、UI 六个生成区逐字节检查、13 个站点主题逐字节检查、`diff-all --strict --check`、`contrast-audit`、`css-region-audit`、`ui-token-coverage`、`layout-lint`、`url-lint`、`recipe-lint`、`override-debt`。其中 `override-debt` 从 CSS 解析器真实消费的 `(at-rule 上下文, selector, property, !important, theme)` 身份做 ratchet：删债直接通过，新增结构债必须阻断；禁止只看总数。补充门为 `token-coverage`、`cascade-lint`、`override-drift`、`handedit-audit` 与 `tests/ui-contract-tests.mjs`；CSS 解析器自身由 `tests/theme-css-syntax-tests.mjs` 固定复杂语法边界。
 

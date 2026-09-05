@@ -56,6 +56,10 @@ node "scripts/network-exits-check.mjs"
 echo "[ui-contract] checking static UI contracts"
 node "tests/ui-contract-tests.mjs"
 
+echo "[ui-vocabulary] checking structural class tokens against the registry and the legacy baseline"
+node "scripts/ui-vocabulary-lint.mjs"
+node "tests/ui-vocabulary-tests.mjs"
+
 echo "[render-audit] checking hand-written render oracle (contrast + geometry + media preferences)"
 node "scripts/ui-render-audit.mjs"
 

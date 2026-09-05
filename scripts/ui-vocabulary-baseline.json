@@ -1,0 +1,1883 @@
+{
+  "version": 1,
+  "identity": "surface + class token used by that surface's HTML/JS and not registered in docs/theme-surface/ui-vocabulary.json; `structural` marks tokens the gate blocks on. Shrink-only: remove entries as the token retires or gets registered; regenerate deliberately with --write-baseline.",
+  "surfaces": [
+    "popup",
+    "options",
+    "library",
+    "md-preview",
+    "shared"
+  ],
+  "entries": [
+    {
+      "surface": "library",
+      "token": "active",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "bad",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "c",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "card-exit",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "danger",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "ghost",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "is-error",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "lib-narrow-detail",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "lib-narrow-notes",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "motion-ready",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-c",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-color-filters",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "notes-count-compact",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-count-spoken",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-detail-back",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-detail-delete",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-detail-empty",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "notes-detail-footer",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "notes-detail-head",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "notes-detail-note",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-detail-quote",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "notes-detail-sib-title",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-detail-siblings",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "notes-detail-source",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-hit-bar",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "notes-hit-note",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-hit-text",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-item-quote",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "notes-main-status",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-row-open",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-row-title",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-selection-actions",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "notes-sib-text",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "notes-unknown-hint",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "ok",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "removable",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "selected",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "selecting",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "sr-only",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-account-actions",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-account-empty",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-batch-cluster",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-clear-selection",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-context-bar",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-ctx-text",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-actions",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-back",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-context",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-delete",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-dict",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-empty",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-footer",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-gloss",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-group-chips",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-head",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-relookup",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-speak",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-detail-term",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-filter-row",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-filter-toolbar",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-gloss-ipa",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-gloss-text",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-group-help",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-lookup-bar",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-lookup-narrow",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-lookup-saved",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-main-status",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-note-edit",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-row-gloss",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-selection-actions",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-signed-out",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-signed-out-lookup",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-stat",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-stat-trend",
+      "structural": false
+    },
+    {
+      "surface": "library",
+      "token": "vocab-stats",
+      "structural": true
+    },
+    {
+      "surface": "library",
+      "token": "vocab-status-chip",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "active",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "ask-actions",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "ask-clear-confirm",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "ask-empty",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "ask-err",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "ask-head",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "ask-open",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "ask-restored",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "ask-stopped",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "ask-tip-block",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "ask-tip-quote",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "ask-tip-status",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "bilingual",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "collapsed",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "copied",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "error",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "exp-fmt-span",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "exp-img-row",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "exp-toggles",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "export-fmt",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "export-grid",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "export-note",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "faded",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "fn-pop-body",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "fn-pop-foot",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "fn-pop-jump-label",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "footnote-backref",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "hidden",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "hl-card-ai",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "hl-card-colors",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "hl-card-degraded",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "hl-card-dot-",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "hl-card-foot",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "hl-filter-dot-",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "hl-filter-empty",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "hl-filter-row",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "hl-item-dot-",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "hl-orphan-note",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "kbd-help-chips",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "kbd-help-list",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "kbd-help-row",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "kbd-help-title",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "loading",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "md-empty",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "md-shell",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "motion-ready",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "motion-toggle",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "note",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "off",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pb-flash-fallback",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pb-hl-bar--timeline",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pb-hl-dot-",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pb-hl-hint",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pb-show-orig",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbp-img-broken",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbp-img-fix-msg",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbp-img-fix-ui",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbp-tr-view-transition",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-aux",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-bar",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-copy-group",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-follow-narrow",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-poster--enable",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-poster-label-text",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-resume",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-resume-go",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-resume-restart",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-resume-text",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-ring",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-row--aux",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-row--current",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-row--para",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-row--tr",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-sr-only",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-status",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "pbv-view-toggle",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "preview-loading",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "preview-spinner",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "rail-badges",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "rail-bottom-row",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "rail-collapsed",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "rail-open",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "rail-sec-progress",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "rail-stats",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "raw-active",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "send-empty",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "send-split",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "send-status",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "sending",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "skim-err",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "skim-head",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "skim-stale",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "sr-only",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "srch-bad",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "stale",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "streaming",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "tr-bilingual",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "tr-glossary",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "tr-glossary-list",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "tr-meta",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "tr-only",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "tr-row",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "tr-target",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "translated",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "typo-label",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "typo-row",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "typo-seg",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "typo-steps",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "url-host",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "verified",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "video-mode",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-act-group",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-body",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-ailabel",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-ctx",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-ctx-ready",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-entry",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-example",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-forms",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-head",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-ipa",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-ipa-line",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-ipa-tag",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-local",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-local-box",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-local-title",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-match",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-msg",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-online",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-pos",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-rel",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-rel-label",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-sense-tag",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-senses",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-slot",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-src",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dict-subsense",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-dragging",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-error",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-flash-fail",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-foot",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-gear-menu",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-gear-wrap",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-head",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-stream",
+      "structural": false
+    },
+    {
+      "surface": "md-preview",
+      "token": "xp-window-actions",
+      "structural": true
+    },
+    {
+      "surface": "md-preview",
+      "token": "zen",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "active",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "backup-actions",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "backup-apply-row",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "backup-export-note",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "backup-import-preview",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "backup-import-result",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "backup-preview-counts",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "backup-preview-warning",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "backup-section-picker",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "bad",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "choice-stack",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "context-help-link",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "custom",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "err",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "et-field",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "et-onboarding",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "et-test",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "export-target-card",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "hidden",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "hint-warn",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "is-closing",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "motion-ready",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "motion-toggle",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "ok",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "over",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "over-limit",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "overlay-byte-counter",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "overlay-meta-row",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "pending",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "preset-preview-content",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "preset-preview-section",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "row-inline",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "save-theme-wrap",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "saved",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "saved-theme-wrap",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "sr-only",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "storage-cat-cb",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "storage-cats",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "support-diagnostics",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "sync-local-only",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "tab-busy",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-actions",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-delete-btn",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-group-row",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-lowcount-checkbox",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-lowcount-row",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-members",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-problem-kind",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-problem-row",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-problems-title",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-progress-foot",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-queued-note",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-reason",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-reset-link",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-row-queued",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "tag-gov-warns",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "theme-group-label",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "theme-presets-group",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "tnp-actions",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "tnp-overwrite",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "visible",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "vocab-drive-actions",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "vocab-drive-copy",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "vocab-drive-fields",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "vocab-drive-notice-row",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "vocab-drive-notices",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "vocab-drive-state",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "vocab-entry-row",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "vocab-toolbar",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "warn",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "wayback-log-empty",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "wayback-log-heading",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "wayback-log-help",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "wayback-log-host",
+      "structural": true
+    },
+    {
+      "surface": "options",
+      "token": "wayback-log-more",
+      "structural": false
+    },
+    {
+      "surface": "options",
+      "token": "wayback-perm-status",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "ac-item",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "ac-new-hint",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "ai",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "alt-num-hint",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "bad",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "batch-permission",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "batch-permission-actions",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "batch-permission-list",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "batch-progress-wrap",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "bottom-bar",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "cache-hint-wrap",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "copied",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "disabled-link",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "dismissing",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "drag-over",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "dragging",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "existing-banner",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "header-icons",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "hidden",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "last-used-hint",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "loading",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "md-strip",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "model-not-found-hint",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "motion-ready",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "muted",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "near-limit",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "notes-bar",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "offline-bar",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "offline-queue-actions",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "offline-queue-body",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "offline-queue-empty",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "offline-queue-failed",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "offline-queue-item",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "ok",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "over-limit",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "quick-links",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "quick-row",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "recent-bm-area",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "recent-bm-row",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "save-error",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "saved-success",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "search-row",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "selected",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "slow",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "status-msg",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "submit-bar",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "suggest-group",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "tag-actions-row",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "tag-copied-flash",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "tags-display",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "top",
+      "structural": true
+    },
+    {
+      "surface": "popup",
+      "token": "unsupported-url",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "url-clean-hint",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "url-warning",
+      "structural": false
+    },
+    {
+      "surface": "popup",
+      "token": "used",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "bad",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "btn-ic",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "confirm-msg",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "confirm-no",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "confirm-popover",
+      "structural": true
+    },
+    {
+      "surface": "shared",
+      "token": "confirm-yes",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "dismissing",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "empty-state",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "fc-actions",
+      "structural": true
+    },
+    {
+      "surface": "shared",
+      "token": "fc-body",
+      "structural": true
+    },
+    {
+      "surface": "shared",
+      "token": "fc-details",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "fc-dismiss",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "fc-icon",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "fc-message",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "fc-title",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "feedback-card",
+      "structural": true
+    },
+    {
+      "surface": "shared",
+      "token": "is-closing",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "ok",
+      "structural": false
+    },
+    {
+      "surface": "shared",
+      "token": "status-ic",
+      "structural": false
+    }
+  ]
+}
