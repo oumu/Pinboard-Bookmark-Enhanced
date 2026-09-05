@@ -21,11 +21,14 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-full: 999px;
-  /* Spacing scale for the reader's CHROME (rail, toolbars, popovers) -- the
-     library ladder (4/8/12/16/24). Prose rhythm stays in em. Button rows use
-     --sp-2 like every other surface; the remaining literal margins/paddings
-     migrate to these rungs as they are touched (spacingScale is advisory
-     until then). */
+  /* Spacing scale for the reader's CHROME (rail, toolbars, popovers, panels)
+     -- the library ladder (4/8/12/16/24). Prose rhythm stays in em. Every
+     chrome margin, gap and container inset is one of these rungs (render-
+     audit family spacingScale, 2026-09-05). What legitimately stays literal:
+     a control's or chip's own vertical inset (rung arithmetic: 2px/3px/6px
+     + line-height + border = 20/26), a select's chevron reserve, icon-to-
+     label gaps inside a control (6px, the .btn contract), 1px hairlines,
+     and page-shell insets (main / .rail / empty states). */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -223,7 +226,7 @@ button, input, select, textarea { font-family: inherit; }
 
 /* ---- Buttons ---- */
 .action-btn, .toggle-btn {
-  padding: 4px 12px;
+  padding: var(--sp-1) var(--sp-3);
   line-height: 16px;       /* md rung: 4+16+4+2 = 26px, the height every other surface's buttons use (was ~31px) */
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
@@ -281,7 +284,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--fg-secondary);
   background: transparent;
   border: 0;
-  padding: 2px 10px;
+  padding: 2px var(--sp-2);
   cursor: pointer;
   line-height: 14px;       /* fused-shell inner on the sm rung: 2+14+2 = 18 + the shell's border = 20px */
   transition: background-color 150ms ease, color 150ms ease;
@@ -326,7 +329,7 @@ button, input, select, textarea { font-family: inherit; }
 .engine-status {
   font-size: 11px;
   color: var(--fg-secondary);
-  margin-left: 8px;
+  margin-left: var(--sp-2);
 }
 .engine-status.error { color: var(--danger); }
 .engine-status:empty { display: none; }
@@ -335,7 +338,7 @@ button, input, select, textarea { font-family: inherit; }
   font-weight: 500;
   color: var(--badge-fg);
   background: var(--badge-bg);
-  padding: 3px 10px;
+  padding: 3px var(--sp-2);
   border-radius: var(--radius-full);
   letter-spacing: 0.01em;
 }
@@ -462,8 +465,8 @@ body.zen:not(.video-mode) #skim-section { display: none; }
   display: none;
   opacity: 0;
   align-items: center;
-  gap: 6px;
-  padding: 4px;
+  gap: var(--sp-2);
+  padding: var(--sp-1);
   background: var(--surface);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
@@ -532,7 +535,7 @@ body.ask-open #zen-bar { right: calc(380px + 12px); }
   word-break: break-word;
   background: var(--surface);
   border: 1px solid var(--border);
-  padding: 24px;
+  padding: var(--sp-5);
   border-radius: var(--radius-md);
   color: var(--code-fg);
   tab-size: 2;
@@ -970,10 +973,10 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   color: var(--fg-muted);
 }
 .empty-state p { font-size: 15px; line-height: 1.6; }
-.empty-state .action-btn { margin-top: 16px; }
+.empty-state .action-btn { margin-top: var(--sp-4); }
 
 /* ---- Loading State (shortcut pending placeholder) ---- */
-.preview-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 80px 32px; }
+.preview-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-4); text-align: center; padding: 80px 32px; }
 .preview-loading p { font-size: 15px; line-height: 1.6; color: var(--fg-secondary); margin: 0; }
 .preview-loading .note { font-size: 12px; opacity: 0.72; max-width: 420px; }
 .preview-spinner {
@@ -1053,7 +1056,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
      which reads as empty space, so 6px padding + 10px gutter = 16px optical
      inset -- matching the left side exactly instead of a lopsided 26px gap
      (real-device feedback). If the global scrollbar width changes, rebalance. */
-  padding: 20px 6px 20px 16px;
+  padding: 20px 6px 20px var(--sp-4);
   background: var(--surface);
   border-right: 1px solid var(--border);
   overflow-y: auto;
@@ -1067,7 +1070,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   transition: transform 200ms var(--ease-drawer), visibility 0s;
 }
 .rail-ident h1 { font-size: 14px; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.rail-ident a { display: block; margin-top: 3px; font-size: 12px; color: var(--fg-muted); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail-ident a { display: block; margin-top: var(--sp-1); font-size: 12px; color: var(--fg-muted); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rail-ident a:hover { color: var(--link); }
 .rail-ident a .url-host { font-weight: 600; }
 /* X2: bookmarked badge — higher specificity than ".rail-ident a" above so it
@@ -1078,9 +1081,9 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 .rail-ident a.bookmark-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 6px;
-  padding: 3px 9px;
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+  padding: 3px var(--sp-2);
   border-radius: var(--radius-full);
   border: 1px solid var(--border);
   background: var(--surface);
@@ -1097,7 +1100,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 .bookmark-badge .bb-tags { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 0 1 auto; }
 .bookmark-badge .bb-lock { display: inline-flex; flex: none; margin-left: 1px; }
 .bookmark-badge .bb-lock svg { width: 11px; height: 11px; display: block; }
-.rail-badges { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 12px; }
+.rail-badges { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin: var(--sp-2) 0 var(--sp-3); }
 .rail .view-toggle { width: 100%; }
 /* Segments must FIT the fixed 264px rail in verbose locales: flex:1 alone
    can't shrink below nowrap text's min-content, so de/ru three-way labels
@@ -1115,8 +1118,8 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
      inset (not the md-tier 12) buys the en/fr row its single line. */
   flex: 1 1 auto; justify-content: center;
   min-width: 0;
-  padding-left: 8px;
-  padding-right: 8px;
+  padding-left: var(--sp-2);
+  padding-right: var(--sp-2);
   white-space: normal;
   text-align: center;
   hyphens: auto;
@@ -1127,7 +1130,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    longer applies to this toggle; full labels ride title/aria. */
 #tr-view-toggle .toggle-btn { display: inline-flex; align-items: center; justify-content: center; }
 #tr-view-toggle .toggle-btn svg { width: 16px; height: 16px; flex: none; }
-.rail-section { margin-top: 4px; }
+.rail-section { margin-top: var(--sp-1); }
 /* ---- Reader chrome contract (2026-07 Claude Design round 5) ----
    Type scale, 4 tiers shared by rail + ask/skim panels:
      lg 14px (region titles) - md 13px (primary interactive:
@@ -1160,7 +1163,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 .rail-label {
   font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
   color: var(--fg-secondary);
-  margin: 12px 0 8px; padding-top: 12px; border-top: 1px solid var(--border);
+  margin: var(--sp-3) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--border);
 }
 /* exp-toggles: the three boolean export options (frontmatter/toc/hl), real
    <button aria-pressed> toggles -- not checkboxes (spec sec.0 control
@@ -1171,7 +1174,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    net; the icon-only padding keeps each chip past the 24px hit-area floor
    (6+14+6 tall, 9+14+9 wide). */
 .exp-toggles { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
-.exp-toggles .exp-tgl { flex: none; padding: 6px 9px; justify-content: center; }
+.exp-toggles .exp-tgl { flex: none; padding: 6px var(--sp-2); justify-content: center; }
 /* Pressed state reuses .toggle-btn.active's color declarations
    (md-preview.css ~:163) -- same --active-bg/--active-fg tokens, so the
    dark-mode AA contrast already established for that control carries over
@@ -1185,8 +1188,8 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   border-color: var(--active-bg);
 }
 .exp-img-row {
-  display: flex; align-items: center; gap: 8px; margin-top: 8px;
-  padding: 4px 0; font-size: 13px; color: var(--fg-secondary); cursor: pointer;
+  display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2);
+  padding: var(--sp-1) 0; font-size: 13px; color: var(--fg-secondary); cursor: pointer;
 }
 /* Restyled to match the .action-btn family (rail feedback round 2) -- was
    plain UA select chrome, visually orphaned next to the action-btn/toggle-btn
@@ -1205,7 +1208,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 .exp-img-row select, .xp-dict-lang {
   flex: 1;
   appearance: none; -webkit-appearance: none;
-  padding: 6px 24px 6px 14px;
+  padding: 6px var(--sp-5) 6px var(--sp-3);
   border: 1px solid var(--btn-border); border-radius: var(--radius-md);
   background-color: var(--btn-bg); color: var(--btn-fg);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a94a0' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -1236,12 +1239,12 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   .exp-img-row select::picker-icon, .xp-dict-lang::picker-icon { display: none; }
   .exp-img-row select::picker(select), .xp-dict-lang::picker(select) {
     appearance: base-select;
-    margin-top: 4px;
+    margin-top: var(--sp-1);
     background: var(--bg, #fff);
     border: 1px solid var(--border, #d8dee4);
     border-radius: var(--radius-md);
     box-shadow: 0 8px 24px rgba(0,0,0,.12);
-    padding: 4px;
+    padding: var(--sp-1);
     max-height: 320px;
     overflow: auto;
     /* The picker is a top-layer pseudo-element: the document-wide
@@ -1256,7 +1259,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
     scrollbar-color: rgba(128, 128, 128, 0.35) transparent;
   }
   .exp-img-row option, .xp-dict-lang option {
-    padding: 7px 9px;
+    padding: var(--sp-2);
     border-radius: var(--radius-md);
     font-size: inherit; /* tracks each select's own size (13px exp-img-row, 0.8em tier dict-lang) */
     cursor: pointer;
@@ -1273,11 +1276,11 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    span + action-btn(s)) become the actual grid items, so the mixed
    auto-placed (fmt-name) + explicit-column (.exp-fmt-span, EPUB row) items
    land in the same row without a flattening rewrite. */
-.export-grid { margin-top: 8px; display: grid; grid-template-columns: 68px 1fr 40px; gap: 6px; align-items: stretch; }
+.export-grid { margin-top: var(--sp-2); display: grid; grid-template-columns: 68px 1fr 40px; gap: var(--sp-2); align-items: stretch; }
 .export-fmt { display: contents; }
 .export-fmt .fmt-name { width: 68px; font-size: 13px; color: var(--fg-secondary); }
 .export-fmt .action-btn { justify-content: center; }
-.export-fmt .action-btn.icon-only { padding: 6px 9px; justify-content: center; }
+.export-fmt .action-btn.icon-only { padding: 6px var(--sp-2); justify-content: center; }
 .export-fmt .action-btn.icon-only svg { margin: 0; }
 /* Export in flight (md-preview.js's _exporting gate): an embed export spends
    seconds behind a permission prompt and an image-fetch round. Two of the
@@ -1300,15 +1303,15 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 .toc-list { list-style: none; margin: 0; padding: 0; }
 .toc-list li { margin: 0; }
 .toc-list a {
-  display: block; padding: 4px 10px; color: var(--fg-secondary); text-decoration: none;
+  display: block; padding: var(--sp-1) var(--sp-2); color: var(--fg-secondary); text-decoration: none;
   border-left: 2px solid transparent; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 13px; line-height: 1.45;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
 }
 .toc-list a:hover { color: var(--fg); background: var(--border-light); }
-.toc-list a[data-level="2"] { padding-left: 10px; }
-.toc-list a[data-level="3"] { padding-left: 20px; font-size: 0.95em; }
-.toc-list a[data-level="4"] { padding-left: 30px; font-size: 0.9em; }
+.toc-list a[data-level="2"] { padding-left: var(--sp-2); }
+.toc-list a[data-level="3"] { padding-left: var(--sp-4); font-size: 0.95em; }
+.toc-list a[data-level="4"] { padding-left: var(--sp-5); font-size: 0.9em; }
 /* No font-weight bump on .active: 600 was outside the transition list, so
    scroll-driven active handoff made the label (and its ellipsis point) jump. */
 .toc-list a.active { color: var(--link); border-left-color: var(--link); background: var(--border-light); }
@@ -1338,7 +1341,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    next to TOC/Export's .rail-sec-head) visibly out of step. */
 .rail-sec-head {
   display: flex; align-items: center; gap: 6px; width: 100%;
-  margin: 12px 0 8px; padding: 12px 0 0; border: 0; border-top: 1px solid var(--border);
+  margin: var(--sp-3) 0 var(--sp-2); padding: var(--sp-3) 0 0; border: 0; border-top: 1px solid var(--border);
   background: none; font: inherit; font-size: 11px; font-weight: 600;
   letter-spacing: 0.5px; text-transform: uppercase;
   color: var(--fg-secondary); cursor: pointer; text-align: left;
@@ -1387,7 +1390,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    measured (getBoundingClientRect against a real rendered rail), not
    guessed -- centers on the chevron's own vertical midline with a ~5px
    clearance on both sides (count and tri). */
-#hl-rail-section .rail-sec-count { margin-right: 32px; }
+#hl-rail-section .rail-sec-count { margin-right: calc(24px + var(--sp-2)) /* the 24px add button + one gap */; }
 /* top:23px is fitted to .rail-sec-head's own box (margin:12px 0 8px; padding:12px 0 0;
    font-size:11px at ~1249-1251 above) -- it centers this button on that header's
    chevron midline the same way the comment above .rail-sec-count explains. Editing
@@ -1585,7 +1588,7 @@ body.md-shell .rail > .view-toggle { display: none; }
   top: 8px;
   left: 8px;
   z-index: 100;
-  padding: 6px 12px;
+  padding: var(--sp-2) var(--sp-3);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -1600,11 +1603,11 @@ body.md-shell .rail > .view-toggle { display: none; }
 #rendered-view:focus { outline: none; }
 
 /* Send-to-Obsidian: full-width action below the Copy/Download grid */
-.obsidian-btn { width: 100%; justify-content: center; margin-top: 8px; }
+.obsidian-btn { width: 100%; justify-content: center; margin-top: var(--sp-2); }
 
 /* ---- Send-to split button (replaces .obsidian-btn) ---- */
-.send-split { position: relative; display: flex; margin-top: 8px; }
-.send-primary { flex: 1; justify-content: flex-start; gap: 7px;
+.send-split { position: relative; display: flex; margin-top: var(--sp-2); }
+.send-primary { flex: 1; justify-content: flex-start; gap: 6px;
   border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .send-primary .send-ic { display: inline-flex; width: 14px; height: 14px; flex: 0 0 14px; }
 .send-primary .send-ic svg { width: 14px; height: 14px; }
@@ -1623,7 +1626,7 @@ body.md-shell .rail > .view-toggle { display: none; }
   border-top-right-radius: 6px; border-bottom-right-radius: 6px; opacity: .85; }
 .send-menu { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20;
   background: var(--bg, #fff); border: 1px solid var(--border, #d8dee4); border-radius: var(--radius-md);
-  box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 4px; max-height: 320px; overflow: auto; }
+  box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: var(--sp-1); max-height: 320px; overflow: auto; }
 .send-menu[hidden] { display: none; }
 html.motion-ready .send-menu {
   opacity: 1;
@@ -1639,7 +1642,7 @@ html.motion-ready .send-menu[hidden] {
   pointer-events: none; /* stays rendered through the 100ms fade-out; must not eat clicks */
   transition-duration: var(--motion-pop-out);
 }
-.send-mi { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 9px;
+.send-mi { display: flex; align-items: center; gap: var(--sp-2); width: 100%; padding: var(--sp-2);
   background: none; border: 0; border-radius: var(--radius-md); font: inherit; color: inherit;
   text-align: left; cursor: pointer; transition: background-color 120ms ease; }
 .send-mi:hover { background: var(--row-hover, rgba(127,127,127,.14)); }
@@ -1651,7 +1654,7 @@ html.motion-ready .send-menu[hidden] {
    is a solid token that clears 4.5:1 against --bg in both light/dark (5.43:1 /
    6.09:1) regardless of what's behind it. */
 .send-mi-tag { margin-left: auto; font-size: 11px; color: var(--fg-muted); }
-.send-mi-foot { border-top: 1px solid var(--border, #d8dee4); margin-top: 4px;
+.send-mi-foot { border-top: 1px solid var(--border, #d8dee4); margin-top: var(--sp-1);
   border-radius: 0; opacity: .8; font-size: 12px; }
 /* Message bar (T7.9): the one look every inline notice shares -- own row,
    light ground, 3px semantic stripe. Tones: info/busy ride the link stripe
@@ -1661,7 +1664,7 @@ html.motion-ready .send-menu[hidden] {
    (.send-status, .skim-stale, .pbv-status, .pbv-resume) carry only their
    deltas: layout, spacing, type size, default tone. */
 .msg-bar {
-  padding: 6px 10px; line-height: 1.45; word-break: break-word;
+  padding: var(--sp-2) var(--sp-3); line-height: 1.45; word-break: break-word;
   color: var(--fg-secondary); background: var(--btn-bg);
   border: 1px solid var(--border); border-left: 3px solid var(--link);
   border-radius: var(--radius-md);
@@ -1684,7 +1687,7 @@ html.motion-ready .msg-bar[data-state="busy"] { animation: msg-bar-busy-pulse 1.
 /* Send result: success tone by default (it only ever appears after a
    completed send); click-to-dismiss. */
 .send-status {
-  margin-top: 8px; padding: 8px 10px; font-size: 12px;
+  margin-top: var(--sp-2); padding: var(--sp-2) var(--sp-3); font-size: 12px;
   border-left-color: var(--success); cursor: pointer;
 }
 .send-status a { color: var(--link); font-weight: 600; text-decoration: underline; white-space: nowrap; }
@@ -1692,7 +1695,7 @@ html.motion-ready .msg-bar[data-state="busy"] { animation: msg-bar-busy-pulse 1.
 /* Embed-export partial-coverage notice (Task 4): informational only, no click
    affordance -- unlike .send-status it self-hides via a timer, not a click. */
 .export-note {
-  margin-top: 6px; padding: 6px 10px;
+  margin-top: var(--sp-2); padding: var(--sp-2) var(--sp-3);
   font-size: 12px; line-height: 1.45; word-break: break-word;
   color: var(--fg-secondary); background: var(--btn-bg);
   border: 1px solid var(--border); border-radius: var(--radius-md);
@@ -1793,8 +1796,8 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px 8px;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
   border-bottom: 1px solid var(--border-light);
   font-weight: 600;
   cursor: grab;
@@ -1836,7 +1839,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-window-actions {
   display: flex;
   flex: 0 0 auto;
-  gap: 2px;
+  gap: var(--sp-1);
 }
 .xp-pin, .xp-close {
   display: inline-flex;
@@ -1895,7 +1898,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   text-overflow: ellipsis;
 }
 .xp-body {
-  padding: 10px 14px;
+  padding: var(--sp-3);
   overflow-y: auto;
   /* Matches the loading skeleton exactly, so the card does not visibly shrink
      and re-grow the instant the first token lands. Three .xp-skel bars at
@@ -1924,9 +1927,9 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 @media (prefers-reduced-motion: reduce) {
   .xp-skel { animation-duration: 1.2s !important; animation-iteration-count: infinite !important; }
 }
-.xp-error p { color: var(--danger); margin: 0 0 8px; font-size: 0.9em; }
+.xp-error p { color: var(--danger); margin: 0 0 var(--sp-2); font-size: 0.9em; }
 .xp-retry, .xp-ask, .xp-save, .xp-vocab, .xp-known, .xp-open-vocab, .xp-dict-connect {
-  padding: 4px 10px;
+  padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -1946,7 +1949,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-retry:active, .xp-ask:active, .xp-save:active:not(:disabled), .xp-vocab:active:not(:disabled), .xp-known:active:not(:disabled), .xp-open-vocab:active, .xp-dict-connect:active:not(:disabled) { transform: translateY(1px); }
 /* Retry buttons carry the shared refresh icon before their label (icon+text
    per the icon audit); the xp family is not flex, so align/space inline. */
-.xp-retry svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px; }
+.xp-retry svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: var(--sp-1); }
 /* One-shot failure pulse for icon-only foot buttons: flashButtonLabel swaps
    textContent and would strip the SVG, so failure feedback is a fading
    border pulse plus the #copy-status announcement. */
@@ -1960,8 +1963,8 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   /* The actions are icons now, so the row no longer outgrows the card and has
      nothing to wrap. Kept as a safety valve for the largest type tiers. */
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 14px 10px;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
   border-top: 1px solid var(--border-light);
 }
 /* Icon-only foot actions. Square, so four of them plus the gear fit on one line
@@ -1980,11 +1983,11 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   height: 1.05em;
 }
 /* Dictionary view (md-dict.js) */
-.xp-dict-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.xp-dict-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
 /* Joins the .exp-img-row select recipe above (shared border/background/chevron);
    this override only densifies for the dict view's tighter header row. */
-.xp-dict-lang { flex: 0 1 auto; padding: 3px 22px 3px 8px; font-size: 0.8em; background-position: right 6px center; }
-.xp-dict-speak { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--btn-border); border-radius: var(--radius-md); padding: 4px; cursor: pointer; color: inherit; font-size: 1em; /* buttons don't inherit font-size; the 0.8em svg needs this anchor */ }
+.xp-dict-lang { flex: 0 1 auto; padding: 3px 22px 3px var(--sp-2); font-size: 0.8em; background-position: right 6px center; }
+.xp-dict-speak { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--btn-border); border-radius: var(--radius-md); padding: var(--sp-1); cursor: pointer; color: inherit; font-size: 1em; /* buttons don't inherit font-size; the 0.8em svg needs this anchor */ }
 .xp-dict-speak:hover { background: var(--btn-hover); }
 .xp-dict-speak:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .xp-dict-speak svg { width: 0.8em; height: 0.8em; }
@@ -1994,7 +1997,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 /* Click-to-expand for senses past SHOW: text-link styling, one line. */
 .xp-dict-more {
   display: block;
-  margin: 4px 0 0;
+  margin: var(--sp-1) 0 0;
   padding: 0;
   border: none;
   background: none;
@@ -2017,14 +2020,14 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-dict-lemma-link:hover { color: var(--link-hover); }
 .xp-dict-lemma-link:focus-visible { color: var(--link-hover); outline: 2px solid var(--link); outline-offset: 2px; }
 .xp-dict-slot { min-height: 20px; }
-.xp-dict-match { color: var(--fg-muted); font-size: 0.8em; margin: 0 0 6px; }
-.xp-dict-entry { margin: 0 0 8px; }
-.xp-dict-ipa-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.xp-dict-match { color: var(--fg-muted); font-size: 0.8em; margin: 0 0 var(--sp-2); }
+.xp-dict-entry { margin: 0 0 var(--sp-2); }
+.xp-dict-ipa-line { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: baseline; }
 .xp-dict-pos { font-style: italic; color: var(--fg-muted); }
 .xp-dict-ipa-tag { font-size: 0.75em; color: var(--fg-muted); }
-.xp-dict-forms { font-size: 0.8em; color: var(--fg-muted); margin-top: 2px; }
-.xp-dict-senses { margin: 6px 0 0; padding-left: 1.4em; }
-.xp-dict-senses li { margin: 2px 0; }
+.xp-dict-forms { font-size: 0.8em; color: var(--fg-muted); margin-top: var(--sp-1); }
+.xp-dict-senses { margin: var(--sp-2) 0 0; padding-left: 1.4em; }
+.xp-dict-senses li { margin: var(--sp-1) 0; }
 /* A lone sense needs no "1." -- the number only means something when it
    distinguishes one sense from another. Negating the list's own indent keeps
    the text flush with everything else in the card. Uses :only-child rather
@@ -2034,16 +2037,16 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-dict-sense-tag { font-size: 0.85em; color: var(--fg-muted); font-style: italic; }
 /* Stable containers inside .xp-dict-slot: the local pack writes the first, every
    online path writes the second. Empty until something lands in them. */
-.xp-dict-local:not(:empty) { margin-bottom: 8px; }
+.xp-dict-local:not(:empty) { margin-bottom: var(--sp-2); }
 .xp-dict-local-title { font-size: 0.8em; color: var(--fg-muted); font-style: italic; }
-.xp-dict-subsense { font-size: 0.95em; margin-top: 2px; padding-left: 0.9em; }
-.xp-dict-rel { font-size: 0.85em; color: var(--fg-muted); margin-top: 2px; }
+.xp-dict-subsense { font-size: 0.95em; margin-top: var(--sp-1); padding-left: 0.9em; }
+.xp-dict-rel { font-size: 0.85em; color: var(--fg-muted); margin-top: var(--sp-1); }
 .xp-dict-rel-label { font-style: italic; }
-.xp-dict-src { font-size: 0.75em; color: var(--fg-muted); margin-top: 6px; }
+.xp-dict-src { font-size: 0.75em; color: var(--fg-muted); margin-top: var(--sp-2); }
 .xp-dict-src a { color: inherit; }
-.xp-dict-ctx { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 8px; }
-.xp-dict-ailabel { font-size: 0.75em; color: var(--fg-muted); margin-top: 4px; }
-.xp-dict-msg { color: var(--fg-muted); padding: 4px 0; }
+.xp-dict-ctx { border-top: 1px solid var(--border); margin-top: var(--sp-2); padding-top: var(--sp-2); }
+.xp-dict-ailabel { font-size: 0.75em; color: var(--fg-muted); margin-top: var(--sp-1); }
+.xp-dict-msg { color: var(--fg-muted); padding: var(--sp-1) 0; }
 
 .xp-model {
   /* basis 0, not auto: flex-wrap breaks lines on HYPOTHETICAL sizes before
@@ -2089,11 +2092,11 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   bottom: calc(100% - 6px);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-1);
   min-width: min(200px, 100%);
   width: max-content;
   max-width: calc(100% - 28px);
-  padding: 8px 10px;
+  padding: var(--sp-2) var(--sp-3);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -2119,8 +2122,8 @@ html.motion-ready .xp-gear-menu[hidden] {
 .xp-gear-menu label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 2px;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
   cursor: pointer;
   color: var(--fg-secondary);
 }
@@ -2133,8 +2136,8 @@ html.motion-ready .xp-gear-menu[hidden] {
   justify-content: center;
   min-width: 16px;
   height: 16px;
-  padding: 0 4px;
-  margin: 0 2px;
+  padding: 0 var(--sp-1);
+  margin: 0 var(--sp-1);
   border: 1px dashed var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -2158,7 +2161,7 @@ html.motion-ready .xp-gear-menu[hidden] {
 /* Timed chip on transcripts (research T1.4/T1.5): shows the cited
    paragraph's mm:ss instead of a sequence number -- a little wider, and
    tabular so a column of them lines up as a chapter list. */
-.ask-chip--time { padding: 0 6px; font-variant-numeric: tabular-nums; }
+.ask-chip--time { padding: 0 var(--sp-2); font-variant-numeric: tabular-nums; }
 /* Ask scope toggle (research T1.5): a real toggle in the project's
    aria-pressed vocabulary (same pressed look as .pbv-follow); sits left of
    Stop/Send. Hidden unless the transcript paragraphs are timed. */
@@ -2172,7 +2175,7 @@ html.motion-ready .xp-gear-menu[hidden] {
   height: 5px;
   border-radius: 50%;
   background: var(--success);
-  margin-left: 3px;
+  margin-left: var(--sp-1);
   flex-shrink: 0;
 }
 /* Verified vs unverified is also carried by border line style, not just the
@@ -2201,7 +2204,7 @@ html.motion-ready .xp-gear-menu[hidden] {
   z-index: 80;
   display: none;
   max-width: 360px;
-  padding: 8px 10px;
+  padding: var(--sp-2) var(--sp-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -2212,8 +2215,8 @@ html.motion-ready .xp-gear-menu[hidden] {
   pointer-events: none;
 }
 #ask-tip .ask-tip-quote { color: var(--fg); }
-#ask-tip .ask-tip-block { color: var(--fg-muted); margin-top: 4px; }
-#ask-tip .ask-tip-status { color: var(--success); margin-top: 4px; font-weight: 600; }
+#ask-tip .ask-tip-block { color: var(--fg-muted); margin-top: var(--sp-1); }
+#ask-tip .ask-tip-status { color: var(--success); margin-top: var(--sp-1); font-weight: 600; }
 
 /* Jump flash: CSS Custom Highlight API (primary path). */
 /* M3-b: same currentColor/light-dark technique as #rendered-view ::selection
@@ -2312,10 +2315,10 @@ body.tr-only #rendered-view [data-pb-hl-mirror="5"] { box-shadow: inset 3px 0 0 
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--sp-2);
   width: max-content;
   max-width: min(60ch, calc(100vw - 8px));
-  padding: 6px 10px;
+  padding: var(--sp-2) var(--sp-3);
   font-size: 12px;
   white-space: normal;
   color: var(--danger);
@@ -2327,7 +2330,7 @@ body.tr-only #rendered-view [data-pb-hl-mirror="5"] { box-shadow: inset 3px 0 0 
 .confirm-popover .confirm-msg { flex: 1 1 16ch; min-width: 0; font-weight: 600; color: inherit; white-space: pre-line; overflow-wrap: anywhere; }
 .confirm-popover button {
   flex: none;
-  padding: 2px 8px;
+  padding: 2px var(--sp-2);
   font-size: 12px;
   cursor: pointer;
   border-radius: var(--radius-md);
@@ -2357,8 +2360,8 @@ html.motion-ready .confirm-popover.is-closing {
    same tokens as the edit card / rail controls; no new color literal. Lives
    inside the rail, which @media print already hides. */
 .hl-item-lang {
-  margin-left: 6px;
-  padding: 0 5px;
+  margin-left: var(--sp-2);
+  padding: 0 var(--sp-1);
   font-size: 10px;
   line-height: 1.6;
   border: 1px solid var(--btn-border);
@@ -2374,8 +2377,8 @@ html.motion-ready .confirm-popover.is-closing {
   inset: auto;
   margin: 0;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
   background: var(--surface);
@@ -2650,8 +2653,8 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 6px;
-  padding: 4px 12px;
+  margin-top: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
   border: 1px solid var(--danger);
   border-radius: var(--radius-full);
   background: transparent;
@@ -2669,10 +2672,10 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
 #tr-retry-all:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
 /* Rail translate section */
-#tr-section .tr-row { display: flex; gap: 6px; }
+#tr-section .tr-row { display: flex; gap: var(--sp-2); }
 #tr-section .tr-row .action-btn { flex: 1; justify-content: center; }
 #tr-section .tr-row .action-btn svg { width: 14px; height: 14px; }
-#tr-section .tr-meta { margin-top: 6px; font-size: 12px; color: var(--fg-secondary); }
+#tr-section .tr-meta { margin-top: var(--sp-2); font-size: 12px; color: var(--fg-secondary); }
 #tr-section .tr-meta[hidden] { display: none; }
 #tr-section .tr-glossary > summary { cursor: pointer; display: flex; align-items: center; gap: 6px; list-style: none; }
 #tr-section .tr-glossary > summary::-webkit-details-marker { display: none; }
@@ -2688,15 +2691,15 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
 /* Focus ring: shared soft-focus recipe (rail section). */
 #tr-section .tr-glossary-list {
   display: grid;
-  gap: 4px;
+  gap: var(--sp-1);
   max-height: 18rem;
-  margin: 6px 0 0;
+  margin: var(--sp-2) 0 0;
   overflow: auto;
 }
 #tr-section .tr-glossary-list > div {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
+  gap: var(--sp-2);
 }
 #tr-section .tr-glossary-list dt,
 #tr-section .tr-glossary-list dd {
@@ -2709,14 +2712,14 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
    restate it so btn.hidden / stop.hidden actually hide the translate & stop buttons
    (otherwise they stay visible reading "翻译中" after the run finishes). */
 #tr-section .tr-row .action-btn[hidden] { display: none; }
-#tr-section .tr-target { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+#tr-section .tr-target { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
 #tr-section .tr-link {
   border: 0; background: none; padding: 0; cursor: pointer;
   font: inherit; font-size: 12px; color: var(--link); text-decoration: underline;
 }
 #tr-section .tr-link:hover { color: var(--link-hover); }
 #tr-section .tr-link:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-#tr-section .view-toggle { margin-top: 8px; }
+#tr-section .view-toggle { margin-top: var(--sp-2); }
 
 /* ---- Ask panel (md-ask.js): fixed right column on wide viewports ---- */
 #ask-panel {
@@ -2725,8 +2728,8 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   width: 380px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
   font-size: var(--panel-payload-fs); /* em base for the panel's own hierarchy */
   background: var(--surface);
   border-left: 1px solid var(--border);
@@ -2775,10 +2778,10 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
 }
 
 /* Third column: push the centered doc body away from the open panel. */
-/* panel width (380) + panel padding (16) = 396 */
-body.ask-open main { margin-right: 396px; }
+/* panel width (380) + panel padding (--sp-4) */
+body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 
-.ask-head { display: flex; align-items: center; gap: 6px; }
+.ask-head { display: flex; align-items: center; gap: var(--sp-2); }
 .ask-head h2 { flex: 1; font-size: 1.05em; font-weight: 600; margin: 0; }
 /* Region buttons inside the panel follow the panel's em base, not the rail's
    fixed md tier -- a 13px Send next to the payload-size input read tiny. */
@@ -2813,16 +2816,16 @@ body.ask-open main { margin-right: 396px; }
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-right: 4px;
+  gap: var(--sp-2);
+  padding-right: var(--sp-1);
 }
 .ask-empty { font-size: 0.85em; color: var(--fg-muted); margin: 0; }
 .ask-q {
-  font-weight: 600; font-size: var(--panel-payload-fs); color: var(--fg); margin-top: 8px;
+  font-weight: 600; font-size: var(--panel-payload-fs); color: var(--fg); margin-top: var(--sp-2);
   /* Scan anchor: long threads need a landmark stronger than bold-vs-regular;
      a bar adds it without another type size. */
   border-left: 2px solid var(--fg-muted);
-  padding-left: 8px;
+  padding-left: var(--sp-2);
 }
 .ask-q:first-child { margin-top: 0; }
 .ask-a { font-size: var(--panel-payload-fs); line-height: 1.65; color: var(--fg); overflow-wrap: break-word; }
@@ -2833,14 +2836,14 @@ body.ask-open main { margin-right: 396px; }
    citation-pipeline task later appends a bare .ask-chip rule for the tiny
    superscript chips inside answers; this ID+class selector wins for the
    starter chips regardless of source order. */
-#ask-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+#ask-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 #ask-chips .ask-chip {
   display: inline-flex;
   align-items: center;
   min-width: 0;
   height: auto;
   margin: 0;
-  padding: 4px 10px;
+  padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-full);
   background: transparent;
@@ -2853,7 +2856,7 @@ body.ask-open main { margin-right: 396px; }
 }
 #ask-chips .ask-chip:hover { background: var(--btn-hover); border-color: var(--link); color: var(--fg); }
 
-#ask-form { display: flex; flex-direction: column; gap: 8px; }
+#ask-form { display: flex; flex-direction: column; gap: var(--sp-2); }
 #ask-input {
   width: 100%;
   /* Auto-grow (chat-input convention: ChatGPT/Claude/Slack all grow-with-
@@ -2866,7 +2869,7 @@ body.ask-open main { margin-right: 396px; }
   resize: none;
   min-height: 44px;
   max-height: calc(12em + 18px); /* 8 lines x 1.5 line-height + padding/border */
-  padding: 8px 10px;
+  padding: var(--sp-2) var(--sp-3);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -2940,26 +2943,26 @@ body.ask-open main { margin-right: 396px; }
 }
 @keyframes pbp-ask-caret { 50% { opacity: 0; } }
 
-.ask-stopped { font-size: 0.8em; color: var(--fg-muted); margin: 6px 0 0; }
-.ask-err { font-size: 0.85em; color: var(--danger); margin: 0 0 6px; overflow-wrap: break-word; }
-.ask-retry { padding: 4px 10px; font-size: 0.8em; border-radius: var(--radius-sm); }
+.ask-stopped { font-size: 0.8em; color: var(--fg-muted); margin: var(--sp-2) 0 0; }
+.ask-err { font-size: 0.85em; color: var(--danger); margin: 0 0 var(--sp-2); overflow-wrap: break-word; }
+.ask-retry { padding: var(--sp-1) var(--sp-2); font-size: 0.8em; border-radius: var(--radius-sm); }
 
 /* ---- Ask history chrome: restored note / clear confirm / answer copy ---- */
 .ask-restored {
   font-size: 0.8em;
   color: var(--fg-muted);
-  margin: 0 0 8px;
+  margin: 0 0 var(--sp-2);
 }
 .ask-clear-btn {
   align-self: flex-start;
-  padding: 4px 10px;
+  padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-sm);
   background: var(--btn-bg);
   color: var(--fg-secondary);
   font-size: 0.8em;
   cursor: pointer;
-  margin: 0 0 8px;
+  margin: 0 0 var(--sp-2);
 }
 .ask-clear-btn:hover { color: var(--danger); border-color: var(--danger); }
 .ask-clear-btn:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
@@ -2969,9 +2972,9 @@ body.ask-open main { margin-right: 396px; }
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 10px;
-  margin: 0 0 8px;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  margin: 0 0 var(--sp-2);
   border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
   border-left: 3px solid color-mix(in srgb, var(--danger) 75%, transparent);
   border-radius: var(--radius-md);
@@ -2982,9 +2985,9 @@ body.ask-open main { margin-right: 396px; }
 .ask-clear-confirm .ask-clear-msg { flex: 1 1 100%; }
 .ask-clear-confirm .ask-clear-yes { color: var(--danger); border-color: var(--danger); }
 .ask-copy-btn, .ask-regenerate {
-  margin-top: 8px;
-  margin-right: 6px;
-  padding: 4px 10px;
+  margin-top: var(--sp-2);
+  margin-right: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
   border-radius: var(--radius-sm);
   font-size: 0.8em;
 }
@@ -2999,8 +3002,8 @@ body.ask-open main { margin-right: 396px; }
   max-height: min(360px, calc(100vh - 32px));
   display: none;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -3012,7 +3015,7 @@ body.ask-open main { margin-right: 396px; }
 #pb-hl-card button, #pb-hl-card textarea { font-family: inherit; }
 .hl-card-quote {
   margin: 0;
-  padding: 6px 10px;
+  padding: var(--sp-2) var(--sp-3);
   border-left: 3px solid var(--fg-muted);
   color: var(--fg-secondary);
   font-size: 12.5px;
@@ -3071,7 +3074,7 @@ body.ask-open main { margin-right: 396px; }
 .hl-card-note {
   width: 100%;
   min-height: 56px;
-  padding: 6px 8px;
+  padding: var(--sp-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -3083,7 +3086,7 @@ body.ask-open main { margin-right: 396px; }
    popover, so the row's full width is the misclick guard. */
 .hl-card-foot { display: flex; justify-content: space-between; gap: var(--sp-2); }
 .hl-card-save, .hl-card-delete {
-  padding: 4px 10px;
+  padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -3109,7 +3112,7 @@ body.ask-open main { margin-right: 396px; }
 .hl-rail-btn { width: 100%; justify-content: center; }
 
 /* ---- Highlight notebook list (md-highlight.js, spec 2026-07-04 sec.2) ---- */
-.hl-filter-row { display: flex; gap: var(--sp-2); padding: 4px 2px 8px; }
+.hl-filter-row { display: flex; gap: var(--sp-2); padding: var(--sp-1) 0 var(--sp-2); }
 .hl-filter-dot {
   width: 12px; height: 12px; padding: 0;
   border-radius: 50%;
@@ -3131,19 +3134,19 @@ body.ask-open main { margin-right: 396px; }
 .hl-filter-dot-5 { background: light-dark(#c084fc, #8B72AF); }
 .hl-filter-dot.off { opacity: 0.25; }
 .hl-filter-dot:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-.hl-filter-empty { font-size: 13px; color: var(--fg-muted); margin: 4px 2px 8px; }
+.hl-filter-empty { font-size: 13px; color: var(--fg-muted); margin: var(--sp-1) 0 var(--sp-2); }
 /* Anchoring round: count-gated "N couldn't be located" note (hidden at 0)
    + the orphan rows themselves. Orphan != dim: dim is "temporarily hidden
    by the translation view" (recoverable this session), orphan is "the
    page's content no longer contains this quote" -- dashed edge marks it as
    detached, the note text stays fully readable (data outlives anchor). */
-.hl-orphan-note { font-size: 12px; color: var(--fg-muted); margin: 2px 2px 6px; }
-.hl-item-orphan { border-left: 2px dashed var(--border); padding-left: 6px; }
+.hl-orphan-note { font-size: 12px; color: var(--fg-muted); margin: var(--sp-1) 0 var(--sp-2); }
+.hl-item-orphan { border-left: 2px dashed var(--border); padding-left: var(--sp-2); }
 .hl-item-orphan .hl-item-main { opacity: 0.55; }
 .hl-list { list-style: none; margin: 0; padding: 0; max-height: 40vh; overflow-y: auto; }
 .hl-item {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-  padding: 4px 2px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-1) 0;
   border-bottom: 1px solid var(--border-light);
 }
 .hl-item:last-child { border-bottom: none; }
@@ -3155,7 +3158,7 @@ body.ask-open main { margin-right: 396px; }
      breaks out via its own flex-basis:100%. */
   flex: 1 1 0; min-width: 0;
   display: flex; align-items: center; gap: 6px;
-  background: none; border: none; padding: 2px 4px;
+  background: none; border: none; padding: 2px var(--sp-1);
   color: inherit; font: inherit; text-align: left;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -3195,7 +3198,7 @@ body.ask-open main { margin-right: 396px; }
 .hl-item-del:focus-visible { color: var(--danger); background: var(--border-light); outline: 2px solid var(--link); outline-offset: 2px; }
 .hl-item-note {
   flex-basis: 100%;
-  padding-left: 18px;
+  padding-left: calc(var(--sp-1) + 8px + 6px); /* .hl-item-main inset + dot + its icon gap: the note starts under the quote text */
   font-size: 11px;
   color: var(--fg-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -3218,8 +3221,8 @@ body.ask-open main { margin-right: 396px; }
   max-height: min(320px, calc(100vh - 32px));
   display: none;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -3255,8 +3258,8 @@ html.motion-ready #fn-pop:popover-open {
 .fn-pop-jump {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
+  gap: 6px;
+  padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -3279,8 +3282,8 @@ html.motion-ready #fn-pop:popover-open {
   transform: translateX(-50%);
   margin: 0;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--btn-border);
@@ -3293,7 +3296,7 @@ html.motion-ready #fn-pop:popover-open {
    copied verbatim, spec sec.6.4). */
 #search-input {
   width: min(240px, 40vw);
-  padding: 6px 8px;
+  padding: 6px var(--sp-2);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -3370,8 +3373,8 @@ html.motion-ready #fn-pop:popover-open {
   height: fit-content;
   display: none;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -3399,12 +3402,12 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
   @starting-style { opacity: 0; }
 }
 .kbd-help-title { font-weight: 600; font-size: 14px; }
-.kbd-help-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.kbd-help-row { display: flex; align-items: center; gap: 10px; }
-.kbd-help-chips { display: flex; gap: 4px; flex: none; min-width: 66px; }
+.kbd-help-list { list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); }
+.kbd-help-row { display: flex; align-items: center; gap: var(--sp-3); }
+.kbd-help-chips { display: flex; gap: var(--sp-1); flex: none; min-width: 66px; }
 .kbd-help-chip {
   display: inline-block;
-  padding: 1px 6px;
+  padding: 1px var(--sp-1);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-sm);
   background: var(--btn-bg);
@@ -3433,7 +3436,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
 .rail-bottom-row {
   display: flex;
   gap: var(--sp-2);
-  margin-top: 10px;
+  margin-top: var(--sp-3);
 }
 .rail-kbd-help-btn {
   flex: 1 1 auto;
@@ -3467,9 +3470,9 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
   position: fixed;
   display: none;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--sp-3);
   width: 232px;
-  padding: 12px 14px;
+  padding: var(--sp-3);
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -3482,7 +3485,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
    panel in every locale with long words (en "Relaxed" clipped, ru
    "Межстрочный интервал" hopeless) -- vertical stacking makes the full panel
    width available to the controls in all 9 locales. */
-.typo-row { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.typo-row { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-2); }
 .typo-label { color: var(--fg-secondary); }
 .typo-steps { display: flex; align-items: center; gap: var(--sp-2); }
 .typo-step {
@@ -3510,7 +3513,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
 .typo-seg-btn {
   flex: 1 1 0;
   min-width: 0;
-  padding: 3px 4px;
+  padding: 3px var(--sp-1);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -3552,8 +3555,8 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
    gets its own smaller UI-scale font-size (14px) independent of
    #rendered-view's large clamp()-based article prose size. ---- */
 #skim-section {
-  margin: 0 0 20px;
-  padding: 14px 16px;
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-4);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -3561,7 +3564,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
   line-height: 1.55;
   color: var(--fg);
 }
-.skim-head { display: flex; align-items: center; gap: 6px; }
+.skim-head { display: flex; align-items: center; gap: var(--sp-2); }
 .skim-head h2 { flex: 1; font-size: 1.05em; font-weight: 600; margin: 0; }
 #skim-stop[hidden] { display: none; }
 /* Icon-only header buttons -- same 28x28/border/hover/focus-visible
@@ -3593,18 +3596,18 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
   html.motion-ready #skim-collapse.motion-toggle svg { transition: none; }
 }
 .skim-stale {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  margin-top: 8px; font-size: 0.8em;
+  display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap;
+  margin-top: var(--sp-2); font-size: 0.8em;
 }
-.skim-stale-btn { padding: 3px 10px; font-size: 0.8em; }
-#skim-body { margin-top: 8px; }
+.skim-stale-btn { padding: 3px var(--sp-2); font-size: 0.8em; }
+#skim-body { margin-top: var(--sp-2); }
 #skim-body > :first-child { margin-top: 0; }
 #skim-body > :last-child { margin-bottom: 0; }
 #skim-body ul { margin: 0; padding-left: 1.3em; }
-#skim-body li { margin: 4px 0; }
-.skim-err { font-size: 0.85em; color: var(--danger); margin: 0 0 6px; overflow-wrap: break-word; }
-.skim-retry { padding: 3px 10px; font-size: 0.8em; }
-#skim-status, #skim-usage { margin-top: 8px; font-size: 0.8em; color: var(--fg-secondary); }
+#skim-body li { margin: var(--sp-1) 0; }
+.skim-err { font-size: 0.85em; color: var(--danger); margin: 0 0 var(--sp-2); overflow-wrap: break-word; }
+.skim-retry { padding: 3px var(--sp-2); font-size: 0.8em; }
+#skim-status, #skim-usage { margin-top: var(--sp-2); font-size: 0.8em; color: var(--fg-secondary); }
 #skim-status[hidden], #skim-usage[hidden] { display: none; }
 /* Collapsed state (spec 1.2.1/1.3): CSS-only, storage-persisted via
    md-skim.js's _pbpSkimWireCollapse -- header row stays visible, the
@@ -3625,7 +3628,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 #pb-hl-bar.pb-hl-bar--timeline .pb-hl-hint { display: inline-block; font-size: 0.78em; color: var(--fg-muted); padding: 0 6px; align-self: center; white-space: nowrap; }
 
 /* ---- video panel (md-video.js) ---- */
-.video-panel { margin: 0 0 20px; }
+.video-panel { margin: 0 0 var(--sp-5); }
 /* Poster-card CTA (design option A): occupies the same 16:9 box the player
    replaces it with, so loading causes no layout shift. */
 .pbv-poster {
@@ -3642,7 +3645,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 }
 .pbv-play svg { width: 24px; height: 24px; }
 .pbv-poster-label {
-  position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 12px;
+  position: absolute; left: 0; right: 0; bottom: 0; padding: var(--sp-2) var(--sp-3);
   background: var(--surface); border-top: 1px solid var(--btn-border);
   font-size: 0.9em; text-align: left;
 }
@@ -3655,16 +3658,16 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 /* Sizing (aspect-ratio/width/height) lives on the iframe itself in the
    video-mode workspace region below (A2) -- applies here too since that's
    a plain #video-panel .pbv-media iframe selector, not workspace-gated. */
-.pbv-media { margin-bottom: 8px; position: relative; }
+.pbv-media { margin-bottom: var(--sp-2); position: relative; }
 .pbv-media iframe { border: 0; border-radius: var(--radius-lg); }
-.pbv-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.pbv-bar { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-2); }
 /* Three semantic groups (T7.6) read through spacing alone, no dividers:
    tracks / status | transcript actions (copy, AI) | playback / view. The
    gap sits on each group's first child (.pb-hl-explain-btn uses the same
    first-child idiom); .pbv-follow and .pbv-estimate are never visible
    together (syncLiveControls), so the third gap applies once. A hidden
    first child collapses its gap with it -- an empty group gets no gap. */
-.pbv-copy-group, .pbv-follow, .pbv-estimate { margin-left: 12px; }
+.pbv-copy-group, .pbv-follow, .pbv-estimate { margin-left: var(--sp-3); }
 /* ONE control family for the whole strip (device feedback 2026-08-25: the
    selects sat at 32px/16px, the icon buttons at 28px, the state chip at
    26px/12.5px and the bridge text button at 30px/13px -- four sizes in a
@@ -3677,7 +3680,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    hides. The <select> keeps its native arrow; box-sizing pins it to the
    buttons' 28px instead of letting padding + 16px text grow it to 32. */
 .pbv-bar > :where(select, button, a, .pbv-ai-note), .pbv-copy-group > :where(button) {
-  box-sizing: border-box; height: 28px; min-height: 28px; padding: 0 10px;
+  box-sizing: border-box; height: 28px; min-height: 28px; padding: 0 var(--sp-3);
   font: inherit; font-size: 13px; font-weight: 500; line-height: 1; white-space: nowrap;
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--btn-border); border-radius: var(--radius-md);
@@ -3691,7 +3694,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 .pbv-bar > :where(select, button, a):focus-visible, .pbv-copy-group > :where(button):focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .pbv-tracks { max-width: 16em; }
 /* Playback-rate select: the same family, narrower. */
-.pbv-rate { max-width: 5.5em; padding: 0 6px; font-variant-numeric: tabular-nums; }
+.pbv-rate { max-width: 5.5em; padding: 0 var(--sp-1); font-variant-numeric: tabular-nums; }
 /* Icon-only members: square, glyph centred. Enumerated by CLASS (not
    `button`) because .pbv-open-ext is an <a> and .pbv-bridge-enable is a
    labelled button that must keep the text padding. */
@@ -3708,7 +3711,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    playing row; hidden whenever follow is on or the row is on screen. */
 .pbv-back-current {
   position: sticky; bottom: 12px; align-self: center; z-index: 2;
-  margin: 8px auto 0; padding: 6px 14px; font: inherit; font-size: 0.85em; cursor: pointer;
+  margin: var(--sp-2) auto 0; padding: 6px var(--sp-3); font: inherit; font-size: 0.85em; cursor: pointer;
   border: 1px solid var(--link); border-radius: var(--radius-full); background: var(--surface); color: var(--link);
   box-shadow: 0 4px 14px rgba(0,0,0,.12);
 }
@@ -3723,7 +3726,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    the 24px hit-area contract at 24x28; the menu anchors to the group. */
 .pbv-copy-group { position: relative; display: inline-flex; align-items: center; }
 .pbv-copy-group > .pbv-copy { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-.pbv-copy-caret { min-width: 24px; padding: 0 4px; margin-left: -1px; border-radius: 0 var(--radius-md) var(--radius-md) 0; }
+.pbv-copy-caret { min-width: 24px; padding: 0 var(--sp-1); margin-left: -1px; border-radius: 0 var(--radius-md) var(--radius-md) 0; }
 .pbv-copy-menu { right: auto; min-width: 240px; white-space: nowrap; }
 /* Copy success flash: the check glyph in the success tone (same idiom as
    .action-btn.copied, restated here because .pbv-copy is not in that
@@ -3753,7 +3756,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 .pbv-status:empty { display: none; }
 /* Continue-watching strip (research T6.3): message-bar look plus two
    explicit actions -- the reader chooses; nothing seeks on its own. */
-.pbv-resume { flex-basis: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.85em; }
+.pbv-resume { flex-basis: 100%; display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; font-size: 0.85em; }
 .pbv-resume .pbv-resume-text { margin-right: auto; }
 /* Screen-reader-only live region fed by md-video.js's srAnnounce
    (research T7.4) -- visually hidden, never display:none (that would mute
@@ -3779,7 +3782,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    both themes -- it sits over video content. */
 .pbv-toast {
   position: absolute; left: 10px; bottom: 12px; z-index: 3;
-  padding: 4px 10px; border-radius: var(--radius-md); font-size: 0.8em;
+  padding: var(--sp-1) var(--sp-2); border-radius: var(--radius-md); font-size: 0.8em;
   background: rgba(17, 22, 28, 0.85); color: #fff;
   opacity: 1; pointer-events: none;
 }
@@ -3798,10 +3801,10 @@ html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: stroke-dashoffset
    moved it INSIDE the absolutely-positioned label bar -- as the card's only
    normal-flow child it painted under the cover img, invisible exactly when
    Chrome's permission prompt was about to appear). */
-.pbv-poster-note { display: block; font-size: 0.82em; color: var(--fg-muted); margin-top: 4px; }
+.pbv-poster-note { display: block; font-size: 0.82em; color: var(--fg-muted); margin-top: var(--sp-1); }
 .pbv-list {
-  max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;
-  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 6px;
+  max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: var(--sp-1);
+  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--sp-2);
 }
 /* Task 4 row shape: .pbv-row is a plain container div (not a button) so
    .pbv-text stays natively selectable; only .pbv-time is a real button.
@@ -3812,19 +3815,19 @@ html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: stroke-dashoffset
    transcript runs into the thousands); contain-intrinsic-size holds
    scrollbar geometry stable before a row's first real layout pass. */
 .pbv-row {
-  display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; text-align: left;
-  padding: 4px 8px; border-radius: var(--radius-md); cursor: pointer;
+  display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: baseline; text-align: left;
+  padding: var(--sp-1) var(--sp-2); border-radius: var(--radius-md); cursor: pointer;
   content-visibility: auto; contain-intrinsic-size: auto 44px; /* a one-line cue row measures ~43px; the closer the estimate, the shorter a far follow-jump lands (settleFollow corrects the rest) */
 }
 /* Paragraph density (research T7.10): one row per reading paragraph. */
-.pbv-row--para { padding: 8px; }
+.pbv-row--para { padding: var(--sp-2); }
 .pbv-row--para > .pbv-time { align-self: flex-start; }
 /* Projected translation / auxiliary track line under a row (research
    T5.1/T5.2): hidden by default; the v-key body classes show projected
    translations, auxiliary-track rows show theirs regardless. In
    translated-only view the original text steps aside on projected rows. */
 .pbv-row > .pbv-tr {
-  display: none; flex-basis: 100%; padding-left: calc(3.4em + 10px);
+  display: none; flex-basis: 100%; padding-left: calc(3.4em + var(--sp-2));
   color: var(--fg-secondary); font-size: var(--panel-payload-fs); line-height: var(--pbp-prose-leading, 1.75);
 }
 body.tr-bilingual .pbv-row--tr > .pbv-tr, body.tr-only .pbv-row--tr > .pbv-tr, .pbv-row--aux > .pbv-tr { display: block; }
@@ -3914,7 +3917,7 @@ body.video-mode .doc-body { max-width: min(2160px, 100%); container-type: inline
 .pbv-workspace {
   display: grid;
   grid-template-columns: minmax(520px, 1.25fr) minmax(360px, 0.9fr);
-  gap: 24px;
+  gap: var(--sp-5);
 }
 /* Sticky player -- wide state only, cleared below. */
 .pbv-col-player #video-panel { position: sticky; top: 24px; }
@@ -3932,7 +3935,7 @@ body.video-mode .doc-body { max-width: min(2160px, 100%); container-type: inline
 /* Reading/timeline toggle (Task 4) -- reuses .source-badge/.src-seg (see
    #source-badge in md-preview.html/.js) for the whole look; this only adds
    the study-column spacing below it, above #rendered-view/.pbv-list. */
-.pbv-view-toggle { margin: 0 0 16px; }
+.pbv-view-toggle { margin: 0 0 var(--sp-4); }
 
 /* Page scroll owns the timeline list in video-mode -- the 40vh inner-scroll
    box on .pbv-list above only made sense while the list sat inside the
@@ -3977,11 +3980,11 @@ body.video-mode .pbv-col-study #rendered-view { max-width: var(--pbp-width, 880p
 #video-description {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 8px 14px;
-  margin-top: 16px;
+  padding: var(--sp-2) var(--sp-3);
+  margin-top: var(--sp-4);
 }
 #video-description > summary { cursor: pointer; color: var(--fg-muted); }
-#video-description[open] > summary { margin-bottom: 8px; }
+#video-description[open] > summary { margin-bottom: var(--sp-2); }
 /* Minimal reading rhythm for the rendered description markdown (fix round 1
    -- UA defaults alone read too cramped). Tokens only, scoped to this block;
    #rendered-view's own prose rules don't reach here (different ancestor). */

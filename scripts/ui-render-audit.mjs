@@ -16,6 +16,7 @@
 //   node scripts/ui-render-audit.mjs                      # gate: known-failures WARN, new violations FAIL
 //   node scripts/ui-render-audit.mjs --update-known-failures  # (re)write the baseline
 //   node scripts/ui-render-audit.mjs --sweep               # DISCOVERY mode (see below), not a gate
+//   node scripts/ui-render-audit.mjs --write-spacing-baseline  # (re)freeze the spacingScale ratchet ledger
 //
 // --sweep is a separate mode from the CHECKS/known-failures gate above: a
 // generic DOM walk (not the hand-written CHECKS list) that hunts for three
@@ -56,6 +57,9 @@ import {
 // Reused, not re-implemented, so this audit and contrast-audit.mjs's static
 // CSS-source audit can never quietly disagree on what a passing ratio is.
 import { cr, hexRgb, parseRgba, composite } from "../docs/theme-surface/tools/contrast-audit.mjs";
+// The chip family is defined once, in the composer; spacingScale reads it from
+// there (not from a hand-copied list) to know whose inset is component geometry.
+import { CHIP_TARGETS } from "../docs/theme-surface/composers/ui-components.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
@@ -64,6 +68,12 @@ const TIMEOUT_MS = 15000;
 
 const UPDATE = process.argv.includes("--update-known-failures");
 const SWEEP = process.argv.includes("--sweep");
+// spacingScale (family 11) keeps its own shrink-only ledger instead of using
+// known-failures: its debt is a few hundred (surface, element, property, value)
+// identities that retire one CSS rule at a time, the same shape as
+// docs/theme-surface/tools/override-debt.mjs and scripts/ui-vocabulary-lint.mjs.
+const SPACING_BASELINE_PATH = resolve(ROOT, "tests", "render-audit-spacing-baseline.json");
+const WRITE_SPACING = process.argv.includes("--write-spacing-baseline");
 
 let chromium;
 try {
@@ -2134,6 +2144,48 @@ const SWEEP_CFG = {
     tokens: { options: [3, 8, 10], popup: [3, 8, 10], library: [4, 8, 12], "md-preview": [4, 8, 12] },
     exemptWithin: ".vocab-sort-seg, .source-badge, .view-toggle, .vocab-group-unit, .tags-input-wrap, .send-split",
   },
+  // 11. spacingScale -- every computed margin / padding / gap on a chromed
+  //     surface is a value of that surface's spacing scale, read live from
+  //     <html> (--opt-sp-N / --pp-sp-N / --lib-sp-N / --sp-N; `tokens` is the
+  //     fallback). Keyword (auto / normal), percentage and negative values are
+  //     not rhythm and are skipped; 0 is always allowed. Gated through a
+  //     shrink-only ledger (tests/render-audit-spacing-baseline.json) rather
+  //     than known-failures: the debt is large and retires one rule at a time.
+  //     The scale governs RHYTHM -- placement (margins) of everything and the
+  //     insets (padding / gap) of layout boxes: bars, panels, popovers, rows,
+  //     lists. A control's or chip's own inset is component geometry, not
+  //     rhythm: the composer writes .btn-sm as 2px/8px and chips as padV 2 by
+  //     contract (COMPONENTS.md §1.1 / §5.1, recipes write px), a select keeps
+  //     26px for its chevron, a key field 32px for its eye button -- values
+  //     that never migrate and are already gated by controlRung / hitAreaMin /
+  //     the chip laws. So `componentInset` -- form controls, .btn, kbd, the
+  //     composer's CHIP_TARGETS, the reader's hand-rolled chips/badges, plus
+  //     any inline-level chromed box -- is checked for margins only. The
+  //     inline-level heuristic alone is NOT enough: a chip that is a flex item
+  //     is blockified (computed display "flex", not "inline-flex"), which is
+  //     exactly where most chips live (.notes-row-meta, .tag-gov-group-row).
+  //     `shells` (element itself, not subtree): page-level insets that are
+  //     layout dimensions (rail width, content column, scrollbar gutter math).
+  //     `derivedOffsets`: leading-column alignment (options indent = checkbox
+  //     16 + gap 4; reader note = dot 8 + gap 6 + inset 4; reader section count
+  //     = 24px button + gap) -- computed from a sibling's width, so never a
+  //     scale value by construction. `hairline`: 1px is border compensation.
+  spacingScale: {
+    prefix: { options: "--opt-sp-", popup: "--pp-sp-", library: "--lib-sp-", "md-preview": "--sp-" },
+    names: ["1", "2", "3", "4", "5", "6", "7"],
+    tokens: { options: [2, 4, 6, 8, 12, 16, 24], popup: [2, 4, 6, 8, 12, 16, 24], library: [4, 8, 12, 16, 24], "md-preview": [4, 8, 12, 16, 24] },
+    tol: 0.5,
+    hairline: 1, // <= 1px is a border/optical compensation, not a rhythm value
+    margins: ["margin-top", "margin-right", "margin-bottom", "margin-left"],
+    insets: ["padding-top", "padding-right", "padding-bottom", "padding-left", "row-gap", "column-gap"],
+    componentInset: [
+      "button", ".btn", "input", "select", "textarea", "[role='button']", "kbd", "summary",
+      ...CHIP_TARGETS.map((t) => t.selector),
+      ".token-badge", ".bookmark-badge", ".kbd-help-chip", ".hl-item-lang", ".ask-chip", // reader chips/badges (md-preview is not composed)
+    ].join(", "),
+    shells: ["html", "body", "main", ".rail", ".empty-state", ".preview-loading"],
+    derivedOffsets: [".fg-indent", ".hl-item-note", "#hl-rail-section .rail-sec-count"],
+  },
 };
 
 // Runs INSIDE the page (Playwright serializes this function's source, same
@@ -2488,9 +2540,120 @@ function sweepProbe(cfg) {
       if (px >= 999 || radiusTokens.some((t) => Math.abs(px - t) < 0.5)) continue;
       hits.push({ kind: "radiusScale", path: pathOf(el), radius: r, tokens: radiusTokens, detail: r });
     }
+    // ---- 11. spacingScale. Typed OM (computedStyleMap) gives the COMPUTED
+    // value, which still distinguishes `auto` / `normal` keywords and
+    // percentages from lengths; getComputedStyle would hand back the used
+    // px for `margin: 0 auto` and make every centred block a hit. Identity
+    // for the ledger is `parent > element` by tag/classes or #id, without the
+    // sibling index pathOf() adds, so a reordered sibling doesn't mint a new
+    // debt entry and every instance of one rule collapses onto one line.
+    const sc = cfg.spacingScale;
+    if (sc && sc.prefix[surface]) {
+      const liveScale = sc.names.map((n) => parseFloat(rootCs.getPropertyValue(`${sc.prefix[surface]}${n}`))).filter((v) => Number.isFinite(v));
+      const scale = liveScale.length ? liveScale : (sc.tokens[surface] || []);
+      const onScale = (v) => v <= sc.hairline || scale.some((t) => Math.abs(v - t) <= sc.tol);
+      const identOf = (el) => {
+        if (!el || el === document) return "";
+        if (el.id) return "#" + el.id;
+        const cls = typeof el.className === "string" ? el.className.trim().split(/\s+/).filter(Boolean).join(".") : "";
+        return el.tagName.toLowerCase() + (cls ? "." + cls : "");
+      };
+      const seen = new Set();
+      const isChromed = (cs) => (cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent") || parseFloat(cs.borderTopWidth) > 0;
+      for (const el of document.querySelectorAll("*")) {
+        if (!visible(el) || excluded(el) || el.closest("svg")) continue;
+        if (sc.shells.some((sel) => el.matches(sel)) || sc.derivedOffsets.some((sel) => el.matches(sel))) continue;
+        const cs = getComputedStyle(el);
+        const laidOut = /flex|grid/.test(cs.display);
+        // component geometry (own inset of a control / chip / badge): margins only
+        const component = el.matches(sc.componentInset) || (/^inline/.test(cs.display) && isChromed(cs));
+        const props = component ? sc.margins : sc.margins.concat(sc.insets);
+        const map = typeof el.computedStyleMap === "function" ? el.computedStyleMap() : null;
+        for (const prop of props) {
+          if (/gap$/.test(prop) && !laidOut) continue;
+          let v = null;
+          if (map) {
+            const cv = map.get(prop);
+            if (!cv || !(cv instanceof CSSUnitValue) || cv.unit !== "px") continue; // keyword, percentage, unresolved calc
+            v = cv.value;
+          } else {
+            const raw = cs.getPropertyValue(prop);
+            if (!/px$/.test(raw)) continue;
+            v = parseFloat(raw);
+          }
+          if (!Number.isFinite(v) || v < 0 || onScale(v)) continue;
+          const value = Math.round(v * 100) / 100;
+          const ident = `${identOf(el.parentElement)} > ${identOf(el)}`;
+          const key = `${ident}|${prop}|${value}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          hits.push({ kind: "spacingScale", path: ident, prop, value, scale, detail: `${prop}=${value}px` });
+        }
+      }
+    }
   }
 
   return hits;
+}
+
+// ---- spacingScale ledger (shrink-only ratchet). Identity = surface + `parent >
+// element` path + property + computed px value; `scale` is recorded for the
+// reader, not compared. `--write-spacing-baseline` is the only writer.
+function spacingKey(h) { return `${h.surface}|${h.path}|${h.prop}|${h.value}`; }
+
+function readSpacingBaseline() {
+  if (!existsSync(SPACING_BASELINE_PATH)) return new Map();
+  let data;
+  try { data = JSON.parse(readFileSync(SPACING_BASELINE_PATH, "utf8")); } catch (e) {
+    console.error(`[render-audit] failed to parse ${SPACING_BASELINE_PATH}: ${e.message}`);
+    process.exit(2);
+  }
+  if (data.version !== 1 || !Array.isArray(data.entries)) {
+    console.error(`[render-audit] ${SPACING_BASELINE_PATH}: unsupported baseline shape`);
+    process.exit(2);
+  }
+  const map = new Map();
+  for (const e of data.entries) {
+    if (typeof e.surface !== "string" || typeof e.path !== "string" || typeof e.prop !== "string" || typeof e.value !== "number") {
+      console.error(`[render-audit] ${SPACING_BASELINE_PATH}: malformed entry ${JSON.stringify(e)}`);
+      process.exit(2);
+    }
+    map.set(spacingKey(e), e);
+  }
+  return map;
+}
+
+function uniqueSpacingHits(sweepHits) {
+  const byKey = new Map();
+  for (const h of sweepHits) if (h.kind === "spacingScale" && !byKey.has(spacingKey(h))) byKey.set(spacingKey(h), h);
+  return [...byKey.values()].sort((a, b) => spacingKey(a).localeCompare(spacingKey(b)));
+}
+
+function writeSpacingBaseline(sweepHits) {
+  const entries = uniqueSpacingHits(sweepHits).map((h) => ({ surface: h.surface, path: h.path, prop: h.prop, value: h.value, scale: h.scale }));
+  const perSurface = {};
+  for (const e of entries) perSurface[e.surface] = (perSurface[e.surface] || 0) + 1;
+  writeFileSync(SPACING_BASELINE_PATH, JSON.stringify({
+    version: 1,
+    identity: "surface + `parent > element` (tag.classes or #id, no sibling index) + property + computed px value that is off that surface's live --*-sp-N scale (spacingScale, ui-render-audit family 11). Shrink-only: delete entries as rules migrate to the scale; regenerate deliberately with --write-spacing-baseline. `scale` is informational.",
+    entries,
+  }, null, 2) + "\n");
+  console.log(`[render-audit] spacingScale: wrote ${entries.length} off-scale identit(ies) to ${SPACING_BASELINE_PATH} (${Object.entries(perSurface).map(([k, v]) => `${k} ${v}`).join(", ") || "none"})`);
+}
+
+// Returns the hits not covered by the ledger; prints the ledger reconciliation.
+function reconcileSpacing(sweepHits) {
+  const baseline = readSpacingBaseline();
+  const unique = uniqueSpacingHits(sweepHits);
+  const fresh = unique.filter((h) => !baseline.has(spacingKey(h)));
+  const seen = new Set(unique.map(spacingKey));
+  const stale = [...baseline.keys()].filter((k) => !seen.has(k));
+  console.log(`[render-audit] spacingScale: ${unique.length} off-scale identit(ies), ${unique.length - fresh.length} held by ${SPACING_BASELINE_PATH.replace(ROOT + "/", "")}, ${fresh.length} new, ${stale.length} stale`);
+  if (stale.length) {
+    console.log(`[render-audit] spacingScale ledger entries that no longer reproduce -- delete them (the ledger only shrinks):`);
+    for (const k of stale) console.log(`  STALE  ${k}`);
+  }
+  return fresh;
 }
 
 async function runSweep(page, sw, extBase) {
@@ -2643,6 +2806,7 @@ function reportSweep(hits) {
     else if (h.kind === "actionRowGap") console.log(`  actionRowGap       [${h.surface}/${h.context}]  ${h.path}  gap=${h.gap}px  allowed=${h.allowed.join("|")}`);
     else if (h.kind === "radiusScale") console.log(`  radiusScale        [${h.surface}/${h.context}]  ${h.path}  radius=${h.radius}  tokens=${h.tokens.join("|")}`);
     else if (h.kind === "textFloor") console.log(`  textFloor          [${h.surface}/${h.context}]  ${h.path}  font-size=${h.fontSize}px`);
+    else if (h.kind === "spacingScale") console.log(`  spacingScale       [${h.surface}/${h.context}]  ${h.path}  ${h.prop}=${h.value}px  scale=${h.scale.join("|")}`);
   }
   console.log(unique.length ? "[render-audit --sweep] === hits found -- fix, then lock in as CHECKS entries ===" : "[render-audit --sweep] === clean ===");
   process.exit(0);
@@ -2817,7 +2981,7 @@ async function main() {
 
   const page = await ctx.newPage();
 
-  if (SWEEP) {
+  if (SWEEP || WRITE_SPACING) {
     let hits = [];
     try {
       hits = await runSweep(page, sw, extBase);
@@ -2826,7 +2990,8 @@ async function main() {
       await ctx.close().catch(() => {});
       rmSync(userDataDir, { recursive: true, force: true });
     }
-    reportSweep(hits);
+    if (WRITE_SPACING) writeSpacingBaseline(hits);
+    if (SWEEP) reportSweep(hits);
     return;
   }
 
@@ -2901,6 +3066,16 @@ async function main() {
       if (!f) continue;
       const { actual, expected, note } = f(h);
       results.push({ surface: h.surface, theme: "", selector: h.path, state: h.context, check: h.kind, status: "FAIL", actual, expected, note });
+    }
+    // ---- family 11 spacingScale: ratchet against its own ledger; only hits
+    // the ledger does not hold become FAIL rows (then known-failures applies
+    // as for every other check).
+    for (const h of reconcileSpacing(sweepHits)) {
+      results.push({
+        surface: h.surface, theme: "", selector: h.path, state: h.prop, check: "spacingScale", status: "FAIL",
+        actual: `${h.value}px`, expected: h.scale.map((t) => t + "px").join("|"),
+        note: "margin/padding/gap off the surface's live --*-sp-N scale; move the rule onto a token or (deliberately) add it to tests/render-audit-spacing-baseline.json",
+      });
     }
   } finally {
     await mediaSession.detach().catch(() => {});

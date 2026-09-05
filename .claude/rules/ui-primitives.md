@@ -20,7 +20,7 @@ paths:
 ## 新增任何 UI 元素，先答三问
 
 1. **它属于哪个既有原语？** 先查注册表该表面的 `primitives`（options：`.fg` / `.fg-stack` / `.fg-indent` / `.fg-actions` / `.hint` / `.section-title` / `.divider` / `.choice-row` / `details.disclosure` + `.disclosure-body` / `.context-help-host` / `.pf`；popup：`.row` / `.label` / `.field` / `.suggest-area` / `.divider`；library：`.notes-toolbar` / `.lib-batch-bar`（vocab/notes）/ `.notes-empty`；md-preview：`.rail-section` / `.rail-label` / `.rail-sec-head` / `.msg-bar` / `.send-menu` / `.send-mi`）。能用就用，不新造包装类。
-2. **它的几何落在哪个阶梯？** 按钮/字段高度只有 md 26px 与 sm 20px 两阶（COMPONENTS.md §1.1 / §6.3），图标按钮命中区 ≥24px；按钮行 gap 一律 8px；可见文字 ≥11px；间距只用本表面的 `--*-sp-N` 刻度（md-preview 是 `--sp-N`）；圆角只用 `--*-radius-*` token。字面 px 是缺陷，不是微调。
+2. **它的几何落在哪个阶梯？** 按钮/字段高度只有 md 26px 与 sm 20px 两阶（COMPONENTS.md §1.1 / §6.3），图标按钮命中区 ≥24px；按钮行 gap 一律 8px；可见文字 ≥11px；间距只用本表面的 `--*-sp-N` 刻度（md-preview 是 `--sp-N`）——margin、以及条/面板/弹层/行的 padding 与 gap 都算；控件与 chip 自身的竖向 inset 是组件几何（阶梯算术），可以是字面 px；圆角只用 `--*-radius-*` token。刻度外的字面 px 是缺陷，不是微调。
 3. **它的间距由谁拥有？** 关系规则（容器 margin-bottom、`.fg > .fg-actions` 这类相邻规则）拥有间距；元素自身不带 margin，HTML 不写内联 `style="margin/padding/gap"`（layout-lint RULE 5 会 BLOCK）。
 
 ## 真要新造一个结构类
@@ -31,7 +31,7 @@ paths:
 
 - 编辑期：`.claude/settings.json` 的 PostToolUse 钩子对 Edit/Write 命中表面文件时跑 `scripts/ui-consumer-lint.mjs`（layout-lint + ui-vocabulary，<1s），红了直接把结论回喂。
 - 提交期：`scripts/pre-commit-hook.sh` 第二触发组（HTML/JS/md-preview.css/注册表/基线）。
-- push 期：`scripts/verify.sh` 的 `[ui-vocabulary]`；渲染几何由 `scripts/ui-render-audit.mjs` 的类扫描家族兜底（`fgRhythm` 已在，`controlRung` 等见 COMPONENTS.md §10.4）。
+- push 期：`scripts/verify.sh` 的 `[ui-vocabulary]`；渲染几何由 `scripts/ui-render-audit.mjs` 的类扫描家族兜底（family 4–11，见 COMPONENTS.md §10.3）。`spacingScale` 的存量债在 `tests/render-audit-spacing-baseline.json`，只减不增：新写一个刻度外的 margin/padding/gap 会直接 FAIL，不要把它加进账本，改成 token。
 
 ## 已知反模式（本仓库真实踩过）
 

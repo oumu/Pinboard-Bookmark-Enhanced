@@ -5816,9 +5816,19 @@ suiteIf("pbpHlAppendNoteText", "pbpHlAppendNoteText", () => {
     const prevDirty = _pbpHlNoteDirty;
     const prevQueue = _pbpHlWriteQueue;
     const prevLoadStrict = _pbpHlLoadStrict;
+    const prevLiveOwner = _pbpHlLiveOwner;
     const card = document.createElement("div");
     try {
       _pbpHlSave = async () => true;
+      // The commit's account gate re-reads the owner through vocab-store.js's
+      // pbpVocabCurrentOwner, i.e. chrome.storage. This test starts on
+      // DOMContentLoaded while other suites in this file are still in flight
+      // and swap window.chrome for storage-less shims; whether that read
+      // throws (-> null owner -> fail-closed refusal) depended on parse
+      // timing (a comment-only change to md-preview.css flipped it). Pin the
+      // owner the way _pbpHlLoadStrict is pinned below: the merge, not the
+      // account gate, is under test here.
+      _pbpHlLiveOwner = async () => "";
       // The commit path re-reads storage inside the write queue and patches by
       // item.id -- memory is never authoritative. Stand in for the record this
       // page would find there; without it the strict read returns null (no
@@ -5848,6 +5858,7 @@ suiteIf("pbpHlAppendNoteText", "pbpHlAppendNoteText", () => {
       assertEq(_pbpHlState.items[0].note, "draft edit\n\nanswer from ask", "dirty draft and appended answer both survive");
     } finally {
       _pbpHlSave = prevSave;
+      _pbpHlLiveOwner = prevLiveOwner;
       _pbpHlNotebookRender = prevRender;
       _pbpHlState = prevState;
       _pbpHlCard = prevCard;

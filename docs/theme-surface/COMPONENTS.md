@@ -1063,8 +1063,8 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | library | `.notes-toolbar` | 控件行（flex wrap，gap sp-2，margin sp-2 0 sp-3），vocab/notes 共用 |
 | library | `.vocab-batch-bar` / `.notes-batch-bar` | 粘底批量条（同一选择器列表） |
 | library | `.notes-empty` | 空态块 |
-| md-preview | `.rail-section` / `.rail-label` / `.rail-sec-head` | 侧栏分区容器 / 静态标题 / 可折叠标题（共享 margin 12px 0 8px 契约） |
-| md-preview | `.msg-bar` | 状态/提示/错误条（padding 6px 10px；`data-state`） |
+| md-preview | `.rail-section` / `.rail-label` / `.rail-sec-head` | 侧栏分区容器 / 静态标题 / 可折叠标题（共享 margin sp-3 0 sp-2 契约） |
+| md-preview | `.msg-bar` | 状态/提示/错误条（padding sp-2 sp-3，与 `.send-status` / `.export-note` / `#ask-tip` 同一条家族；`data-state`） |
 | md-preview | `.send-menu` / `.send-mi` | 下拉菜单与菜单项 |
 
 清点（2026-09-05 工作流，四表面 138/97/134/273 个 token）同时给出了**候选**原语——popup 的 `actions`/`field-foot`/`banner`/`card`/`list-row`、library 的 `lib-row`/`lib-cluster`/`lib-section`/`lib-block`/`lib-quote`、md-preview 的 `rail-row`/`panel-head`/`panel-actions`/`seg-row`/`stack`/`pop-body`/`scroll-list`——每个都能吸收 5～15 个遗留类。它们**尚未登记**：登记的时机是把对应遗留类真正迁过去的那次施工，不提前占名。
@@ -1081,13 +1081,13 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | `actionRowGap` | 含按钮的 flex/grid 行 column-gap **= 8px**（`--opt-sp-4` / `--pp-sp-4` / `--lib-sp-2` / `--sp-2`），四表面同一值；space-between 行、页签、融合壳、图标簇、色板/chip 行、分段条豁免 | `[render]` family 8 |
 | `radiusScale` | 有 chrome 的盒子统一圆角 ∈ 本表面 radius token 的**实时**值（token 逐主题不同）或 pill；融合壳后代豁免 | `[render]` family 9 |
 | `textFloor` | 任何可见文字 computed font-size ≥ 11px（`sup`/`sub` 除外；阅读器正文不在 chrome 扫描内） | `[render]` family 10 |
-| `spacingScale` | margin/padding 值 ∈ 本表面 sp 刻度（md-preview 已有 `--sp-1..5`，字面值随触碰迁移） | 计划：先 WARN 后门控 |
+| `spacingScale` | 所有元素的 margin、以及**布局盒**（条/面板/弹层/行/列表）的 padding 与 gap，computed 值 ∈ 本表面 sp 刻度的**实时**值（`--opt-sp-N` / `--pp-sp-N` / `--lib-sp-N` / `--sp-N`）；`auto`/百分比/负值/≤1px hairline 不计。**控件与 chip 自身的 inset 是组件几何**（`.btn-sm` 2/8、chip padV 2、select 箭头位 26、key 字段眼睛位 32），由 controlRung / hitAreaMin / chip 律管，本律只查其 margin。页面壳（`main` / `.rail` / 空态）与派生对齐偏移（`.fg-indent` = 复选框 16 + 4）豁免。存量债在 `tests/render-audit-spacing-baseline.json`（只减不增：新增即 FAIL，删除放行并报 STALE；`--write-spacing-baseline` 是唯一写入口） | `[render]` family 11 |
 
 ### 10.4 门与触发面
 
 - 编辑期：`.claude/settings.json` PostToolUse → `scripts/ui-consumer-lint.mjs`（layout-lint + ui-vocabulary，<1s，红即回喂）。
 - 提交期：`scripts/pre-commit-hook.sh` 第二触发组（四 HTML / 表面 JS / md-preview.css / 注册表 / 基线）。
-- push 期：`scripts/verify.sh` `[ui-vocabulary]`（含 `tests/ui-vocabulary-tests.mjs` CLI 契约）+ `[render-audit]` 的类扫描家族。
+- push 期：`scripts/verify.sh` `[ui-vocabulary]`（含 `tests/ui-vocabulary-tests.mjs` CLI 契约）+ `[render-audit]` 的类扫描家族（family 4–11；`spacingScale` 对账 `tests/render-audit-spacing-baseline.json`，其余对账 `render-audit-known-failures.json`）。
 - 新增原语的流程：注册表登记 → 本节补一行契约 → CSS 写关系规则 → 门自然放行。顺序反过来（先写 CSS 再想名字）就是本节要消灭的路径。
 
 ## 附录 A：人审清单（不可自动化的判断）
