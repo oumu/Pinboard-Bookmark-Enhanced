@@ -217,6 +217,7 @@
       ],
       "exactStructural": [],
       "primitives": [
+        "lib-cluster",
         "notes-batch-bar",
         "notes-empty",
         "notes-toolbar",

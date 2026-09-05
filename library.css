@@ -107,7 +107,7 @@
      same way): the generated region only emits sm/md/lg. */
   --lib-radius-full: 9999px;
   /* Spacing tokens are a theme invariant — hand-maintained, never composed. */
-  --lib-sp-1: 4px; --lib-sp-2: 8px; --lib-sp-3: 12px; --lib-sp-4: 16px; --lib-sp-5: 24px;
+  --lib-sp-0: 2px; --lib-sp-1: 4px; --lib-sp-2: 8px; --lib-sp-3: 12px; --lib-sp-4: 16px; --lib-sp-5: 24px; /* sp-0 = hairline (2026-09-06): the 2px popup/options carry as sp-1; before it nine hand rules borrowed the value as a literal. There is still no 6px rung: 6 rounds to sp-2 */
   /* Stacking ladder, same semantics as options' --opt-z-*. */
   --lib-z-sticky: 5; --lib-z-menu: 10;
   /* Measured .lib-header height (padding var(--lib-sp-3) block + its 16px line
@@ -197,7 +197,7 @@ a { color: var(--lib-link, #1a66c2); }
   cursor: not-allowed;
 }
 .btn-sm {
-  padding: 2px var(--lib-sp-2);
+  padding: var(--lib-sp-0) var(--lib-sp-2);
   font-size: 11px;
   line-height: 14px;
 }
@@ -253,7 +253,7 @@ a { color: var(--lib-link, #1a66c2); }
 .vocab-group-chip {
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
+  padding: var(--lib-sp-0) 10px;
   line-height: 14px;
   border-radius: var(--lib-radius-full);
   background: var(--lib-chip-bg);
@@ -262,7 +262,7 @@ a { color: var(--lib-link, #1a66c2); }
 .vocab-stat-chip {
   display: inline-flex;
   align-items: center;
-  padding: 2px var(--lib-sp-2);
+  padding: var(--lib-sp-0) var(--lib-sp-2);
   font-size: 12px;
   line-height: 14px;
   border-radius: var(--lib-radius-sm);
@@ -315,7 +315,7 @@ input[type="checkbox"], input[type="radio"] {
   box-shadow: var(--lib-focus-ring);
 }
 .vocab-group-unit input[type="text"] {
-  padding: 2px var(--lib-sp-2);
+  padding: var(--lib-sp-0) var(--lib-sp-2);
   font-size: 12px;
   line-height: 14px;
 }
@@ -382,7 +382,7 @@ input[type="checkbox"], input[type="radio"] {
   box-sizing: border-box;
   width: max-content;   /* the anchor is typically a narrow column; without this the
                            popover shrink-to-fits to that width and its row of buttons cramps */
-  display: flex; align-items: center; gap: 6px; /* no --lib-sp-* step matches options.css's 6px (opt-sp-3); library's 5-step scale skips it */
+  display: flex; align-items: center; gap: var(--lib-sp-2);
   flex-wrap: wrap;       /* long tag lists: buttons drop to their own row */
   max-width: min(60ch, 78vw); white-space: normal;
   padding: var(--lib-sp-1) var(--lib-sp-2); font-size: 11px; color: var(--lib-danger);
@@ -512,7 +512,7 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
    semantic (danger / currentColor) edge -- so focus recolours that edge and
    adds the themed glow, losing no information. */
 .notes-filter-dot:focus-visible { outline: none; border-color: var(--lib-focus-bd); box-shadow: var(--lib-focus-ring); }
-/* Hover feedback, the surface's ghost-tier recipe (.vocab-selection-actions
+/* Hover feedback, the surface's ghost-tier recipe (.lib-cluster > .btn.ghost
    .btn:hover, and the generated .btn.ghost:hover emit the same mix): these
    five dots were the one filter family on the page with no pointer feedback
    at all. background-color joins the transition below, which until now
@@ -534,7 +534,7 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
      the 1px width means that state costs no reflow. */
   border: 1px solid transparent;
   border-radius: var(--lib-radius-sm, 3px);
-  margin-bottom: 6px; /* options.css --opt-sp-3 (6px); no --lib-sp-* step matches it */
+  margin-bottom: var(--lib-sp-2);
   background: var(--lib-bg);
 }
 /* Deleted-card fold: library-notes.js's _pbpNotesDelete adds .card-exit only
@@ -558,7 +558,7 @@ html.motion-ready .notes-card.card-exit {
   grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;
   align-items: center;
   gap: var(--lib-sp-2);
-  padding: 6px var(--lib-sp-2); /* padding-block: --opt-sp-3 (6px), no --lib-sp-* match */
+  padding: var(--lib-sp-2);
   --row-bg: var(--lib-bg);
   background: var(--row-bg);
 }
@@ -592,7 +592,7 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 .notes-card-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 2px; /* options.css --opt-sp-1 (2px), no --lib-sp-* step matches it */
+  gap: var(--lib-sp-0);
   flex: 1 1 0;
   min-width: 0;
   max-width: 100%;
@@ -633,7 +633,7 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 /* External-link mark on the row's "leaves the page" action (dot-notation
    selector, not a --lib token: sizing only, no themed color). */
 .btn .ext-icon { width: 11px; height: 11px; vertical-align: -1px; }
-.notes-row-open .ext-icon { margin-left: 2px; } /* options.css --opt-sp-1 (2px) */
+.notes-row-open .ext-icon { margin-left: var(--lib-sp-0); }
 .notes-unknown-hint { font-size: 11px; color: var(--lib-fg-muted); margin: var(--lib-sp-2) 0 0 0; }
 .note-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: var(--lib-sp-1); }
 .note-dot.c1 { background: var(--lib-note-c1, #facc15); }
@@ -654,7 +654,7 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
 /* Ghost X delete button (options.css's shared recipe for vocab AND notes rows;
    only the notes rows consume it here until Task 5 brings the vocab list). */
 .row-del-x {
-  padding: 2px var(--lib-sp-1); /* options.css --opt-sp-1 (2px), no --lib-sp-* match */
+  padding: var(--lib-sp-0) var(--lib-sp-1);
   line-height: 0;
   color: var(--lib-fg-muted);
   border-color: transparent;
@@ -754,13 +754,13 @@ html.motion-ready .notes-card-top { transition: background-color var(--motion-st
    card, it reads as a misaligned stripe -- which is exactly the word that
    came back. radius-md, not -sm: -sm is 2px on paper-ink/dracula/solarized,
    and a 2px arc on a row-height band is not legible at 1x. */
-.notes-hit { border-radius: var(--lib-radius-md); margin: 2px 4px; }
+.notes-hit { border-radius: var(--lib-radius-md); margin: var(--lib-sp-0) var(--lib-sp-1); }
 .notes-hit-btn {
   display: grid;
   grid-template-columns: 3px minmax(0, 1fr);
   gap: var(--lib-sp-2);
   width: 100%;
-  padding: 6px var(--lib-sp-2); /* options.css --opt-sp-3 (6px); no --lib-sp-* step matches it */
+  padding: var(--lib-sp-2);
   border: 0;
   border-radius: inherit;
   text-align: left;
@@ -817,7 +817,7 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
 .notes-detail-delete.is-error,
 #notes-batch-delete.is-error { box-shadow: inset 0 0 0 1px var(--lib-danger); }
 .notes-hit-bar { border-radius: var(--lib-radius-full); background: var(--hl-color, var(--lib-note-c1)); }
-.notes-hit-body { display: grid; gap: 2px; min-width: 0; } /* options.css --opt-sp-1 (2px) */
+.notes-hit-body { display: grid; gap: var(--lib-sp-0); min-width: 0; }
 .notes-hit-text {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1291,14 +1291,14 @@ html[data-theme="rose-pine"] .xp-dict-lang {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5 6 7.5 9 4.5' stroke='%23aaa' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 }
 .xp-dict-slot { min-height: 20px; }
-.xp-dict-match { color: var(--lib-fg-muted); font-size: 0.8em; margin: 0 0 6px; }
+.xp-dict-match { color: var(--lib-fg-muted); font-size: 0.8em; margin: 0 0 var(--lib-sp-2); }
 .xp-dict-entry { margin: 0 0 var(--lib-sp-2); }
-.xp-dict-ipa-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.xp-dict-ipa-line { display: flex; flex-wrap: wrap; gap: var(--lib-sp-2); align-items: baseline; }
 .xp-dict-pos { font-style: italic; color: var(--lib-fg-muted); }
 .xp-dict-ipa-tag { font-size: 0.75em; color: var(--lib-fg-muted); }
-.xp-dict-forms { font-size: 0.8em; color: var(--lib-fg-muted); margin-top: 2px; }
-.xp-dict-senses { margin: 6px 0 0; padding-left: 1.4em; }
-.xp-dict-senses li { margin: 2px 0; }
+.xp-dict-forms { font-size: 0.8em; color: var(--lib-fg-muted); margin-top: var(--lib-sp-1); }
+.xp-dict-senses { margin: var(--lib-sp-2) 0 0; padding-left: 1.4em; }
+.xp-dict-senses li { margin: var(--lib-sp-1) 0; }
 /* A lone sense needs no "1." -- see md-preview.css's twin rule for the reasoning. */
 .xp-dict-senses li:only-child { list-style: none; margin-left: -1.4em; }
 .xp-dict-example { font-size: 0.85em; color: var(--lib-fg-muted); font-style: italic; }
@@ -1307,10 +1307,10 @@ html[data-theme="rose-pine"] .xp-dict-lang {
    every online path writes the second. Empty until something lands in them. */
 .xp-dict-local:not(:empty) { margin-bottom: var(--lib-sp-2); }
 .xp-dict-local-title { font-size: 0.8em; color: var(--lib-fg-muted); font-style: italic; }
-.xp-dict-subsense { font-size: 0.95em; margin-top: 2px; padding-left: 0.9em; }
-.xp-dict-rel { font-size: 0.85em; color: var(--lib-fg-muted); margin-top: 2px; }
+.xp-dict-subsense { font-size: 0.95em; margin-top: var(--lib-sp-1); padding-left: 0.9em; }
+.xp-dict-rel { font-size: 0.85em; color: var(--lib-fg-muted); margin-top: var(--lib-sp-1); }
 .xp-dict-rel-label { font-style: italic; }
-.xp-dict-src { font-size: 0.75em; color: var(--lib-fg-muted); margin-top: 6px; }
+.xp-dict-src { font-size: 0.75em; color: var(--lib-fg-muted); margin-top: var(--lib-sp-2); }
 .xp-dict-src a { color: inherit; }
 .xp-dict-msg { color: var(--lib-fg-hint); padding: 4px 0; }
 .xp-dict-more {
@@ -1340,7 +1340,7 @@ html[data-theme="rose-pine"] .xp-dict-lang {
 @keyframes xp-dict-shimmer { to { background-position: -200% 0; } }
 /* Permission-connect button + failure retry button: same small pill family. */
 .xp-retry, .xp-dict-connect {
-  padding: 4px 10px;
+  padding: var(--lib-sp-1) var(--lib-sp-2);
   border: 1px solid var(--lib-btn-border);
   border-radius: 6px;
   background: var(--lib-code-bg);
@@ -1661,8 +1661,8 @@ html.motion-ready .vocab-note-save {
    button all different) before this override existed. */
 .vocab-lookup-bar input[type="search"],
 .vocab-lookup-bar select {
-  padding-top: 2px;
-  padding-bottom: 2px;
+  padding-top: var(--lib-sp-0);
+  padding-bottom: var(--lib-sp-0);
   font-size: 12px;
   line-height: 14px;
 }
@@ -1913,7 +1913,7 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
 .vocab-context-bar {
   display: flex;
   align-items: center;
-  gap: 6px var(--lib-sp-2); /* row gap: options --opt-sp-3 (6px), no --lib-sp-* match */
+  gap: var(--lib-sp-2);
   margin: 0 0 var(--lib-sp-2);
   min-height: 28px;
 }
@@ -1928,18 +1928,17 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
   font-weight: 500;
   color: var(--lib-fg);
 }
-/* Select all rides next to the count in BOTH states, quiet ghost tier
-   (the .row-del-x treatment): always relevant, never boxed. */
-.vocab-selection-actions,
-.notes-selection-actions { display: inline-flex; align-items: center; gap: var(--lib-sp-1); flex: none; }
-.vocab-selection-actions .btn,
-.notes-selection-actions .btn { border-color: transparent; background: transparent; color: var(--lib-fg-muted); }
-.vocab-selection-actions .btn:hover,
-.notes-selection-actions .btn:hover {
-  border-color: transparent;
-  color: var(--lib-fg);
-  background: color-mix(in srgb, var(--lib-fg) 6%, var(--lib-bg));
-}
+/* .lib-cluster (COMPONENTS.md §10.2): a tight control cluster -- the Select-all
+   group beside each count line and the mark-known / back-to-learning pair
+   inside the vocabulary batch bar. gap sp-1 is the whole contract; the
+   actionRowGap scan exempts clusters by this name. */
+.lib-cluster { display: inline-flex; align-items: center; gap: var(--lib-sp-1); flex: none; }
+/* Select all rides next to the count in BOTH states on the quiet ghost tier:
+   chrome comes from the recipe's .btn.ghost (transparent frame, 6% wash on
+   hover -- the values the hand copy used to restate); only the muted resting
+   foreground is this context's own. */
+.lib-cluster > .btn.ghost { color: var(--lib-fg-muted); }
+.lib-cluster > .btn.ghost:hover:not(:disabled) { color: var(--lib-fg); }
 /* Sticky boundary wrapper: the bar floats only while this region is on
    screen; past its end the bar docks and scrolls away with the list. */
 .vocab-list-region,
@@ -1957,7 +1956,7 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px var(--lib-sp-2); /* row gap: options --opt-sp-3 (6px) */
+  gap: var(--lib-sp-2);
   width: fit-content;
   max-width: 100%;
   margin: var(--lib-sp-2) auto 0;
@@ -1977,7 +1976,7 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
 .vocab-batch-bar.selecting,
 .notes-batch-bar.selecting {
   height: auto;
-  padding: 6px var(--lib-sp-2); /* block: options --opt-sp-3 (6px) */
+  padding: var(--lib-sp-2);
   border-width: 1px;
   opacity: 1;
   visibility: visible;
@@ -2010,9 +2009,8 @@ html.motion-ready .notes-batch-bar.selecting {
    the sm rung's height (20px, COMPONENTS.md §1.1) doesn't -- see the
    #vocab-invert-selection hit-area expansion just below for the one
    USER-RULING-mandated instance. */
-.vocab-batch-bar > .btn:not(.vocab-group-step),
-.notes-batch-bar > .btn,
-.vocab-batch-cluster > .btn { padding-inline: 6px; } /* options --opt-sp-3 (6px) */
+.vocab-batch-bar .btn:not(.vocab-group-step),
+.notes-batch-bar .btn { padding-inline: 6px; } /* icon-only sm cell: component inset (6 + glyph + 6 = the 24px hit width), not a rhythm value -- spacingScale checks a control's margins only */
 /* §1.5 hit-area expansion (same recipe as .row-del-x above, vertical-only
    here: the row's align-items:center means only THIS button would grow,
    with no horizontal neighbor to collide with). USER RULING hard-asserts
@@ -2215,7 +2213,6 @@ html.motion-ready .notes-batch-bar.selecting {
      cell's indicator is the inset core alone. */
   box-shadow: none;
 }
-.vocab-batch-cluster { display: inline-flex; gap: var(--lib-sp-1); flex: none; }
 /* "None of the selected words are in this group", in text (built and toggled
    by library-vocab.js's _pbpVocabGroupHelpEl). The button that reason belongs
    to is disabled while it applies, and a disabled button takes no focus: its
@@ -2253,17 +2250,14 @@ html.motion-ready .notes-batch-bar.selecting {
   gap: var(--lib-sp-1); /* the surface's own tightest rung; the old literal 6px was
     options' --opt-sp-3 borrowed across surfaces, the one 6px button-row gap the
     actionRowGap scan found on this page (2026-09-05) */
-  padding: 3px 6px; /* density pass (Task 2): tighter than --lib-sp-1 (4px), no
-    token this small exists yet -- literal like the file's other sub-token
-    values. Scoped to .vocab-card only: the shared .notes-card-top base stays
-    untouched for the current Notes tab; Task 3's future two-column notes
-    rewrite copies this literal into its own selectors per the plan's
-    no-shared-class rule, it does not inherit from here. */
+  padding: var(--lib-sp-0) var(--lib-sp-2); /* density pass (Task 2): the hairline
+    rung, tighter than sp-1. Scoped to .vocab-card only: the shared
+    .notes-card-top base keeps sp-2 for the current Notes tab. */
 }
 /* Density pass (Task 2): the list needs >=15 rows visible at a 900px
    viewport height; shared .notes-card's 6px margin-bottom stays as-is for
    the Notes tab, this scoped override only tightens the vocab list. */
-.vocab-card.notes-card { margin-bottom: 3px; }
+.vocab-card.notes-card { margin-bottom: var(--lib-sp-1); } /* between cards: one rung above the hairline the card's own rows use */
 /* Collapsed-row rhythm (2026-08 redesign): controls anchor to the TITLE
    line instead of centering against whatever height the row happens to
    reach -- on a tall card a centered control floated mid-air. */
@@ -2280,7 +2274,7 @@ html.motion-ready .notes-batch-bar.selecting {
    frame collapses in the same commit -- a rounded band inside a rounded
    bordered card is two competing arcs 4px apart, and the outer one wins the
    eye, which is the other half of why the inset read as ~2px. */
-.vocab-card .notes-card-top { border-radius: var(--lib-radius-md); margin: 2px 4px; }
+.vocab-card .notes-card-top { border-radius: var(--lib-radius-md); margin: var(--lib-sp-0) var(--lib-sp-1); }
 .vocab-card .notes-card-head { align-items: start; }
 /* The row whose word the detail pane is currently showing. Distinct from
    .selected (a batch-operation membership) -- this is "you are here".
@@ -2345,7 +2339,7 @@ html.motion-ready .notes-batch-bar.selecting {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 2px 6px; /* options --opt-sp-1 (2px) / --opt-sp-3 (6px) */
+  gap: var(--lib-sp-0) var(--lib-sp-2);
   min-width: 0;
 }
 .vocab-row-gloss {

@@ -166,11 +166,6 @@
     },
     {
       "surface": "library",
-      "token": "notes-selection-actions",
-      "structural": true
-    },
-    {
-      "surface": "library",
       "token": "notes-sib-text",
       "structural": false
     },
@@ -212,11 +207,6 @@
     {
       "surface": "library",
       "token": "vocab-account-empty",
-      "structural": true
-    },
-    {
-      "surface": "library",
-      "token": "vocab-batch-cluster",
       "structural": true
     },
     {
@@ -352,11 +342,6 @@
     {
       "surface": "library",
       "token": "vocab-row-gloss",
-      "structural": true
-    },
-    {
-      "surface": "library",
-      "token": "vocab-selection-actions",
       "structural": true
     },
     {

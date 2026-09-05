@@ -107,12 +107,12 @@
         <span class="vocab-ctx-text">
           <span id="vocab-count" class="notes-count" aria-live="polite"></span>
         </span>
-        <div class="vocab-selection-actions" role="group" data-i18n-aria="vocabSelectionActions" aria-label="Selection actions">
+        <div class="lib-cluster" role="group" data-i18n-aria="vocabSelectionActions" aria-label="Selection actions">
           <!-- The multi-select hint lives here, on the one control that is
                always on screen next to the list: a title on every row would
                tooltip the whole list, and the batch bar only exists once a
                selection already does. -->
-          <button type="button" class="btn btn-sm" id="vocab-select-all" data-i18n="vocabSelectAll" data-i18n-title="vocabSelectHint" title="Ctrl-click a row to add it to the selection, Shift-click for a range">Select all</button>
+          <button type="button" class="btn btn-sm ghost" id="vocab-select-all" data-i18n="vocabSelectAll" data-i18n-title="vocabSelectHint" title="Ctrl-click a row to add it to the selection, Shift-click for a range">Select all</button>
         </div>
         <span class="save-status vocab-main-status" id="vocab-status" role="status" aria-live="polite"></span>
       </div>
@@ -145,7 +145,7 @@
             <button type="button" class="btn btn-sm vocab-group-step" id="vocab-add-group" data-i18n-title="vocabAddToGroup" data-i18n-aria="vocabAddToGroup"><span class="btn-ic" data-ic="plus"></span></button>
             <button type="button" class="btn btn-sm vocab-group-step" id="vocab-remove-group" data-i18n-aria="vocabRemoveFromGroup"><span class="btn-ic" data-ic="minus"></span></button>
           </span>
-          <span class="vocab-batch-cluster">
+          <span class="lib-cluster">
             <button type="button" class="btn btn-sm" id="vocab-mark-known" data-i18n-title="vocabMarkKnown" data-i18n-aria="vocabMarkKnown" aria-label="Mark as known" title="Mark as known"><span class="btn-ic" data-ic="checkCircle"></span></button>
             <button type="button" class="btn btn-sm" id="vocab-mark-learning" data-i18n-title="vocabMarkLearning" data-i18n-aria="vocabMarkLearning" aria-label="Back to learning" title="Back to learning"><span class="btn-ic" data-ic="rotateCcw"></span></button>
           </span>
@@ -192,8 +192,8 @@
             <!-- Same placement as the vocabulary view's Select all: beside the
                  count, outside the batch bar, so it exists before a selection
                  does. It also carries the multi-select hint. -->
-            <div class="notes-selection-actions" role="group" data-i18n-aria="vocabSelectionActions" aria-label="Selection actions">
-              <button type="button" class="btn btn-sm" id="notes-select-all" data-i18n="vocabSelectAll" data-i18n-title="vocabSelectHint" title="Ctrl-click a row to add it to the selection, Shift-click for a range">Select all</button>
+            <div class="lib-cluster" role="group" data-i18n-aria="vocabSelectionActions" aria-label="Selection actions">
+              <button type="button" class="btn btn-sm ghost" id="notes-select-all" data-i18n="vocabSelectAll" data-i18n-title="vocabSelectHint" title="Ctrl-click a row to add it to the selection, Shift-click for a range">Select all</button>
             </div>
           </div>
           <!-- Sticky boundary, identical contract to .vocab-list-region: the

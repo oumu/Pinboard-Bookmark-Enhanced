@@ -22,8 +22,8 @@
 - 颜色一律**无 fallback** 的 `var(--{ns}-x)`。带 fallback 的 `var(--x, #fff)` 会被 `ui-token-coverage`
   的正则排除出 used 集合，静默逃门——生成区内禁止出现。
 - **间距一律写像素值**（`padding: 4px 16px`）。三表面 `--sp-*` 刻度不同（popup/options 7 档 2..24，
-  library 5 档 4..24），配方**不得**引用 `--{ns}-sp-N`；由 `ui-components.mjs` 的 SPACING adapter 在发射时
-  映射到该表面**数值相等**的 token，无对应档位发射字面 px。
+  library 6 档 2/4/8/12/16/24——sp-0 是 2026-09-06 补的 hairline，没有 6 档），配方**不得**引用 `--{ns}-sp-N`；
+  由 `ui-components.mjs` 的 SPACING adapter 在发射时映射到该表面**数值相等**的 token，无对应档位发射字面 px。
 - **圆角写 token 名**（`var(--{ns}-radius-md)`）。radius 三表面同名同角色（sm 在 options 是 3px、library 是
   4px，属刻度差异，与间距不同的是它不需要跨表面数值相等），直接引用不会算错。
 - 过渡时长引用既有动效 token：options / library 是 `--motion-state`（150ms）、`--motion-pop` / `--motion-pop-out`，
@@ -201,8 +201,8 @@ composer 一旦开始发射 `color: var(--opt-btn-fg)`，它们会逐条覆盖�
   和 icon-only 按钮（`.vocab-group-step`，`display:inline-grid` 居中）可以这么做；带「图标+文字」的按钮
   一律不许改 `display`，否则图标与文字贴死。
 - 生成区**物理位置钉在各文件当前组件配方处**（library ≈:119 / options ≈:341 / popup ≈:137），不许搬到
-  文件尾。`.row-del-x`、`.vocab-load-more`、`.vocab-selection-actions .btn`、`.vocab-batch-cluster > .btn`、
-  `.vocab-group-step` 这些同特异性 (0,1,0) 手写规则**靠源顺序赢**，换位置会静默翻转级联。
+  文件尾。`.row-del-x`、`.vocab-load-more`、`.lib-cluster > .btn.ghost`、`.vocab-batch-bar .btn:not(.vocab-group-step)`、
+  `.vocab-group-step` 这些排在插入点之后的手写规则**靠源顺序或特异性赢**，换位置会静默翻转级联。
 - 新增按钮先 grep 同表面同类控件，归入既有阶与档，不新造第三套 padding。
 
 ---
@@ -1063,6 +1063,7 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | library | `.notes-toolbar` | 控件行（flex wrap，gap sp-2，margin sp-2 0 sp-3），vocab/notes 共用 |
 | library | `.vocab-batch-bar` / `.notes-batch-bar` | 粘底批量条（同一选择器列表） |
 | library | `.notes-empty` | 空态块 |
+| library | `.lib-cluster` | 紧凑控件簇（inline-flex，align center，gap sp-1，flex none）：两处「Select all」组与批量条里的标记簇。簇内 quiet 按钮走 `.btn.ghost`，只有静息前景 `--lib-fg-muted` 是簇自己的规则 |
 | md-preview | `.rail-section` / `.rail-label` / `.rail-sec-head` | 侧栏分区容器 / 静态标题 / 可折叠标题（共享 margin sp-3 0 sp-2 契约） |
 | md-preview | `.msg-bar` | 状态/提示/错误条（padding sp-2 sp-3，与 `.send-status` / `.export-note` / `#ask-tip` 同一条家族；`data-state`） |
 | md-preview | `.send-menu` / `.send-mi` | 下拉菜单与菜单项 |
@@ -1252,8 +1253,9 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 - `--{ns}-danger-quiet-fg` 的派生背景集从计划的 `[bg, panel]` 扩为 `[bg, panel, btn-bg]`（超集）：
   quiet 档也会出现在工具条的常规 `.btn` 底上（`#vocab-batch-delete`），漏掉 btn-bg 会让那颗按钮逃过审计。
 - 按钮族追加 `ghost` chrome 变体。它不是新组件：`library.css` 里已有两份手写副本
-  （`.row-del-x`:350 与 `.vocab-selection-actions .btn`:976，均为 `border-color: transparent` +
-  `background: transparent` + 弱化前景）。归并进配方是**删两份副本**，不是加一个新族；不归并也不违反
+  （`.row-del-x`:350 与原 `.vocab-selection-actions .btn`:976，均为 `border-color: transparent` +
+  `background: transparent` + 弱化前景；后者已于 2026-09-06 归并——「Select all」按钮改用 `.btn.ghost`，
+  只剩 `.lib-cluster > .btn.ghost` 一行静息前景）。归并进配方是**删两份副本**，不是加一个新族；不归并也不违反
   本规范（只要两份副本的值与 §1.2 一致）。**options.css 没有等价副本**——`library.css:350` 的注释
   「options.css's shared recipe」是移植来源的说法，`grep row-del-x options.css` 零命中，options 侧要用
   ghost 档（详情面板类阅读面）时是**首次出现**，按 §1.2 配方来，不要去 options 里找样板。

@@ -68,8 +68,8 @@ body.test-scroll-pane #vocab-detail-pane{max-height:60px;overflow-y:auto}
         <span class="vocab-ctx-text">
           <span id="vocab-count" class="notes-count" aria-live="polite"></span>
         </span>
-        <div class="vocab-selection-actions" role="group" aria-label="Selection actions">
-          <button type="button" class="btn btn-sm" id="vocab-select-all">Select all</button>
+        <div class="lib-cluster" role="group" aria-label="Selection actions">
+          <button type="button" class="btn btn-sm ghost" id="vocab-select-all">Select all</button>
         </div>
         <span class="save-status vocab-main-status" id="vocab-status" role="status" aria-live="polite"></span>
       </div>
@@ -87,7 +87,7 @@ body.test-scroll-pane #vocab-detail-pane{max-height:60px;overflow-y:auto}
             <button type="button" class="btn btn-sm vocab-group-step" id="vocab-add-group" aria-label="Add to group" title="Add to group"><span class="btn-ic" data-ic="plus"></span></button>
             <button type="button" class="btn btn-sm vocab-group-step" id="vocab-remove-group" aria-label="Remove from group" title="Remove from group"><span class="btn-ic" data-ic="minus"></span></button>
           </span>
-          <span class="vocab-batch-cluster">
+          <span class="lib-cluster">
             <button type="button" class="btn btn-sm" id="vocab-mark-known" aria-label="Mark as known" title="Mark as known"><span class="btn-ic" data-ic="checkCircle"></span></button>
             <button type="button" class="btn btn-sm" id="vocab-mark-learning" aria-label="Back to learning" title="Back to learning"><span class="btn-ic" data-ic="rotateCcw"></span></button>
           </span>
@@ -1527,10 +1527,10 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
         <span class="vocab-stat" data-label="stat-languages"></span>
         <span class="vocab-stat vocab-stat-trend" data-label="stat-recent"></span>
       </div>
-      <div class="vocab-context-bar"><span class="vocab-ctx-text"><span class="notes-count">5000</span></span><div class="vocab-selection-actions"><button class="btn btn-sm" data-label="all"></button></div><span class="save-status vocab-main-status">Saved just now</span></div>
+      <div class="vocab-context-bar"><span class="vocab-ctx-text"><span class="notes-count">5000</span></span><div class="lib-cluster"><button class="btn btn-sm" data-label="all"></button></div><span class="save-status vocab-main-status">Saved just now</span></div>
       <div class="vocab-list-region">
       <article class="notes-card vocab-card"><div class="notes-card-top"><button class="notes-card-head"><span class="notes-card-main"><span class="vocab-row-headline"><span class="notes-row-title">Wortzusammensetzung mit außergewöhnlich langem ausgewähltem Begriff</span><span class="notes-row-meta"><span class="notes-meta-chip">Außergewöhnlich lange Gruppe</span></span></span><span class="vocab-row-gloss">Außergewöhnlich lange Definition, die auf einer Zeile bleiben muss</span></span></button><button class="btn btn-sm notes-row-del" data-label="remove"></button></div></article>
-      <div class="vocab-batch-bar selecting"><span class="notes-count" data-label="selected-count">5000</span><button class="btn btn-sm" data-label="invert"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><span class="vocab-group-unit"><input type="text"><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><span class="vocab-batch-cluster"><button class="btn btn-sm" data-label="known"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm" data-label="learning"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><button class="btn btn-sm danger" data-label="batch-delete"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-clear-selection"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></div>
+      <div class="vocab-batch-bar selecting"><span class="notes-count" data-label="selected-count">5000</span><button class="btn btn-sm" data-label="invert"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><span class="vocab-group-unit"><input type="text"><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-group-step"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><span class="lib-cluster"><button class="btn btn-sm" data-label="known"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm" data-label="learning"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></span><button class="btn btn-sm danger" data-label="batch-delete"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button><button class="btn btn-sm vocab-clear-selection"><svg width="14" height="14" viewBox="0 0 24 24"></svg></button></div>
       </div>
     </div>
     <aside class="vocab-detail-pane">

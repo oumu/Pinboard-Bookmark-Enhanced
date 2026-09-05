@@ -22,13 +22,14 @@
   --radius-lg: 12px;
   --radius-full: 999px;
   /* Spacing scale for the reader's CHROME (rail, toolbars, popovers, panels)
-     -- the library ladder (4/8/12/16/24). Prose rhythm stays in em. Every
+     -- the library ladder (2/4/8/12/16/24). Prose rhythm stays in em. Every
      chrome margin, gap and container inset is one of these rungs (render-
      audit family spacingScale, 2026-09-05). What legitimately stays literal:
-     a control's or chip's own vertical inset (rung arithmetic: 2px/3px/6px
-     + line-height + border = 20/26), a select's chevron reserve, icon-to-
+     a control's or chip's own vertical inset when it is 3px or 6px (rung
+     arithmetic: inset + line-height + border = 20/26), a select's chevron reserve, icon-to-
      label gaps inside a control (6px, the .btn contract), 1px hairlines,
      and page-shell insets (main / .rail / empty states). */
+  --sp-0: 2px; /* hairline, added with the library's sp-0 (2026-09-06) */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -284,7 +285,7 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--fg-secondary);
   background: transparent;
   border: 0;
-  padding: 2px var(--sp-2);
+  padding: var(--sp-0) var(--sp-2);
   cursor: pointer;
   line-height: 14px;       /* fused-shell inner on the sm rung: 2+14+2 = 18 + the shell's border = 20px */
   transition: background-color 150ms ease, color 150ms ease;
@@ -2330,7 +2331,7 @@ body.tr-only #rendered-view [data-pb-hl-mirror="5"] { box-shadow: inset 3px 0 0 
 .confirm-popover .confirm-msg { flex: 1 1 16ch; min-width: 0; font-weight: 600; color: inherit; white-space: pre-line; overflow-wrap: anywhere; }
 .confirm-popover button {
   flex: none;
-  padding: 2px var(--sp-2);
+  padding: var(--sp-0) var(--sp-2);
   font-size: 12px;
   cursor: pointer;
   border-radius: var(--radius-md);
@@ -2501,7 +2502,7 @@ html.motion-ready #pb-hl-bar:popover-open {
 }
 /* Only the first of the pair carries the group divider -- they act as one
    action group off the color dots/note button. */
-.pb-hl-explain-btn { margin-left: 2px; border-left: 1px solid var(--border); }
+.pb-hl-explain-btn { margin-left: var(--sp-0); border-left: 1px solid var(--border); }
 .pb-hl-explain-btn:hover,
 .pb-hl-dict-btn:hover,
 .pb-hl-seek-btn:hover { color: var(--fg); background: var(--btn-hover); }
@@ -3158,7 +3159,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
      breaks out via its own flex-basis:100%. */
   flex: 1 1 0; min-width: 0;
   display: flex; align-items: center; gap: 6px;
-  background: none; border: none; padding: 2px var(--sp-1);
+  background: none; border: none; padding: var(--sp-0) var(--sp-1);
   color: inherit; font: inherit; text-align: left;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -3182,7 +3183,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 }
 .hl-item-del {
   flex-shrink: 0;
-  background: none; border: none; padding: 2px;
+  background: none; border: none; padding: var(--sp-0);
   display: inline-flex;
   color: var(--fg-muted);
   border-radius: var(--radius-sm);
@@ -3837,7 +3838,7 @@ body.tr-only .pbv-row--tr > .pbv-text { display: none; }
 .pbv-row--static { cursor: default; }
 .pbv-time {
   flex: 0 0 auto; opacity: 0.65; font-variant-numeric: tabular-nums;
-  min-height: 24px; padding: 0 2px; border-radius: var(--radius-sm);
+  min-height: 24px; padding: 0 var(--sp-0); border-radius: var(--radius-sm);
   border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer;
 }
 .pbv-time:hover { background: var(--row-hover, rgba(127,127,127,.14)); opacity: 0.85; }

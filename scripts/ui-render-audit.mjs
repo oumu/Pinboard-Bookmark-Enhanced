@@ -2124,7 +2124,7 @@ const SWEEP_CFG = {
     exempt: [
       ".tabs, .lib-tabs",                                                     // tab strips
       ".vocab-sort-seg, .source-badge, .view-toggle, .vocab-group-unit, .tags-input-wrap, .send-split, .typo-seg", // fused shells / segmented strips
-      ".header-icons, .xp-window-actions, .vocab-batch-cluster, .vocab-selection-actions, .notes-selection-actions", // tight icon/button clusters (candidate lib-cluster primitive, gap sp-1)
+      ".header-icons, .xp-window-actions, .lib-cluster", // tight icon/button clusters: library's .lib-cluster primitive (gap sp-1); the reader's two are the same shape, not yet named
       ".connection-health, .theme-presets-group, .kbd-help-chips, .rail-badges", // status-card grid, swatch-pill / chip rows
       ".notes-card-top",                                                      // card head: title + chips, the remove X is absolutely positioned
     ].join(", "),
@@ -2172,8 +2172,8 @@ const SWEEP_CFG = {
   //     scale value by construction. `hairline`: 1px is border compensation.
   spacingScale: {
     prefix: { options: "--opt-sp-", popup: "--pp-sp-", library: "--lib-sp-", "md-preview": "--sp-" },
-    names: ["1", "2", "3", "4", "5", "6", "7"],
-    tokens: { options: [2, 4, 6, 8, 12, 16, 24], popup: [2, 4, 6, 8, 12, 16, 24], library: [4, 8, 12, 16, 24], "md-preview": [4, 8, 12, 16, 24] },
+    names: ["0", "1", "2", "3", "4", "5", "6", "7"], // sp-0 = the library/reader hairline rung (2px)
+    tokens: { options: [2, 4, 6, 8, 12, 16, 24], popup: [2, 4, 6, 8, 12, 16, 24], library: [2, 4, 8, 12, 16, 24], "md-preview": [2, 4, 8, 12, 16, 24] },
     tol: 0.5,
     hairline: 1, // <= 1px is a border/optical compensation, not a rhythm value
     margins: ["margin-top", "margin-right", "margin-bottom", "margin-left"],

@@ -364,7 +364,7 @@ check(libraryVocabJs.includes('t("vocabRefreshFailed")') &&
   "library-vocab.js: committed mutations, refresh failures, or incremental rendering are conflated");
 check(["vocab-search", "vocab-group-filter", "vocab-sort", "vocab-group-input", "vocab-list"].every((id) =>
   new RegExp(`id="${id}"[^>]*aria-label=`).test(libraryHtml)) &&
-  /id="vocab-selection-actions"|class="vocab-selection-actions"[^>]*role="group"[^>]*aria-label=/.test(libraryHtml) &&
+  /class="lib-cluster" role="group" data-i18n-aria="vocabSelectionActions" aria-label=/.test(libraryHtml) &&
   /id="vocab-batch-toolbar"[^>]*role="group"[^>]*aria-label=/.test(libraryHtml) &&
   /id="vocab-selected-count"[^>]*aria-live="polite"/.test(libraryHtml),
   "library.html: production vocabulary controls lost accessible names, groups, or live selection status");
