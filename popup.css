@@ -616,6 +616,11 @@ html[data-section="login"] .quick-actions { display: none !important; }
 .field { flex: 1; min-width: 0; }
 .field > input[type="text"], .field > textarea {
   width: 100%; padding: var(--pp-sp-2) var(--pp-sp-3); border: 1px solid var(--pp-input-bd); border-radius: var(--pp-radius-md);
+  /* line-height pinned (COMPONENTS.md §1.1 / §6.3): 4+16+4+2 = the 26px md rung
+     the Save/Delete buttons and every other surface's fields sit on. With
+     `normal` the URL/Title fields measured 24px and drifted with the fallback
+     font. */
+  line-height: 16px;
   font-size: 12px; font-family: inherit; background: var(--pp-input-bg); color: var(--pp-fg);
   transition: border-color var(--pp-motion-state), background var(--pp-motion-state), box-shadow var(--pp-motion-state);
 }
@@ -756,7 +761,11 @@ button.offline-clear:focus-visible, button.offline-toggle:focus-visible { outlin
 .tags-input-wrap:focus-within .tag-drag-handle { opacity: 0.5; }
 .tag-item.dragging .tag-drag-handle { opacity: 0.8; cursor: grabbing; }
 .tags-input-wrap input {
-  border: none !important; outline: none; padding: 1px var(--pp-sp-1);
+  border: none !important; outline: none; padding: 0 var(--pp-sp-1);
+  /* 20px line = a chip's height (18px line + 1px padding each side), so the
+     fused shell is 2+4+20 = 26px whether it holds chips or only the caret; it
+     used to be 24px empty and 26px with chips. */
+  line-height: 20px;
   font-size: 12px; flex: 1; min-width: 80px; background: transparent; font-family: inherit; color: var(--pp-fg);
 }
 
@@ -2558,7 +2567,7 @@ html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--pp
      grows, the icon stays centered. Labels live in title/aria; feedback is
      an icon swap in popup.js. */
   flex: 1 1 0;
-  height: 32px;
+  height: 26px;            /* md rung, same as the .qbtn row above it; was a fourth 32px rung */
   display: inline-grid;
   place-items: center;
   padding: 0;

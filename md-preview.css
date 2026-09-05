@@ -12,6 +12,15 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Radius scale (2026-09-05 cross-surface unification): the reader's chrome
+     joins the same three rungs the library uses (sm 4 / md 8 / lg 12 / full).
+     Before this the file carried 87 literal radii in six values, 35 of them a
+     6px that no other surface has. Prose (images, code) keeps its look via the
+     same tokens where the value coincided. */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 999px;
   /* A "warm-neutral reading" palette -- document-optimized. Single
      light-dark() definition per token (Chrome 123+); color-scheme tells
      the UA which branch to resolve and also themes native form controls /
@@ -151,7 +160,7 @@ html { font-size: 100%; } /* rem-based reading size honors the browser's default
 ::-webkit-scrollbar-corner { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background-color: rgba(128, 128, 128, 0.35);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 3px solid transparent;
   background-clip: padding-box;
 }
@@ -204,9 +213,10 @@ button, input, select, textarea { font-family: inherit; }
 
 /* ---- Buttons ---- */
 .action-btn, .toggle-btn {
-  padding: 6px 12px;
+  padding: 4px 12px;
+  line-height: 16px;       /* md rung: 4+16+4+2 = 26px, the height every other surface's buttons use (was ~31px) */
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--btn-fg);
   cursor: pointer;
@@ -249,7 +259,7 @@ button, input, select, textarea { font-family: inherit; }
   display: inline-flex;
   align-items: stretch;
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--surface);
 }
@@ -263,11 +273,11 @@ button, input, select, textarea { font-family: inherit; }
   border: 0;
   padding: 2px 10px;
   cursor: pointer;
-  line-height: 1.6;
+  line-height: 14px;       /* fused-shell inner on the sm rung: 2+14+2 = 18 + the shell's border = 20px */
   transition: background-color 150ms ease, color 150ms ease;
 }
-.src-seg:first-child { border-radius: 6px 0 0 6px; }
-.src-seg:last-child { border-radius: 0 6px 6px 0; }
+.src-seg:first-child { border-radius: var(--radius-md) 0 0 var(--radius-md); }
+.src-seg:last-child { border-radius: 0 var(--radius-md) var(--radius-md) 0; }
 .src-seg + .src-seg { border-left: 1px solid var(--btn-border); }
 .src-seg.active { color: var(--active-fg); background: var(--active-bg); cursor: default; }
 /* A toggle member (the density switch, aria-pressed) lights up in the same
@@ -316,14 +326,14 @@ button, input, select, textarea { font-family: inherit; }
   color: var(--badge-fg);
   background: var(--badge-bg);
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   letter-spacing: 0.01em;
 }
 
 .view-toggle { display: flex; }
 .view-toggle .toggle-btn { border-radius: 0; }
-.view-toggle .toggle-btn:first-child { border-radius: 6px 0 0 6px; }
-.view-toggle .toggle-btn:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
+.view-toggle .toggle-btn:first-child { border-radius: var(--radius-md) 0 0 var(--radius-md); }
+.view-toggle .toggle-btn:last-child { border-radius: 0 var(--radius-md) var(--radius-md) 0; margin-left: -1px; }
 
 /* ---- Layout: fixed left rail + centered doc body ---- */
 /* Transitions here (this batch, transition-round): animate zen enter/exit
@@ -446,7 +456,7 @@ body.zen:not(.video-mode) #skim-section { display: none; }
   padding: 4px;
   background: var(--surface);
   border: 1px solid var(--btn-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
   transition: opacity 200ms ease, right 200ms var(--ease-drawer), display 200ms allow-discrete;
 }
@@ -490,7 +500,7 @@ body.ask-open #zen-bar { right: calc(380px + 12px); }
   background: var(--btn-bg);
   color: var(--btn-fg);
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 .zen-btn:hover { background: var(--btn-hover); border-color: var(--border); }
@@ -513,7 +523,7 @@ body.ask-open #zen-bar { right: calc(380px + 12px); }
   background: var(--surface);
   border: 1px solid var(--border);
   padding: 24px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--code-fg);
   tab-size: 2;
   /* MB-scale markdown in one text node has no containment; a first-time Raw
@@ -671,7 +681,7 @@ body.ask-open #zen-bar { right: calc(380px + 12px); }
   background: var(--code-bg);
   color: var(--code-fg);
   padding: 2px 7px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.875em;
   font-weight: 450;
 }
@@ -681,7 +691,7 @@ body.ask-open #zen-bar { right: calc(380px + 12px); }
   background: var(--pre-bg);
   border: 1px solid var(--border);
   padding: 1.2em 1.4em; /* was 20px 24px; em per the inset policy (blockquote note) */
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow-x: auto;
   margin: 1.5em 0;
   line-height: 1.55;
@@ -707,7 +717,7 @@ body.ask-open #zen-bar { right: calc(380px + 12px); }
   background: var(--bq-bg);
   padding: 0.7em 1.2em;
   margin: 1.5em 0;
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   color: var(--bq-fg);
 }
 #rendered-view blockquote p { margin: 0.4em 0; }
@@ -789,7 +799,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 #rendered-view img {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin: 1.5em 0;
   border: 1px solid var(--border);
 }
@@ -821,7 +831,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   gap: 4px;
   padding: 3px 6px;
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--btn-fg);
   font-size: 11px;
@@ -849,7 +859,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   width: 100%;
   margin: 1.5em 0;
   font-size: 0.9375em;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--border);
 }
@@ -1061,7 +1071,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   gap: 4px;
   margin-top: 6px;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--fg-muted);
@@ -1186,7 +1196,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   flex: 1;
   appearance: none; -webkit-appearance: none;
   padding: 6px 24px 6px 14px;
-  border: 1px solid var(--btn-border); border-radius: 6px;
+  border: 1px solid var(--btn-border); border-radius: var(--radius-md);
   background-color: var(--btn-bg); color: var(--btn-fg);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a94a0' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -1219,7 +1229,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
     margin-top: 4px;
     background: var(--bg, #fff);
     border: 1px solid var(--border, #d8dee4);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-shadow: 0 8px 24px rgba(0,0,0,.12);
     padding: 4px;
     max-height: 320px;
@@ -1237,7 +1247,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   }
   .exp-img-row option, .xp-dict-lang option {
     padding: 7px 9px;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     font-size: inherit; /* tracks each select's own size (13px exp-img-row, 0.8em tier dict-lang) */
     cursor: pointer;
   }
@@ -1281,7 +1291,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 .toc-list li { margin: 0; }
 .toc-list a {
   display: block; padding: 4px 10px; color: var(--fg-secondary); text-decoration: none;
-  border-left: 2px solid transparent; border-radius: 0 4px 4px 0; font-size: 13px; line-height: 1.45;
+  border-left: 2px solid transparent; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 13px; line-height: 1.45;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
 }
@@ -1378,7 +1388,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   width: 24px; height: 24px;
   display: inline-flex; align-items: center; justify-content: center;
   padding: 0;
-  border: none; border-radius: 4px;
+  border: none; border-radius: var(--radius-sm);
   background: transparent;
   color: var(--fg-muted);
   cursor: pointer;
@@ -1412,7 +1422,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   display: none; align-items: center; justify-content: center;
   width: 38px; height: 38px; padding: 0;
   background: var(--btn-bg); color: var(--btn-fg);
-  border: 1px solid var(--btn-border); border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--btn-border); border-radius: var(--radius-md); cursor: pointer;
   box-shadow: 0 1px 3px rgba(15,23,42,0.12);
 }
 .rail-toggle:hover { background: var(--btn-hover); border-color: var(--border); }
@@ -1567,7 +1577,7 @@ body.md-shell .rail > .view-toggle { display: none; }
   z-index: 100;
   padding: 6px 12px;
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--btn-fg);
   font-size: 13px;
@@ -1602,7 +1612,7 @@ body.md-shell .rail > .view-toggle { display: none; }
 .send-empty .send-primary { justify-content: center;
   border-top-right-radius: 6px; border-bottom-right-radius: 6px; opacity: .85; }
 .send-menu { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 20;
-  background: var(--bg, #fff); border: 1px solid var(--border, #d8dee4); border-radius: 8px;
+  background: var(--bg, #fff); border: 1px solid var(--border, #d8dee4); border-radius: var(--radius-md);
   box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 4px; max-height: 320px; overflow: auto; }
 .send-menu[hidden] { display: none; }
 html.motion-ready .send-menu {
@@ -1620,7 +1630,7 @@ html.motion-ready .send-menu[hidden] {
   transition-duration: var(--motion-pop-out);
 }
 .send-mi { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 9px;
-  background: none; border: 0; border-radius: 6px; font: inherit; color: inherit;
+  background: none; border: 0; border-radius: var(--radius-md); font: inherit; color: inherit;
   text-align: left; cursor: pointer; transition: background-color 120ms ease; }
 .send-mi:hover { background: var(--row-hover, rgba(127,127,127,.14)); }
 /* Ring comes from the shared soft-focus recipe (rail section above). */
@@ -1644,7 +1654,7 @@ html.motion-ready .send-menu[hidden] {
   padding: 6px 10px; line-height: 1.45; word-break: break-word;
   color: var(--fg-secondary); background: var(--btn-bg);
   border: 1px solid var(--border); border-left: 3px solid var(--link);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 .msg-bar[hidden] { display: none; }
 .msg-bar.error, .msg-bar[data-state="error"] { color: var(--danger); border-left-color: var(--danger); }
@@ -1675,7 +1685,7 @@ html.motion-ready .msg-bar[data-state="busy"] { animation: msg-bar-busy-pulse 1.
   margin-top: 6px; padding: 6px 10px;
   font-size: 12px; line-height: 1.45; word-break: break-word;
   color: var(--fg-secondary); background: var(--btn-bg);
-  border: 1px solid var(--border); border-radius: 6px;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
 }
 .export-note[hidden] { display: none; }
 /* Hotlink-guard image fix (hotlink round): count-gated strip above the
@@ -1695,7 +1705,7 @@ html.motion-ready .msg-bar[data-state="busy"] { animation: msg-bar-busy-pulse 1.
   width: fit-content; max-width: 100%;
   margin: -6px 0 18px; padding: 6px 8px;
   font-size: 12.5px; line-height: 1.45; color: var(--fg-secondary);
-  background: var(--surface); border: 1px solid var(--border-light); border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-md);
 }
 .pbp-img-fix-btn {
   padding: 0; border: 0; background: none; cursor: pointer;
@@ -1741,7 +1751,7 @@ html.motion-ready .msg-bar[data-state="busy"] { animation: msg-bar-busy-pulse 1.
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
   overflow: hidden;
   /* em base for the popover's own hierarchy -- the same construction as
@@ -1826,7 +1836,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   height: 26px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--fg-secondary);
   cursor: pointer;
@@ -1849,7 +1859,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   justify-content: center;
   padding: 0;
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--btn-fg);
   cursor: pointer;
@@ -1892,7 +1902,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-skel {
   height: 0.7em;
   margin: 0.55em 0;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: linear-gradient(90deg, var(--border-light) 25%, var(--border) 50%, var(--border-light) 75%);
   background-size: 200% 100%;
   animation: xp-shimmer 1.2s linear infinite;
@@ -1908,7 +1918,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-retry, .xp-ask, .xp-save, .xp-vocab, .xp-known, .xp-open-vocab, .xp-dict-connect {
   padding: 4px 10px;
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--btn-fg);
   font-size: 0.8em;
@@ -1964,7 +1974,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 /* Joins the .exp-img-row select recipe above (shared border/background/chevron);
    this override only densifies for the dict view's tighter header row. */
 .xp-dict-lang { flex: 0 1 auto; padding: 3px 22px 3px 8px; font-size: 0.8em; background-position: right 6px center; }
-.xp-dict-speak { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--btn-border); border-radius: 6px; padding: 4px; cursor: pointer; color: inherit; font-size: 1em; /* buttons don't inherit font-size; the 0.8em svg needs this anchor */ }
+.xp-dict-speak { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--btn-border); border-radius: var(--radius-md); padding: 4px; cursor: pointer; color: inherit; font-size: 1em; /* buttons don't inherit font-size; the 0.8em svg needs this anchor */ }
 .xp-dict-speak:hover { background: var(--btn-hover); }
 .xp-dict-speak:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .xp-dict-speak svg { width: 0.8em; height: 0.8em; }
@@ -2053,7 +2063,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   background: transparent;
   color: var(--fg-secondary);
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
@@ -2076,7 +2086,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   padding: 8px 10px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
   font-size: 0.8em;
 }
@@ -2116,7 +2126,7 @@ html.motion-ready .xp-gear-menu[hidden] {
   padding: 0 4px;
   margin: 0 2px;
   border: 1px dashed var(--btn-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--link);
   font-size: 11px;
@@ -2183,7 +2193,7 @@ html.motion-ready .xp-gear-menu[hidden] {
   max-width: 360px;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--fg);
   font-size: 12px;
@@ -2301,7 +2311,7 @@ body.tr-only #rendered-view [data-pb-hl-mirror="5"] { box-shadow: inset 3px 0 0 
   color: var(--danger);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 .confirm-popover .confirm-msg { flex: 1 1 16ch; min-width: 0; font-weight: 600; color: inherit; white-space: pre-line; overflow-wrap: anywhere; }
@@ -2310,7 +2320,7 @@ body.tr-only #rendered-view [data-pb-hl-mirror="5"] { box-shadow: inset 3px 0 0 
   padding: 2px 8px;
   font-size: 12px;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   border: 1px solid;
 }
 .confirm-popover .confirm-yes { background: var(--danger); color: var(--on-danger); border-color: var(--danger); }
@@ -2342,7 +2352,7 @@ html.motion-ready .confirm-popover.is-closing {
   font-size: 10px;
   line-height: 1.6;
   border: 1px solid var(--btn-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--btn-bg);
   color: var(--fg-secondary);
 }
@@ -2357,7 +2367,7 @@ html.motion-ready .confirm-popover.is-closing {
   gap: 6px;
   padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--surface);
   color: var(--fg);
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
@@ -2437,7 +2447,7 @@ html.motion-ready #pb-hl-bar:popover-open {
   background: transparent;
   color: var(--fg-muted);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   position: relative;
 }
 /* 22px box -> 24px hit area. -1px (not the swatches' -4px) because this
@@ -2468,7 +2478,7 @@ html.motion-ready #pb-hl-bar:popover-open {
   background: transparent;
   color: var(--fg-muted);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   position: relative;
 }
 /* 22px tall -> 24px hit area (width already clears it: 8+13+4). Same 1px
@@ -2549,7 +2559,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
    contrast on both themes' --bg), rounded, and fades in. Rest-state outline
    is transparent rather than none so forced-colors mode still paints it. */
 #rendered-view .pb-tr[role="button"] {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   outline: 2px solid transparent;
   outline-offset: 3px;
   transition: outline-color 140ms var(--ease-out);
@@ -2567,7 +2577,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
 #tr-progress:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--link) 70%, transparent);
   outline-offset: 3px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 /* Per-block failure pill: inline SVG + retry label; hover/focus exposes the reason. */
@@ -2579,7 +2589,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   margin: 0.25em 0 1em;
   padding: 3px 10px;
   border: 1px solid var(--danger);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: transparent;
   color: var(--danger);
   font-size: 12px;
@@ -2596,7 +2606,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   max-width: min(360px, calc(100vw - 32px));
   padding: 7px 9px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--fg);
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
@@ -2633,7 +2643,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
   margin-top: 6px;
   padding: 4px 12px;
   border: 1px solid var(--danger);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: transparent;
   color: var(--danger);
   font-size: 12px;
@@ -2771,7 +2781,7 @@ body.ask-open main { margin-right: 396px; }
 .ask-ic {
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; padding: 0;
-  border: 1px solid transparent; border-radius: 6px;
+  border: 1px solid transparent; border-radius: var(--radius-md);
   background: none; color: var(--fg-muted); cursor: pointer;
 }
 .ask-ic:hover { background: var(--btn-hover); color: var(--fg); }
@@ -2822,7 +2832,7 @@ body.ask-open main { margin-right: 396px; }
   margin: 0;
   padding: 4px 10px;
   border: 1px solid var(--btn-border);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: transparent;
   color: var(--fg-secondary);
   font-size: 0.85em;
@@ -2848,7 +2858,7 @@ body.ask-open main { margin-right: 396px; }
   max-height: calc(12em + 18px); /* 8 lines x 1.5 line-height + padding/border */
   padding: 8px 10px;
   border: 1px solid var(--btn-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--fg);
   font-family: inherit;
@@ -2872,7 +2882,7 @@ body.ask-open main { margin-right: 396px; }
     max-height: 70vh;
     border-left: none;
     border-top: 1px solid var(--border);
-    border-radius: 12px 12px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     box-shadow: 0 -6px 24px rgba(15, 23, 42, 0.18);
   }
   /* Bottom sheet slides down, not sideways -- only the transform axis
@@ -2922,7 +2932,7 @@ body.ask-open main { margin-right: 396px; }
 
 .ask-stopped { font-size: 0.8em; color: var(--fg-muted); margin: 6px 0 0; }
 .ask-err { font-size: 0.85em; color: var(--danger); margin: 0 0 6px; overflow-wrap: break-word; }
-.ask-retry { padding: 4px 10px; font-size: 0.8em; border-radius: 4px; }
+.ask-retry { padding: 4px 10px; font-size: 0.8em; border-radius: var(--radius-sm); }
 
 /* ---- Ask history chrome: restored note / clear confirm / answer copy ---- */
 .ask-restored {
@@ -2934,7 +2944,7 @@ body.ask-open main { margin-right: 396px; }
   align-self: flex-start;
   padding: 4px 10px;
   border: 1px solid var(--btn-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--btn-bg);
   color: var(--fg-secondary);
   font-size: 0.8em;
@@ -2954,7 +2964,7 @@ body.ask-open main { margin-right: 396px; }
   margin: 0 0 8px;
   border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
   border-left: 3px solid color-mix(in srgb, var(--danger) 75%, transparent);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--danger) 6%, var(--surface));
   font-size: 0.85em;
   color: var(--fg);
@@ -2965,7 +2975,7 @@ body.ask-open main { margin-right: 396px; }
   margin-top: 8px;
   margin-right: 6px;
   padding: 4px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.8em;
 }
 .ask-copy-btn svg, .ask-regenerate svg { width: 13px; height: 13px; flex-shrink: 0; }
@@ -2984,7 +2994,7 @@ body.ask-open main { margin-right: 396px; }
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
   font-size: 13px;
 }
@@ -3036,7 +3046,7 @@ body.ask-open main { margin-right: 396px; }
   justify-content: center;
   padding: 0;
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--btn-fg);
   cursor: pointer;
@@ -3053,7 +3063,7 @@ body.ask-open main { margin-right: 396px; }
   min-height: 56px;
   padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--fg);
   resize: vertical;
@@ -3065,7 +3075,7 @@ body.ask-open main { margin-right: 396px; }
 .hl-card-save, .hl-card-delete {
   padding: 4px 10px;
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--btn-fg);
   font-size: 12px;
@@ -3137,7 +3147,7 @@ body.ask-open main { margin-right: 396px; }
   display: flex; align-items: center; gap: 6px;
   background: none; border: none; padding: 2px 4px;
   color: inherit; font: inherit; text-align: left;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 120ms ease, color 120ms ease;
 }
@@ -3162,7 +3172,7 @@ body.ask-open main { margin-right: 396px; }
   background: none; border: none; padding: 2px;
   display: inline-flex;
   color: var(--fg-muted);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 120ms ease, color 120ms ease;
 }
@@ -3203,7 +3213,7 @@ body.ask-open main { margin-right: 396px; }
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
   font-size: 13px;
 }
@@ -3238,7 +3248,7 @@ html.motion-ready #fn-pop:popover-open {
   gap: 5px;
   padding: 4px 10px;
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--btn-fg);
   font-size: 12px;
@@ -3264,7 +3274,7 @@ html.motion-ready #fn-pop:popover-open {
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--btn-border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
   font-size: 13px;
 }
@@ -3275,7 +3285,7 @@ html.motion-ready #fn-pop:popover-open {
   width: min(240px, 40vw);
   padding: 6px 8px;
   border: 1px solid var(--btn-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--fg);
   font-family: inherit;
@@ -3300,7 +3310,7 @@ html.motion-ready #fn-pop:popover-open {
   background: var(--btn-bg);
   color: var(--btn-fg);
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 .srch-nav:hover { background: var(--btn-hover); border-color: var(--border); }
@@ -3318,7 +3328,7 @@ html.motion-ready #fn-pop:popover-open {
   background: var(--btn-bg);
   color: var(--btn-fg);
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-family: var(--mono-latin), var(--han-tc), var(--han-sc), var(--han-ja), var(--han-ko), var(--han-rest), monospace;
   font-size: 11px;
@@ -3355,7 +3365,7 @@ html.motion-ready #fn-pop:popover-open {
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
   font-size: 13px;
   overflow-y: auto;
@@ -3386,7 +3396,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
   display: inline-block;
   padding: 1px 6px;
   border: 1px solid var(--btn-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--btn-bg);
   color: var(--btn-fg);
   /* Font iron rule: named Latin font first, named CJK families before the
@@ -3417,13 +3427,13 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
 }
 .rail-kbd-help-btn {
   flex: 1 1 auto;
-  height: 28px;
+  height: 26px;            /* md rung (was a stray 28px) */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--fg-muted);
   font-size: 12px; /* the "Aa" text cell */
@@ -3453,7 +3463,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 8px 30px rgba(15, 23, 42, 0.22);
   font-size: 13px;
 }
@@ -3469,7 +3479,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
   width: 26px;
   height: 24px;
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--btn-fg);
   font-size: 14px;
@@ -3492,7 +3502,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
   min-width: 0;
   padding: 3px 4px;
   border: 1px solid var(--btn-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--btn-fg);
   font-size: 12px;
@@ -3536,7 +3546,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
   padding: 14px 16px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   font-size: var(--panel-payload-fs);
   line-height: 1.55;
   color: var(--fg);
@@ -3553,7 +3563,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
 .skim-ic {
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; padding: 0;
-  border: 1px solid transparent; border-radius: 6px;
+  border: 1px solid transparent; border-radius: var(--radius-md);
   background: none; color: var(--fg-muted); cursor: pointer;
 }
 .skim-ic:hover { background: var(--btn-hover); color: var(--fg); }
@@ -3610,7 +3620,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    replaces it with, so loading causes no layout shift. */
 .pbv-poster {
   position: relative; display: block; width: 100%; aspect-ratio: 16 / 9;
-  padding: 0; border: 1px solid var(--btn-border); border-radius: 10px;
+  padding: 0; border: 1px solid var(--btn-border); border-radius: var(--radius-lg);
   background: var(--btn-bg); color: var(--btn-fg); cursor: pointer;
   font: inherit; overflow: hidden;
 }
@@ -3636,7 +3646,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    video-mode workspace region below (A2) -- applies here too since that's
    a plain #video-panel .pbv-media iframe selector, not workspace-gated. */
 .pbv-media { margin-bottom: 8px; position: relative; }
-.pbv-media iframe { border: 0; border-radius: 10px; }
+.pbv-media iframe { border: 0; border-radius: var(--radius-lg); }
 .pbv-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 /* Three semantic groups (T7.6) read through spacing alone, no dividers:
    tracks / status | transcript actions (copy, AI) | playback / view. The
@@ -3660,7 +3670,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
   box-sizing: border-box; height: 28px; min-height: 28px; padding: 0 10px;
   font: inherit; font-size: 13px; font-weight: 500; line-height: 1; white-space: nowrap;
   display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--btn-border); border-radius: 6px;
+  border: 1px solid var(--btn-border); border-radius: var(--radius-md);
   background: var(--btn-bg); color: var(--btn-fg); cursor: pointer; text-decoration: none;
 }
 /* Hover feedback only while the control can act on it. The negation is
@@ -3689,7 +3699,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 .pbv-back-current {
   position: sticky; bottom: 12px; align-self: center; z-index: 2;
   margin: 8px auto 0; padding: 6px 14px; font: inherit; font-size: 0.85em; cursor: pointer;
-  border: 1px solid var(--link); border-radius: 999px; background: var(--surface); color: var(--link);
+  border: 1px solid var(--link); border-radius: var(--radius-full); background: var(--surface); color: var(--link);
   box-shadow: 0 4px 14px rgba(0,0,0,.12);
 }
 .pbv-back-current[hidden] { display: none; }
@@ -3703,7 +3713,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    the 24px hit-area contract at 24x28; the menu anchors to the group. */
 .pbv-copy-group { position: relative; display: inline-flex; align-items: center; }
 .pbv-copy-group > .pbv-copy { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-.pbv-copy-caret { min-width: 24px; padding: 0 4px; margin-left: -1px; border-radius: 0 6px 6px 0; }
+.pbv-copy-caret { min-width: 24px; padding: 0 4px; margin-left: -1px; border-radius: 0 var(--radius-md) var(--radius-md) 0; }
 .pbv-copy-menu { right: auto; min-width: 240px; white-space: nowrap; }
 /* Copy success flash: the check glyph in the success tone (same idiom as
    .action-btn.copied, restated here because .pbv-copy is not in that
@@ -3744,7 +3754,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 }
 /* Punctuation-state CHIP beside the picker (audit U1 / 方案A): the state
    word only; secondary facts live in its native tooltip. */
-.pbv-ai-note { font-weight: 400; color: var(--fg-muted); border-color: var(--border); border-radius: 999px; cursor: default; }
+.pbv-ai-note { font-weight: 400; color: var(--fg-muted); border-color: var(--border); border-radius: var(--radius-full); cursor: default; }
 /* AI progress ring around the robot button (方案A): stroke advances per
    batch; sized to the button, immune to the 16px glyph rule below by
    coming later at equal specificity. */
@@ -3759,7 +3769,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    both themes -- it sits over video content. */
 .pbv-toast {
   position: absolute; left: 10px; bottom: 12px; z-index: 3;
-  padding: 4px 10px; border-radius: 6px; font-size: 0.8em;
+  padding: 4px 10px; border-radius: var(--radius-md); font-size: 0.8em;
   background: rgba(17, 22, 28, 0.85); color: #fff;
   opacity: 1; pointer-events: none;
 }
@@ -3781,7 +3791,7 @@ html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: stroke-dashoffset
 .pbv-poster-note { display: block; font-size: 0.82em; color: var(--fg-muted); margin-top: 4px; }
 .pbv-list {
   max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;
-  border: 1px solid var(--border); border-radius: 10px; padding: 6px;
+  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 6px;
 }
 /* Task 4 row shape: .pbv-row is a plain container div (not a button) so
    .pbv-text stays natively selectable; only .pbv-time is a real button.
@@ -3793,7 +3803,7 @@ html.motion-ready .pbv-ai-punct .pbv-ring circle { transition: stroke-dashoffset
    scrollbar geometry stable before a row's first real layout pass. */
 .pbv-row {
   display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; text-align: left;
-  padding: 4px 8px; border-radius: 6px; cursor: pointer;
+  padding: 4px 8px; border-radius: var(--radius-md); cursor: pointer;
   content-visibility: auto; contain-intrinsic-size: auto 44px; /* a one-line cue row measures ~43px; the closer the estimate, the shorter a far follow-jump lands (settleFollow corrects the rest) */
 }
 /* Paragraph density (research T7.10): one row per reading paragraph. */
@@ -3814,7 +3824,7 @@ body.tr-only .pbv-row--tr > .pbv-text { display: none; }
 .pbv-row--static { cursor: default; }
 .pbv-time {
   flex: 0 0 auto; opacity: 0.65; font-variant-numeric: tabular-nums;
-  min-height: 24px; padding: 0 2px; border-radius: 4px;
+  min-height: 24px; padding: 0 2px; border-radius: var(--radius-sm);
   border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer;
 }
 .pbv-time:hover { background: var(--row-hover, rgba(127,127,127,.14)); opacity: 0.85; }
@@ -3841,7 +3851,7 @@ body.tr-only .pbv-row--tr > .pbv-text { display: none; }
    Same quiet tabular-numerals treatment as .pbv-time. */
 body.video-mode #rendered-view > p > .pbv-ptime {
   display: inline-block; vertical-align: baseline; margin-right: 8px;
-  min-height: 24px; padding: 0 4px; border: 0; border-radius: 4px;
+  min-height: 24px; padding: 0 4px; border: 0; border-radius: var(--radius-sm);
   background: transparent; color: inherit; cursor: pointer;
   font: inherit; font-size: 0.78em; line-height: 1.4;
   font-variant-numeric: tabular-nums; opacity: 0.65;
@@ -3956,7 +3966,7 @@ body.video-mode .pbv-col-study #rendered-view { max-width: var(--pbp-width, 880p
    attribute at build time. */
 #video-description {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 8px 14px;
   margin-top: 16px;
 }

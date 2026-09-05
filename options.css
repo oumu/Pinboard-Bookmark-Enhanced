@@ -1822,7 +1822,11 @@ html[data-theme="rose-pine"] .mobile-tab-picker select {
    (options-theme-early.js:25), so there is no unthemed-dark gap. */
 .fg select, .et-field select {
   border-radius: var(--opt-radius-md);
-  padding: var(--opt-sp-3) 26px var(--opt-sp-3) var(--opt-sp-5);
+  /* Same block padding and text inset as the generated field recipe, so a
+     <select> lands on the md rung (4+16+4+2 = 26px) beside its inputs. The old
+     sp-3 / sp-5 pair made every dropdown 29px tall and its text 4px further
+     in than the input above it (2026-09-05 cross-surface probe). */
+  padding: var(--opt-sp-2) 26px var(--opt-sp-2) var(--opt-sp-4);
 }
 .fg select:hover:not(:focus), .et-field select:hover:not(:focus) {
   background-color: var(--opt-select-hover-bg);

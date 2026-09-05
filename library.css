@@ -2398,7 +2398,11 @@ html[data-options-ready] .lib-header, html[data-options-ready] .lib-main { visib
 .lib-tab {
   border: 0; border-bottom: 2px solid transparent; background: transparent;
   color: var(--lib-fg-muted); font-size: 13px; font-family: inherit; cursor: pointer;
-  padding: 6px 2px; border-radius: 0;
+  /* sp-2 block padding = the 32px tab height options' .tab-btn already has (one
+     tab family across surfaces); no inline padding so the accent underline is
+     exactly the label's width. Was 6px 2px, both off the 4-rung scale. */
+  padding: var(--lib-sp-2) 0; border-radius: 0;
+  line-height: 14px;       /* 8+14+8 + the always-2px selection edge = 32px, options' .tab-btn height exactly */
   transition: color var(--motion-state) ease, border-bottom-color var(--motion-state) ease;
 }
 .lib-tab:hover { color: var(--lib-fg); }
