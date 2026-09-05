@@ -115,15 +115,12 @@ function pbpRecordConnectionHealth(id, ok, rawCode) {
 
 // Set only while pbpExpandOptionsAncestors flips a <details> open, and read by
 // the delegated toggle listener further down: a navigation must not rewrite the
-// collapse state the user has remembered. The .accordion-section half needs no
-// guard -- classList.add fires no event and the click delegate only reacts to
-// real clicks.
+// collapse state the user has remembered.
 let _pbpAccProgrammaticOpen = false;
 
-// Both collapse mechanisms on this page make their contents UNREACHABLE, not
-// merely scrolled past (.accordion-body is display:none, a closed <details> is
-// content-visibility:hidden), so a jump into one of them focused and scrolled
-// to nothing at all. Open every ancestor before measuring. Deliberately no
+// A closed <details> makes its contents UNREACHABLE, not merely scrolled past
+// (content-visibility:hidden), so a jump into one focused and scrolled to
+// nothing at all. Open every ancestor before measuring. Deliberately no
 // pbpMotionMark(): the height transition AND its @starting-style entry both sit
 // inside the .motion-toggle-gated rules, so an unmarked flip reveals instantly
 // -- the right reading for a move the user did not initiate, and it also means
@@ -138,10 +135,6 @@ function pbpExpandOptionsAncestors(target) {
       _pbpAccProgrammaticOpen = true;
       node.open = true;
       setTimeout(() => { _pbpAccProgrammaticOpen = false; }, 0);
-    } else if (node.classList.contains("accordion-section") && !node.classList.contains("open")) {
-      node.classList.add("open");
-      const head = node.querySelector(":scope > .accordion-header");
-      if (head) head.setAttribute("aria-expanded", "true");
     }
   }
 }
@@ -296,7 +289,7 @@ function _pbpSettingsSearchText(value) {
 function pbpBuildSettingsSearchIndex(root = document) {
   const entries = [];
   const seen = new Set();
-  // Section names (summary / .accordion-header) are deduped on TEXT ALONE
+  // Section names (<summary>) are deduped on TEXT ALONE
   // within a panel, because the id-bearing key below treats one heading spelled
   // twice as two rows and the user reads the same line listed twice. The Tags
   // panel used to do exactly that -- an <h2 class="section-title"> and the
@@ -335,25 +328,21 @@ function pbpBuildSettingsSearchIndex(root = document) {
       entries.push(entry);
     };
     add(panelLabel, panelEl.querySelector("input,select,textarea,button")?.id || "", false, true);
-    // summary / .accordion-header carry the names of whole collapsed sections
-    // (the offline dictionaries, Google Drive sync, the Send-to cards); without
-    // them the user cannot search for the heading they are looking straight at.
-    // The context-help toggles are summaries too, but their only content is an
+    // <summary> carries the name of a whole collapsed section (the offline
+    // dictionaries, Google Drive sync, the Send-to cards); without it the user
+    // cannot search for the heading they are looking straight at. The
+    // context-help toggles are summaries too, but their only content is an
     // icon span, so add() drops them on the empty-text guard.
-    for (const node of panelEl.querySelectorAll("h2,h3,label,.hint,button[data-i18n],summary,.accordion-header")) {
+    for (const node of panelEl.querySelectorAll("h2,h3,label,.hint,button[data-i18n],summary")) {
       let target = "";
       let weak = false;
-      const isSectionName = node.matches("summary,.accordion-header");
+      const isSectionName = node.matches("summary");
       if (node.matches("label")) target = node.htmlFor || node.querySelector("input,select,textarea,button")?.id || "";
       // A section name owns no control of its own: aim at the first control in
-      // the body it opens (pbpOpenOptionsTarget expands the ancestors on the
-      // way in), falling back to the body itself when it holds none. Accordion
-      // headers ARE buttons, so search the body -- never the whole section, or
-      // the header would match itself.
+      // the <details> it opens (pbpOpenOptionsTarget expands the ancestors on
+      // the way in), falling back to the body itself when it holds none.
       else if (isSectionName) {
-        const body = node.matches(".accordion-header")
-          ? node.closest(".accordion-section")?.querySelector(".accordion-body")
-          : node.parentElement;
+        const body = node.parentElement;
         // Skip controls the page keeps [hidden] for state reasons (the Drive
         // buttons before a connection, a Delete for a pack never imported):
         // focusing or scrolling to a display:none element is a silent no-op.
@@ -1331,21 +1320,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       const row = PBP_EXPORT_TARGETS[id];
       const cfg = exportTargets[id] || {};
 
-      const sec = document.createElement("div");
-      sec.className = "accordion-section";
-      const head = document.createElement("button");
-      head.type = "button";
-      head.className = "accordion-header";
-      head.dataset.target = "et-" + id;
-      head.setAttribute("aria-controls", head.dataset.target);
-      const arrow = document.createElement("span");
-      arrow.className = "accordion-arrow";
-      const titleEl = document.createElement("span");
-      titleEl.textContent = row.label;
-      head.appendChild(arrow); head.appendChild(document.createTextNode(" ")); head.appendChild(titleEl);
+      // One card per destination, as the page-wide .disclosure primitive
+      // (native <details>; the chevron is CSS, persistence keys off
+      // data-acc-key through pbpAccRestore / the delegated toggle listener).
+      const det = document.createElement("details");
+      det.className = "disclosure";
+      det.dataset.accKey = "et-" + id;
+      const head = document.createElement("summary");
+      head.textContent = row.label;
 
       const card = document.createElement("div");
-      card.className = "accordion-body export-target-card";
+      card.className = "disclosure-body export-target-card";
       card.id = "et-" + id;
 
       const enableLabel = document.createElement("label");
@@ -1505,8 +1490,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         testWrap.appendChild(testBtn); testWrap.appendChild(testStatus);
         card.appendChild(testWrap);
       }
-      sec.appendChild(head); sec.appendChild(card);
-      host.appendChild(sec);
+      det.appendChild(head); det.appendChild(card);
+      host.appendChild(det);
     });
     pbpAccRestore(host);
     // These cards are built AFTER the page-level setupSecretToggles() pass, and
@@ -1642,25 +1627,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // ---- Accordion sections ----
-  // Accordion expand/collapse state, persisted device-locally (localStorage = synchronous
+  // ---- Collapsible sections (details.disclosure[data-acc-key]) ----
+  // Open/closed state, persisted device-locally (localStorage = synchronous
   // read at render = no open->collapse flash; same class as pp-i18n-* / pp-options-fields).
   const PP_ACC_KEY = "pp-acc";
   let pbpAccRestoring = true;
   function pbpAccState() { try { return JSON.parse(localStorage.getItem(PP_ACC_KEY)) || {}; } catch (_) { return {}; } }
   function pbpAccSet(key, open) { const m = pbpAccState(); m[key] = open; try { localStorage.setItem(PP_ACC_KEY, JSON.stringify(m)); } catch (_) {} }
-  // Apply persisted open/closed to custom accordions and keyed native details.
+  // Apply persisted open/closed to keyed native details (an unknown key leaves
+  // the HTML default alone).
   function pbpAccRestore(root) {
     const scope = root || document;
-    scope.querySelectorAll(".accordion-section").forEach((sec) => {
-      const head = sec.querySelector(".accordion-header[data-target]");
-      if (!head) return;
-      const st = pbpAccState()[head.dataset.target];
-      if (st === true) sec.classList.add("open");
-      else if (st === false) sec.classList.remove("open");
-      head.setAttribute("aria-expanded", String(sec.classList.contains("open")));
-      // st === undefined -> leave the HTML default (.open or not)
-    });
     scope.querySelectorAll("details[data-acc-key]").forEach((det) => {
       const st = pbpAccState()[det.dataset.accKey];
       if (typeof st === "boolean") det.open = st;
@@ -1669,28 +1646,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Motion gate: only user-initiated toggles get the height transition.
   // @starting-style replays its entry animation EVERY time the element goes
   // from not-rendered to rendered -- and tab panels toggle display:none, so
-  // without this gate every tab switch replayed the accordions/details
-  // growing from 0. The marker outlives the 200ms transition, then drops.
+  // without this gate every tab switch replayed the disclosures growing from
+  // 0. The marker outlives the 200ms transition, then drops.
   function pbpMotionMark(el) {
     clearTimeout(el._ppMotionT);
     el.classList.add("motion-toggle");
     el._ppMotionT = setTimeout(() => el.classList.remove("motion-toggle"), 400);
   }
-  // Event delegation handles both static and dynamically-created accordion headers.
-  document.addEventListener("click", (e) => {
-    const header = e.target.closest(".accordion-header");
-    if (!header) return;
-    const sec = header.closest(".accordion-section");
-    if (!sec) return;
-    pbpMotionMark(sec); // before the class flip so the entry frame sees it
-    const isOpen = sec.classList.toggle("open");
-    header.setAttribute("aria-expanded", String(isOpen));
-    const key = header.dataset.target;
-    if (key) pbpAccSet(key, isOpen);
-  });
-  // Same gate for native <details>: capture phase runs before the default
-  // toggle action renders ::details-content, so the marker is in place for
-  // the entry frame. Delegated -> also covers dynamically-created details.
+  // Capture phase runs before the default toggle action renders
+  // ::details-content, so the marker is in place for the entry frame.
+  // Delegated -> also covers the dynamically-created Send-to cards.
   document.addEventListener("click", (e) => {
     const summary = e.target.closest("summary");
     const det = summary && summary.closest("details");
@@ -1953,7 +1918,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     _et.obsidian = { enabled: !!s.obsidianEnabled, vault: s.obsidianVault || "", folder: s.obsidianFolder || "" };
   }
   renderExportTargets(_et);
-  pbpAccRestore(document); // restore all accordion states (static quick-actions + export targets)
+  pbpAccRestore(document); // restore every keyed disclosure (static sections + Send-to cards)
   setTimeout(() => { pbpAccRestoring = false; }, 0);
 
   // ---- Fill checkbox fields ----

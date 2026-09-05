@@ -14,17 +14,17 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
     <span class="btn-ic" data-ic="bookMarked"></span><span>Open notes and vocabulary</span>
   </a>
 
-  <details class="vocab-disclosure" data-acc-key="vocab-reading">
+  <details class="disclosure" data-acc-key="vocab-reading">
     <summary>Reading hints</summary>
-    <div class="vocab-details-body">
+    <div class="disclosure-body">
       <div class="fg"><label><input type="checkbox" id="dict-echo-enabled" /> <span>Underline saved words while reading</span></label></div>
       <p class="hint">Dotted underlines mark words already in your vocabulary. Click one to open the dictionary.</p>
     </div>
   </details>
 
-  <details class="vocab-disclosure" data-acc-key="vocab-google-drive" open>
+  <details class="disclosure" data-acc-key="vocab-google-drive" open>
     <summary>Google Drive vocabulary sync</summary>
-    <div class="vocab-details-body" id="vocab-drive-body">
+    <div class="disclosure-body" id="vocab-drive-body">
       <p class="hint vocab-drive-copy">Syncs vocabulary for the current Pinboard account only. Settings and API keys are not synced.</p>
       <p class="hint vocab-drive-copy" id="vocab-drive-disclosure">Copies in appDataFolder are not end-to-end encrypted and include words, definitions, notes, source URLs, article titles, and context excerpts.</p>
       <p id="vocab-drive-state" class="save-status vocab-drive-state" role="status" aria-live="polite"></p>
@@ -49,9 +49,9 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
     </div>
   </details>
 
-  <details class="vocab-disclosure" data-acc-key="vocab-learning">
+  <details class="disclosure" data-acc-key="vocab-learning">
     <summary>Export and integrations</summary>
-    <div class="vocab-details-body">
+    <div class="disclosure-body">
       <div class="fg"><label class="bl" for="dict-anki-deck">Anki deck</label>
         <input type="text" id="dict-anki-deck" placeholder="Pinboard Vocab" /></div>
       <div class="fg"><label class="bl" for="dict-anki-port">AnkiConnect port</label>
@@ -75,9 +75,9 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
     </div>
   </details>
 
-  <details class="vocab-disclosure" data-acc-key="vocab-ecdict-pack">
+  <details class="disclosure" data-acc-key="vocab-ecdict-pack">
     <summary>Offline English-Chinese dictionary</summary>
-    <div class="vocab-details-body">
+    <div class="disclosure-body">
       <p class="hint">Adds Chinese definitions above the English entry when you look up an English word.</p>
       <p class="save-status" id="ecdict-pack-status" role="status" aria-live="polite"></p>
       <div class="vocab-toolbar">
@@ -89,9 +89,9 @@ body{font-family:monospace;padding:16px}.case{padding:5px;border-bottom:1px soli
     </div>
   </details>
 
-  <details class="vocab-disclosure" data-acc-key="vocab-dictionary-pack">
+  <details class="disclosure" data-acc-key="vocab-dictionary-pack">
     <summary>Offline Chinese-English dictionary</summary>
-    <div class="vocab-details-body">
+    <div class="disclosure-body">
       <p class="hint">CC-CEDICT looks up Simplified or Traditional Chinese terms and returns English definitions.</p>
       <p class="save-status" id="dict-pack-status" role="status" aria-live="polite"></p>
       <div class="vocab-toolbar">
@@ -170,7 +170,7 @@ function contrastRatio(a, b) {
 }
 const contrastFixture = document.createElement("div");
 contrastFixture.className = "panel active";
-contrastFixture.innerHTML = '<div class="vocab-details-body"><p class="hint">CC-CEDICT capability hint</p></div>';
+contrastFixture.innerHTML = '<div class="disclosure-body"><p class="hint">CC-CEDICT capability hint</p></div>';
 $id("panel-vocab").appendChild(contrastFixture);
 document.documentElement.dataset.theme = "flexoki-dark";
 const contrastHint = contrastFixture.querySelector(".hint");
@@ -849,7 +849,7 @@ delete document.documentElement.dataset.theme;
 
     const optionsSource = await (await fetch("../options.html")).text();
     check("production Google Drive disclosure has a persistent accordion key",
-      /<details class="vocab-disclosure" data-acc-key="vocab-google-drive" open>/.test(optionsSource) &&
+      /<details class="disclosure" data-acc-key="vocab-google-drive" open>/.test(optionsSource) &&
       /id="vocab-drive-disclosure" data-i18n="vocabDriveDisclosure"/.test(optionsSource) &&
       /id="vocab-drive-state"[^>]*role="status"[^>]*aria-live="polite"/.test(optionsSource) &&
       /id="vocab-drive-actions"[^>]*hidden/.test(optionsSource) &&

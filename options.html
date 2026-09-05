@@ -93,17 +93,14 @@
           <span class="save-status" id="test-pinboard-status" role="status" aria-live="polite"></span>
         </div>
       </div>
-      <div class="divider"></div>
-      <div class="accordion-section">
-        <button type="button" class="accordion-header" data-target="acc-connection-overview" aria-controls="acc-connection-overview" aria-expanded="false">
-          <span class="accordion-arrow"></span>
-          <span id="connection-overview-title" data-i18n="connectionOverviewTitle">Connection Status</span>
-        </button>
-        <div class="accordion-body" id="acc-connection-overview">
+      <details class="disclosure" id="acc-connection-overview" data-acc-key="connection-overview">
+        <summary id="connection-overview-title" data-i18n="connectionOverviewTitle">Connection Status</summary>
+        <div class="disclosure-body">
           <p class="hint" data-i18n="connectionOverviewHint">Status is based on configuration, granted permissions, and your latest manual tests. Opening Settings never contacts these services or requests permission.</p>
           <div id="connection-health" class="connection-health" role="region" aria-labelledby="connection-overview-title"></div>
         </div>
-      </div>
+      </details>
+      <div class="divider"></div>
       <h2 class="section-title" id="sec-language" data-i18n="secLanguage">Language</h2>
       <div class="fg">
         <select id="opt-lang" aria-labelledby="sec-language">
@@ -841,9 +838,9 @@
         </a>
       </div>
 
-      <details class="vocab-disclosure" data-acc-key="vocab-reading">
+      <details class="disclosure" data-acc-key="vocab-reading">
         <summary data-i18n="vocabReadingSection">Reading hints</summary>
-        <div class="vocab-details-body">
+        <div class="disclosure-body">
           <div class="fg context-help-host" data-help-role="choice"><label><input type="checkbox" id="dict-echo-enabled" /> <span data-i18n="dictEchoToggle">Underline saved words while reading</span></label>
             <details class="context-help">
               <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -853,9 +850,9 @@
         </div>
       </details>
 
-      <details class="vocab-disclosure" data-acc-key="vocab-google-drive" open>
+      <details class="disclosure" data-acc-key="vocab-google-drive" open>
         <summary data-i18n="vocabDriveSection">Google Drive vocabulary sync</summary>
-        <div class="vocab-details-body" id="vocab-drive-body">
+        <div class="disclosure-body" id="vocab-drive-body">
           <p class="hint vocab-drive-copy" data-i18n="vocabDriveScope">Syncs vocabulary for the current Pinboard account only. Settings and API keys are not synced.</p>
           <p class="hint vocab-drive-copy" id="vocab-drive-disclosure" data-i18n="vocabDriveDisclosure">The extension stores a plaintext copy in its private appDataFolder on your Google Drive. The copy is not end-to-end encrypted and may include words, definitions, notes, source URLs, article titles, and context excerpts.</p>
           <p id="vocab-drive-state" class="save-status vocab-drive-state" role="status" aria-live="polite" data-i18n="vocabDriveUnavailable">Google Drive vocabulary sync is not available in this build because OAuth activation is still pending.</p>
@@ -880,9 +877,9 @@
         </div>
       </details>
 
-      <details class="vocab-disclosure" data-acc-key="vocab-learning">
+      <details class="disclosure" data-acc-key="vocab-learning">
         <summary data-i18n="vocabLearningSection">Export and integrations</summary>
-        <div class="vocab-details-body">
+        <div class="disclosure-body">
           <div class="fg"><label class="bl" for="dict-anki-deck" data-i18n="dictAnkiDeckLabel">Anki deck</label>
             <input type="text" id="dict-anki-deck" placeholder="Pinboard Vocab" /></div>
           <div class="fg"><label class="bl" for="dict-anki-port" data-i18n="dictAnkiPortLabel">AnkiConnect port</label>
@@ -900,9 +897,9 @@
         </div>
       </details>
 
-      <details class="vocab-disclosure" data-acc-key="vocab-ecdict-pack">
+      <details class="disclosure" data-acc-key="vocab-ecdict-pack">
         <summary data-i18n="ecdictSection">Offline English–Chinese dictionary</summary>
-        <div class="vocab-details-body">
+        <div class="disclosure-body">
           <p class="hint" data-i18n="ecdictHint">Adds Chinese definitions above the English entry when you look up an English word. The English entry still loads as usual.</p>
           <p class="hint" data-i18n="ecdictFormatNote">Expects a CSV file whose first line is the column header and includes word, translation, tag, collins, oxford, frq and bnc. Prebuilt dictionary packages such as mdx, eudic, stardict, mobi and sqlite are different formats and cannot be imported. This project does not provide, recommend or verify a source for the data, and is not affiliated with it. You supply the file and are responsible for its licence.</p>
           <p class="save-status" id="ecdict-pack-status" role="status" aria-live="polite"></p>
@@ -915,9 +912,9 @@
         </div>
       </details>
 
-      <details class="vocab-disclosure" data-acc-key="vocab-dictionary-pack">
+      <details class="disclosure" data-acc-key="vocab-dictionary-pack">
         <summary data-i18n="dictPackSection">Offline Chinese–English dictionary</summary>
-        <div class="vocab-details-body">
+        <div class="disclosure-body">
           <p class="hint" data-i18n="dictPackHint">CC-CEDICT looks up Simplified or Traditional Chinese terms and returns English definitions.</p>
           <p class="hint" data-i18n="dictPackImportHint">Import a CC-CEDICT .txt, .txt.gz, or .zip file.</p>
           <p class="save-status" id="dict-pack-status" role="status" aria-live="polite"></p>
@@ -981,19 +978,20 @@
         </div>
         <div id="tag-gov-ai-status" class="hint"></div>
       </div>
-      <div class="divider"></div>
       <!-- No <h2> above this disclosure: its own <summary> is the section
-           header (options.css gives #tag-gov-lowcount > summary the same
-           right-edge chevron family as details.vocab-disclosure). The heading
-           used to be spelled twice -- an <h2> and the <summary>, both carrying
-           tagGovLowCountTitle -- so the panel read the same line twice, 30px
-           apart, and the settings-search index had to dedupe them by text. -->
-      <details id="tag-gov-lowcount">
+           header (the .disclosure primitive: section-title face + chevron; its
+           own top rule replaces a .divider). The heading used to be spelled
+           twice -- an <h2> and the <summary>, both carrying tagGovLowCountTitle
+           -- so the panel read the same line twice, 30px apart, and the
+           settings-search index had to dedupe them by text. -->
+      <details id="tag-gov-lowcount" class="disclosure">
         <summary data-i18n="tagGovLowCountTitle">Low-count tags (1 use or fewer)</summary>
-        <div id="tag-gov-lowcount-list"></div>
-        <div class="fg">
-          <label><input type="checkbox" id="tag-gov-select-all" /> <span data-i18n="tagGovSelectAll">Select all</span></label>
-          <div class="fg-actions"><button class="btn btn-sm danger tag-gov-delete-btn" id="tag-gov-delete-selected" data-i18n="tagGovDeleteSelected" disabled>Delete selected</button></div>
+        <div class="disclosure-body">
+          <div id="tag-gov-lowcount-list"></div>
+          <div class="fg">
+            <label><input type="checkbox" id="tag-gov-select-all" /> <span data-i18n="tagGovSelectAll">Select all</span></label>
+            <div class="fg-actions"><button class="btn btn-sm danger tag-gov-delete-btn" id="tag-gov-delete-selected" data-i18n="tagGovDeleteSelected" disabled>Delete selected</button></div>
+          </div>
         </div>
       </details>
       <div id="tag-gov-progress" hidden>

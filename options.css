@@ -122,7 +122,7 @@
      block at the end of @generated:ui-themes below. */
   /* Task 12: two shared secondary-text shades used verbatim across several
      unrelated hand-written rules (label.bl, free-tier-help, .pf h3,
-     et-onboarding, theme-name-popover label, key-toggle:hover / accordion
+     et-onboarding, theme-name-popover label, key-toggle:hover / disclosure
      header, section-title). Neither has a per-theme role of its own -- every
      one of these selectors is either fully superseded by an existing
      html[data-theme] override that reads a DIFFERENT token (so this default
@@ -472,15 +472,14 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
    same specificity as the generated selectors they override, so they need
    later source order to win -- see the block right after
    `@generated:ui-components end` below. */
-/* §7.3 `borderless` placement (full-width sidebar tabs, accordion and
+/* §7.3 `borderless` placement (full-width sidebar tabs and
    disclosure headers): 1px accent core + the --opt-focus-ring
    glow instead of a hard 2px rectangle around a whole row. The glow MUST stay
    the token -- generated themes restyle --opt-focus-ring per theme (terminal's
    CRT glow, a 1px-line theme, solarized's 2px ring); a literal color-mix here
    would flatten that. Compact controls keep the standard 2px ring family. */
 .tab-btn:focus-visible,
-.accordion-header:focus-visible,
-.vocab-disclosure > summary:focus-visible {
+.disclosure > summary:focus-visible {
   outline: 1px solid var(--opt-accent);
   outline-offset: 2px;
   box-shadow: var(--opt-focus-ring);
@@ -950,71 +949,51 @@ html[data-theme] .et-field input[type="text"]:hover:not(:focus),
 html[data-theme] .et-field input[type="password"]:hover:not(:focus) { border-color: var(--opt-fg-muted); }
 
 /* ---- Accordion ---- */
-.accordion-section { border-bottom: 1px solid var(--opt-border-section); }
-.accordion-section:last-child { border-bottom: none; }
-.accordion-header {
-  display: flex; align-items: center; gap: var(--opt-sp-3);
-  /* Full-bleed hover surface: horizontal padding is added and immediately
-     given back as negative margin, so the text column stays aligned while
-     the hover pill extends past it. */
-  width: calc(100% + 2 * var(--opt-sp-3));
-  margin: 0 calc(-1 * var(--opt-sp-3));
-  padding: var(--opt-sp-5) var(--opt-sp-3); cursor: pointer; font-size: 13px; font-weight: bold; color: var(--opt-fg-dim);
-  border: 0; border-radius: var(--opt-radius-sm); background: none; text-align: left;
-  user-select: none; transition: color var(--motion-state), background-color var(--motion-state);
-}
-.accordion-header:hover { color: var(--opt-accent-hover); background: var(--opt-panel); }
-/* Focus ring: shared soft-focus recipe (top of file). */
-/* CSS-drawn chevron, never a glyph (a literal ▶ fell back to Segoe UI Emoji
-   on Windows and caused a font-load stall). 2026-08 redesign: one thin
-   right-aligned chevron across every disclosure surface -- closed points
-   down, open rotates to point up (a 180° spin, so the transition reads as
-   one gesture). The old filled triangle needed per-state optical nudges;
-   a 45°-rotated square chevron is symmetric and self-centers. */
-.accordion-arrow {
-  order: 9; margin-left: auto;
-  width: 7px; height: 7px; flex: none;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: translateY(-2px) rotate(45deg);
-  color: var(--opt-fg-muted);
-}
-.accordion-section.open .accordion-arrow { transform: translateY(1px) rotate(225deg); }
-/* The arrow is the same gesture as the body it labels, so it rides the same
-   duration and curve — and the same gate. Ungated it also spun during
-   pbpAccRestore's non-user-initiated restore, on a container still hidden. */
-html.motion-ready .accordion-section.motion-toggle .accordion-arrow {
-  transition: transform var(--motion-collapse) var(--ease-in-out);
-}
-.accordion-body {
-  /* bottom padding lives on .open (and transitions with the height): with it on
-     the base rule, border-box height bottoms out at the 12px padding floor a
-     beat before display flips -- a visible end-of-close stall.
-     No left padding: a collapsed section's body is flush with the panel like
-     every other section body (h2 sections, the vocabulary disclosures). The
-     16px indent this used to carry was the only indented body on the page. */
-  display: none; height: 0; overflow: clip; padding: 0;
-  /* Layout isolation: contain:layout keeps an open body's internal layout from
-     joining the panel-wide reflow on tab switch (measured ~153ms at 4K for a
-     panel of open bodies before it was added). */
-  contain: layout style;
-}
-.accordion-section.open .accordion-body { display: block; height: auto; padding-bottom: var(--opt-sp-5); }
-/* .motion-toggle (set by options.js on user clicks only, dropped ~400ms later)
-   gates the transition AND the @starting-style entry: without it, every tab
-   switch re-renders the panel subtree and replays the grow-from-0 entry. */
-html.motion-ready .accordion-section.motion-toggle .accordion-body {
-  transition: height var(--motion-collapse) var(--ease-in-out),
-              padding-bottom var(--motion-collapse) var(--ease-in-out),
-              display var(--motion-collapse) allow-discrete;
-}
-html.motion-ready .accordion-section.motion-toggle.open .accordion-body {
-  @starting-style { height: 0; padding-bottom: 0; }
-}
 
-/* Native details uses the same disclosure motion as the custom accordions.
-   Older Chromium versions that lack ::details-content simply keep native
-   instant open/close behavior. */
+/* ---- Collapsible section (.disclosure): THE one collapse primitive ----
+   Every collapsible section on this page is a native <details class=
+   "disclosure" data-acc-key="..."> with a <summary> and a .disclosure-body:
+   the connection overview, the five vocabulary sections, the Send-to
+   destination cards (built by options.js) and the low-count tag list. The
+   header is a section title (13px bold, --fg-dim, accent hover -- the same
+   face as .section-title) plus the right-edge chevron below; the body is
+   flush with the panel like every other section body. Rows stack as a list:
+   each member owns its top rule, so between two closed rows the gap is
+   summary padding (12) + rule + padding (12), symmetric. A lone member
+   sitting between h2 sections gets a .divider AFTER it in markup (its own
+   top rule already separates it from what precedes it).
+   The former custom JS accordion (a div/button/body triad: a second
+   mechanism with its own motion, persistence branch and 16px body indent)
+   was retired 2026-09-05; the sync gate in tests/ui-contract-tests.mjs keeps
+   it from coming back. Open/closed state persists per data-acc-key in
+   localStorage (options.js pbpAccRestore / the delegated toggle listener). */
+.disclosure {
+  margin-top: var(--opt-sp-5);
+  border-top: 1px solid var(--opt-border-section, var(--opt-border, #ddd));
+}
+.disclosure + .disclosure { margin-top: 0; }
+.disclosure > summary {
+  /* Full-bleed hover pill: horizontal padding is given back as negative
+     margin so the text column stays aligned with the panel. */
+  padding: var(--opt-sp-5) var(--opt-sp-3);
+  margin: 0 calc(-1 * var(--opt-sp-3));
+  border-radius: var(--opt-radius-sm);
+  color: var(--opt-fg-dim);
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color var(--motion-state), background-color var(--motion-state);
+}
+.disclosure > summary:hover { color: var(--opt-accent-hover); background: var(--opt-panel); }
+/* Open state: the body's bottom padding faces the NEXT row's rule, so it
+   matches the summaries' 12px rhythm; the last block inside drops its own
+   bottom margin so the two do not stack to 24. */
+.disclosure-body { padding: 0 0 var(--opt-sp-5); }
+.disclosure-body > :last-child { margin-bottom: 0; }
+
+/* Native details disclosure motion (height + content-visibility). Older
+   Chromium versions that lack ::details-content simply keep native instant
+   open/close behavior. */
 details::details-content {
   height: 0;
   overflow: clip;
@@ -1033,20 +1012,17 @@ html.motion-ready details.motion-toggle[open]::details-content {
 }
 
 /* ---- Details disclosures: one chevron family (2026-08 redesign) ----
-   Same gesture as .accordion-arrow: a thin chevron, pointing down when
-   closed, spinning 180° to point up when open. Native markers vary per
-   platform and read dated; every <details> surface in Options shares this.
-   Drawn with borders, never a glyph (font-fallback stall rule). */
-details.vocab-disclosure > summary,
+   A thin chevron, pointing down when closed, spinning 180° to point up when
+   open. Native markers vary per platform and read dated; every <details>
+   surface in Options shares this. Drawn with borders, never a glyph
+   (font-fallback stall rule). */
+details.disclosure > summary,
 details.et-onboarding > summary,
-#tag-gov-lowcount > summary,
 #preset-preview-section > summary {
   display: flex; align-items: center; gap: var(--opt-sp-3);
   list-style: none; cursor: pointer; user-select: none;
 }
-/* Standalone disclosures (no divider list around them) still deserve a
-   click target taller than their bare line box. #preset-preview-section is
-   NOT one of these: it's a bordered box (`.preset-preview-section { border:
+/* #preset-preview-section is a bordered box (`.preset-preview-section { border:
    1px solid ...}`, options.css ~1678), and `#preset-preview-section >
    summary` (id, specificity 1,0,1) unconditionally beat
    `.preset-preview-section summary`'s own `padding: var(--opt-sp-4)
@@ -1059,14 +1035,11 @@ details.et-onboarding > summary,
    textInset/childContainment and confirmed both symptoms share this one
    cause -- fixed by just not fighting the class rule's already-correct
    padding here. */
-#tag-gov-lowcount > summary { padding: var(--opt-sp-3) 0; }
-details.vocab-disclosure > summary::-webkit-details-marker,
+details.disclosure > summary::-webkit-details-marker,
 details.et-onboarding > summary::-webkit-details-marker,
-#tag-gov-lowcount > summary::-webkit-details-marker,
 #preset-preview-section > summary::-webkit-details-marker { display: none; }
-details.vocab-disclosure > summary::after,
+details.disclosure > summary::after,
 details.et-onboarding > summary::after,
-#tag-gov-lowcount > summary::after,
 #preset-preview-section > summary::after {
   content: ""; width: 7px; height: 7px; flex: none;
   border-right: 1.5px solid currentColor;
@@ -1074,18 +1047,15 @@ details.et-onboarding > summary::after,
   transform: translateY(-2px) rotate(45deg);
   color: var(--opt-fg-muted);
 }
-details.vocab-disclosure[open] > summary::after,
+details.disclosure[open] > summary::after,
 details.et-onboarding[open] > summary::after,
-#tag-gov-lowcount[open] > summary::after,
 #preset-preview-section[open] > summary::after { transform: translateY(1px) rotate(225deg); }
 /* Section-style headers park the chevron on the right edge; the small help
    disclosures keep it riding right after their link-styled text. */
-details.vocab-disclosure > summary::after,
-#tag-gov-lowcount > summary::after,
+details.disclosure > summary::after,
 #preset-preview-section > summary::after { margin-left: auto; }
-html.motion-ready details.vocab-disclosure > summary::after,
+html.motion-ready details.disclosure > summary::after,
 html.motion-ready details.et-onboarding > summary::after,
-html.motion-ready #tag-gov-lowcount > summary::after,
 html.motion-ready #preset-preview-section > summary::after {
   transition: transform var(--motion-collapse) var(--ease-in-out);
 }
@@ -1934,14 +1904,12 @@ html[data-theme] .et-onboarding { color: var(--opt-fg-muted); }
 .et-test-status.err { color: var(--opt-danger); }
 .et-test-status.warn { color: var(--opt-warn); }
 .et-doc-link { display: inline-block; margin-top: var(--opt-sp-3); }
-/* .section-title / .accordion-header / .accordion-header:hover: second form,
+/* .section-title / .disclosure > summary (+ :hover): second form,
    same shape as .fg label.bl / .pf h3 above -- unthemed reads the --fg-dim /
    --accent-hover role, themed reads the plainer --fg-muted / --accent role. */
 html[data-theme] .section-title { color: var(--opt-fg-muted); }
-html[data-theme] .accordion-header,
-html[data-theme] .vocab-disclosure > summary { color: var(--opt-fg-muted); }
-html[data-theme] .accordion-header:hover,
-html[data-theme] .vocab-disclosure > summary:hover { color: var(--opt-accent); }
+html[data-theme] .disclosure > summary { color: var(--opt-fg-muted); }
+html[data-theme] .disclosure > summary:hover { color: var(--opt-accent); }
 /* .theme-preset-btn.active / .saved-theme-btn.active / .theme-preset-btn
    :focus-visible no longer need a themed override here: the borderless
    swatch-pill base rule (Tag Presets... options' Theme preset buttons,
@@ -1959,7 +1927,6 @@ html[data-theme] .key-toggle:hover { color: var(--opt-fg); }
    override had nothing left to colour -- dead code that would have read as
    live coverage. The themed focus treatment comes from --opt-focus-bd /
    --opt-focus-ring on the field, which are per-theme tokens already. */
-html[data-theme] .accordion-header:focus-visible { outline-color: var(--opt-accent); }
 html[data-theme] .fg input[type="checkbox"]:focus-visible { outline-color: var(--opt-accent); }
 html[data-theme] .confirm-popover button:focus-visible { outline-color: var(--opt-accent); }
 
@@ -2509,10 +2476,10 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
   position: relative;
 }
 
-/* ---- Vocabulary settings accordion (hand-maintained): the Drive sync /
+/* ---- Vocabulary settings disclosures (hand-maintained): the Drive sync /
    export & integrations / offline dictionary pack <details> panels inside
-   #panel-vocab, plus the shared .vocab-disclosure accordion-row geometry
-   they use. Task 9 (2026-08) retired the Notes tab and the vocabulary word
+   #panel-vocab (they are .disclosure members -- the page-wide primitive is
+   defined next to the chevron family above). Task 9 (2026-08) retired the Notes tab and the vocabulary word
    list from options.html -- both moved to library.html/library.css. This
    region used to be much larger: it also carried the list/card/sticky-
    batch-bar rules those views left behind, kept only because
@@ -2522,38 +2489,6 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
    deleted the now-fully-unreachable families here -- see that commit for
    the per-class grep evidence. What remains below is genuinely still
    shipped on options.html. ---- */
-/* Stacked-list geometry: each divider must sit CENTERED between the two
-   texts it separates. Adjacent members therefore zero out their own
-   margin-top -- between two closed rows the gap is summary padding-bottom
-   (12) + rule + next summary padding-top (12), perfectly symmetric. The
-   old margin-top on every member stacked under the previous row's padding
-   and pushed each title up against its own rule (real-device report). */
-.vocab-disclosure {
-  margin-top: var(--opt-sp-5);
-  border-top: 1px solid var(--opt-border-section, var(--opt-border, #ddd));
-}
-.vocab-disclosure + .vocab-disclosure { margin-top: 0; }
-.vocab-disclosure > summary {
-  /* Full-bleed hover pill, same trick as .accordion-header: horizontal
-     padding is given back as negative margin so the text stays aligned. */
-  padding: var(--opt-sp-5) var(--opt-sp-3);
-  margin: 0 calc(-1 * var(--opt-sp-3));
-  border-radius: var(--opt-radius-sm);
-  /* A collapsible section's header IS a section title (13px bold, --fg-dim,
-     accent hover) plus a chevron -- the same face as .section-title and
-     .accordion-header. It used to be a third face (12px/600 muted), so the
-     Vocabulary tab's headings read lighter than every other tab's. */
-  color: var(--opt-fg-dim);
-  font-size: 13px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: color var(--motion-state), background-color var(--motion-state);
-}
-.vocab-disclosure > summary:hover { color: var(--opt-accent-hover); background: var(--opt-panel); }
-/* Focus ring: shared soft-focus recipe (top of file). */
-/* Open state: the body's bottom padding faces the NEXT row's rule, so it
-   matches the summaries' 12px rhythm instead of pinching to 6. */
-.vocab-details-body { padding: 0 0 var(--opt-sp-5); }
 .vocab-drive-copy {
   max-width: 76ch;
   overflow-wrap: anywhere;
@@ -2602,7 +2537,7 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
   .vocab-drive-fields { grid-template-columns: minmax(0, 1fr); }
   .vocab-drive-fields dt:not(:first-child) { margin-top: var(--opt-sp-2); }
 }
-html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
+html[data-theme="flexoki-dark"] #panel-vocab .disclosure-body > .hint {
   color: var(--opt-fg-muted);
 }
 .field-error { margin: var(--opt-sp-2) 0 0; color: var(--opt-danger); font-size: 12px; }

@@ -329,15 +329,15 @@ for (const id of ["vocab-search", "vocab-group-filter", "vocab-sort", "vocab-sel
 // options.html no longer renders the word list (retired for the library
 // page, Task 9) -- what has to hold here is that the settings tab still
 // opens with the entry link, ahead of the collapsed secondary settings.
-check((optionsHtml.match(/<details class="vocab-disclosure"/g) || []).length === 5 &&
+check((optionsHtml.match(/<details class="disclosure" data-acc-key="vocab-/g) || []).length === 5 &&
   optionsHtml.indexOf('id="vocab-open-library"') < optionsHtml.indexOf('id="dict-anki-deck"'),
   "options.html: the library entry link is not first or secondary settings are not collapsed");
-const vocabDisclosureKeys = [...optionsHtml.matchAll(
-  /<details class="vocab-disclosure" data-acc-key="([^"]+)"/g
+const disclosureKeys = [...optionsHtml.matchAll(
+  /<details class="disclosure"(?: id="[^"]+")? data-acc-key="([^"]+)"/g
 )].map((match) => match[1]);
-check(vocabDisclosureKeys.join(",") ===
-  "vocab-reading,vocab-google-drive,vocab-learning,vocab-ecdict-pack,vocab-dictionary-pack",
-  "options.html: vocabulary settings disclosures lack stable pp-acc keys");
+check(disclosureKeys.join(",") ===
+  "connection-overview,vocab-reading,vocab-google-drive,vocab-learning,vocab-ecdict-pack,vocab-dictionary-pack",
+  "options.html: settings disclosures lack stable pp-acc keys");
 check(optionsJs.includes('querySelectorAll("details[data-acc-key]")') &&
   /addEventListener\("toggle",[\s\S]{0,500}pbpAccSet\(det\.dataset\.accKey, det\.open\)/.test(optionsJs),
   "options.js: native details state is not restored and persisted through pp-acc");
@@ -1674,18 +1674,20 @@ for (const [name, html] of [["popup.html", popupHtml], ["options.html", optionsH
   for (const [tag] of links) check(/\brel="[^"]*\bnoopener\b[^"]*"/.test(tag), `${name}: target=_blank missing rel=noopener -> ${tag}`);
 }
 
-const staticAccordionHeaders = optionsHtml.matchAll(/<(?<tag>\w+)\b(?<attrs>[^>]*class="accordion-header"[^>]*)>/g);
-for (const m of staticAccordionHeaders) {
-  const attrs = m.groups.attrs;
-  const target = (attrs.match(/\bdata-target="([^"]+)"/) || [])[1];
-  check(m.groups.tag === "button", `options.html: accordion ${target} is <${m.groups.tag}>`);
-  check(/\btype="button"/.test(attrs), `options.html: accordion ${target} missing type=button`);
-  check(new RegExp(`\\baria-controls="${target}"`).test(attrs), `options.html: accordion ${target} missing aria-controls`);
+// One collapsible-section primitive (2026-09-05): every collapsible section is
+// a native <details class="disclosure"> whose first child is its <summary>.
+// The custom JS accordion this replaced (a second mechanism with its own
+// motion, persistence branch and body indent) must not come back.
+for (const [file, text] of [["options.html", optionsHtml], ["options.css", optionsCss], ["options.js", optionsJs]]) {
+  check(!/accordion-(?:section|header|body|arrow)|\.accordion|class="accordion/.test(text),
+    `${file}: the retired custom accordion idiom is back (use details.disclosure)`);
 }
-
-check(/const head = document\.createElement\("button"\);/.test(optionsJs), "options.js: dynamic accordion header is not a button");
-check(/head\.type = "button";/.test(optionsJs), "options.js: dynamic accordion header missing type=button");
-check(/head\.setAttribute\("aria-controls", head\.dataset\.target\);/.test(optionsJs), "options.js: dynamic accordion header missing aria-controls");
+for (const m of optionsHtml.matchAll(/<details class="disclosure"[^>]*>\s*<(\w+)/g)) {
+  check(m[1] === "summary", `options.html: a .disclosure does not start with its <summary> (found <${m[1]}>)`);
+}
+check(/const det = document\.createElement\("details"\);\s*det\.className = "disclosure";\s*det\.dataset\.accKey = "et-" \+ id;/.test(optionsJs)
+  && /const head = document\.createElement\("summary"\);/.test(optionsJs),
+  "options.js: Send-to destination cards are not keyed details.disclosure sections");
 
 const helperSource = optionsJs.slice(0, optionsJs.indexOf('document.addEventListener("DOMContentLoaded"'));
 const permissionHelpers = Function(helperSource + "; return { pbpExactOriginPermissionSnapshot, pbpRevokeLegacyAllSitesPermission }; ")();

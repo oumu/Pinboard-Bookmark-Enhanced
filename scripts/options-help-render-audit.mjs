@@ -35,11 +35,6 @@ const AUDIT_CSS = `
   html, body { background: #fff !important; }
   .panel { display: none !important; }
   .panel[data-help-audit-panel] { display: block !important; }
-  .accordion-section[data-help-audit-open] > .accordion-body {
-    display: block !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
   [data-help-audit-scope], [data-help-audit-scope] * {
     background: #fff !important;
     border-color: transparent !important;
@@ -122,10 +117,7 @@ async function preparePage(page, locale) {
       host.dataset.helpScript = /[\u3040-\u30ff\u3100-\u312f\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff]/u
         .test(copyNode.textContent || "") ? "cjk" : "alphabetic";
     });
-    document.querySelectorAll(".accordion-section").forEach((section) => {
-      section.classList.add("open");
-      section.setAttribute("data-help-audit-open", "");
-    });
+    document.querySelectorAll("details.disclosure").forEach((section) => { section.open = true; });
   }, { icon: HELP_ICON, lang: locale.id, localizedMessages: messages });
   await page.evaluate(() => document.fonts.ready);
 }
@@ -168,7 +160,6 @@ async function capturePair(page, item) {
     for (let node = host; node && node !== panel; node = node.parentElement) {
       node.hidden = false;
       if (node.matches("details")) node.open = true;
-      if (node.classList.contains("accordion-section")) node.setAttribute("data-help-audit-open", "");
       if (node.style.display === "none") node.style.removeProperty("display");
     }
     details.open = false;

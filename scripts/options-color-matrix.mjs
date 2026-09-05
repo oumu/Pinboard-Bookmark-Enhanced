@@ -61,9 +61,6 @@ const PROBES = [
   [".et-onboarding", false],
   [".et-onboarding summary", false],
   ['.et-field select', true],
-  [".accordion-section", false],
-  [".accordion-header", false],
-  [".accordion-header", true],
   [".auto-save-hint", false],
   [".auto-save-hint.saved", false],
   [".theme-group-label", false],
@@ -98,7 +95,8 @@ const PROBES = [
   [".preset-preview-section summary", true],
   [".preset-preview-content", false],
   [".tag-gov-problem-kind.bad", false],
-  [".vocab-disclosure > summary", true],
+  [".disclosure > summary", false],
+  [".disclosure > summary", true],
   [".vocab-drive-fields", false],
 ];
 

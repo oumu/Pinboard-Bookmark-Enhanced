@@ -17,18 +17,22 @@
     <div class="choice-row"><label for="sync-first">First sync choice</label><input id="sync-first" /><p class="hint">First sync explanation</p></div>
     <div class="choice-row"><label for="sync-second">Second sync choice</label><input id="sync-second" /><p class="hint">Second sync explanation</p></div>
   </div>
-  <!-- The two collapse mechanisms the real page buries settings in: a keyed
-       native <details> and a custom .accordion-section, both closed. -->
-  <details id="buried-disclosure" data-acc-key="buried-acc">
+  <!-- The one collapse mechanism the real page buries settings in: keyed
+       native details.disclosure sections, closed. The second one nests a
+       further closed disclosure so the jump has to open EVERY ancestor. -->
+  <details id="buried-disclosure" class="disclosure" data-acc-key="buried-acc">
     <summary>Offline dictionary shelf</summary>
     <div class="fg"><label for="buried-input">Shelf option</label><input id="buried-input" /></div>
   </details>
-  <div class="accordion-section" id="buried-section">
-    <button type="button" class="accordion-header" data-target="buried-acc-body" aria-controls="buried-acc-body" aria-expanded="false"><span class="accordion-arrow"></span> Webhook delivery card</button>
-    <div class="accordion-body" id="buried-acc-body">
-      <label><input type="checkbox" id="buried-checkbox" /> <span>Enable card delivery</span></label>
+  <details id="buried-section" class="disclosure" data-acc-key="buried-card">
+    <summary>Webhook delivery card</summary>
+    <div class="disclosure-body" id="buried-acc-body">
+      <details id="buried-inner" class="disclosure" data-acc-key="buried-inner">
+        <summary>Delivery options</summary>
+        <label><input type="checkbox" id="buried-checkbox" /> <span>Enable card delivery</span></label>
+      </details>
     </div>
-  </div>
+  </details>
   <!-- The same section name twice, as the real Tags panel carries
        tagGovLowCountTitle: an <h2> and the <summary> of the disclosure it
        introduces. They resolve to different targets, so an id-bearing dedupe
@@ -210,17 +214,17 @@ function assert(value, message) { if (!value) throw new Error(message || "assert
     assert(shelf, "a <summary> section name is unsearchable");
     assert(shelf.targetId === "buried-input", "summary result targeted " + JSON.stringify(shelf.targetId));
     const card = index.find((entry) => entry.text.includes("Webhook delivery card"));
-    assert(card, "an accordion header name is unsearchable");
-    assert(card.targetId === "buried-checkbox", "accordion result targeted " + JSON.stringify(card.targetId));
+    assert(card, "a nested section's summary name is unsearchable");
+    assert(card.targetId === "buried-checkbox", "nested section result targeted " + JSON.stringify(card.targetId));
   });
 
   await test("jumping to a buried setting opens every collapsed ancestor first", async () => {
     const details = document.getElementById("buried-disclosure");
     const section = document.getElementById("buried-section");
-    const header = section.querySelector(".accordion-header");
+    const inner = document.getElementById("buried-inner");
     details.open = false;
-    section.classList.remove("open");
-    header.setAttribute("aria-expanded", "false");
+    section.open = false;
+    inner.open = false;
 
     pbpOpenOptionsTarget("general", "buried-input");
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -229,8 +233,8 @@ function assert(value, message) { if (!value) throw new Error(message || "assert
 
     pbpOpenOptionsTarget("general", "buried-checkbox");
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    assert(section.classList.contains("open"), ".accordion-section ancestor stayed collapsed");
-    assert(header.getAttribute("aria-expanded") === "true", "accordion header kept a stale aria-expanded");
+    assert(section.open === true, "outer disclosure ancestor stayed collapsed");
+    assert(inner.open === true, "nested disclosure ancestor stayed collapsed");
     assert(document.activeElement === document.getElementById("buried-checkbox"), "focus never reached the buried checkbox");
   });
 

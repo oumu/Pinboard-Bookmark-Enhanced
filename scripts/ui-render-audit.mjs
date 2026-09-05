@@ -2387,9 +2387,10 @@ async function runSweep(page, sw, extBase) {
   for (const tabId of tabIds) {
     await page.click(`#${tabId}`);
     await page.waitForTimeout(150);
-    // Open every non-help disclosure (vocab accordion, tag-gov low-count) so
-    // their contents are measured too: the AnkiConnect/Eudic rows that started
-    // the fgRhythm family live inside a closed .vocab-disclosure. Contextual
+    // Open every non-help disclosure (details.disclosure: vocab sections,
+    // tag-gov low-count, Send-to cards) so their contents are measured too: the
+    // AnkiConnect/Eudic rows that started the fgRhythm family live inside a
+    // closed vocabulary disclosure. Contextual
     // help stays closed -- the default state is the one the rhythm rules
     // describe.
     await page.evaluate(() => { document.querySelectorAll(".panel.active details:not(.context-help)").forEach((d) => { d.open = true; }); });
