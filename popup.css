@@ -227,6 +227,7 @@ a:hover { text-decoration: underline; }
   font-size: 12px;
   line-height: 16px;
   font-family: inherit;
+  text-decoration: none;
   cursor: pointer;
   border: 1px solid var(--pp-btn-bd);
   border-radius: var(--pp-radius-md);

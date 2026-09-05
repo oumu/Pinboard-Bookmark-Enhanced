@@ -201,7 +201,14 @@ function test(name, fn) {
       const a = anchor.getBoundingClientRect();
       const t = toggle.getBoundingClientRect();
       const b = body.getBoundingClientRect();
-      const rowBottom = Math.max(a.bottom, t.bottom);
+      // The 24px help target is positioned into its cell and must not size the
+      // row: the anchor's own box IS row 1 (it starts at the host's top edge and
+      // the answer opens under it), so a field with help keeps the same label
+      // row and the same 4px label -> control gap as one without. Measured
+      // before this rule: 12.67px vs 4px, on every help-bearing field.
+      assert(Math.abs(a.top - h.top) <= 1, type + "/" + key + " anchor sits " + (a.top - h.top) + "px below its row top (toggle inflates the row)");
+      assert(t.top < a.bottom && t.bottom > a.top, type + "/" + key + " toggle left its anchor's row");
+      const rowBottom = a.bottom;
       assert(b.top >= rowBottom && b.top - rowBottom <= 4, type + "/" + key + " top gap=" + (b.top - rowBottom));
       assert(Math.abs(b.left - h.left) <= 1, type + "/" + key + " left delta=" + (b.left - h.left));
     });
@@ -227,18 +234,20 @@ function test(name, fn) {
   });
 
   test("controls that follow contextual help keep their own button width", () => {
-    // The full-width row the rule above gives every post-help sibling is right
-    // for fields and status lines, but a grid item stretches by default, and a
-    // stretched .btn stops reading as a button (the two "Reset to default"
-    // buttons painted as panel-wide grey bars). Asserted on the painted result
-    // -- a button hugs its own label -- not on `justify-self`, so a future
-    // layout that reaches the same width by another route still fails here.
+    // The full-width row every post-help sibling gets is right for fields and
+    // status lines, but a grid item stretches by default, and a stretched .btn
+    // stops reading as a button (the two "Reset to default" buttons once
+    // painted as panel-wide grey bars). Buttons after a disclosure now live in
+    // a .fg-actions row (options.css "four vertical relationships"), whose flex
+    // children size to content. Asserted on the painted result -- a button
+    // hugs its own label -- not on the CSS route, so a future layout that
+    // reaches the same width by another route still fails here.
     const buttons = [...doc.querySelectorAll(
-      ".context-help-host > .context-help ~ .btn, .context-help-action-row > .context-help ~ .btn")];
+      ".context-help-host > .context-help ~ .fg-actions > .btn, .context-help-action-row > .context-help ~ .fg-actions > .btn")];
     assert(buttons.length, "no .btn follows a contextual disclosure any more");
     const stretched = [];
     buttons.forEach((button) => {
-      const details = button.parentElement.querySelector(":scope > details.context-help");
+      const details = button.closest(".context-help-host, .context-help-action-row")?.querySelector(":scope > details.context-help");
       assert(details, (button.id || "button") + " lost the disclosure it follows");
       reveal(details);
       const range = doc.createRange();
@@ -302,17 +311,31 @@ function test(name, fn) {
       const stack = rows[0].closest(".choice-stack.fg-stack");
       assert(stack && rows.every((row) => row.parentElement === stack), ids[0] + " group is not one compact stack");
     });
-    const aiRows = ["opt-ai-src-local", "opt-ai-src-jina", "opt-ai-use-transcript"]
-      .map((id) => doc.getElementById(id).closest(".choice-row"));
-    const aiPanel = doc.getElementById("panel-ai-behavior");
-    doc.querySelectorAll(".panel").forEach((panel) => panel.classList.toggle("active", panel === aiPanel));
-    aiRows.forEach((row, index) => {
-      if (!index) return;
-      const previous = aiRows[index - 1].getBoundingClientRect();
-      const current = row.getBoundingClientRect();
-      const step = current.top - previous.top;
-      assert(step >= 26 && step <= 30, aiRows[index].querySelector("input").id + " row step=" + step);
+    // One rhythm for every stack, help-bearing rows included. The 24px help
+    // target used to size its row (a help row was 24px tall against 20px for a
+    // plain one), so mixed stacks -- Reader's video group, Archive's Wayback
+    // group -- stepped unevenly while the all-help AI group looked fine. The
+    // toggle is out of flow now; assert the property, not the old number: every
+    // row on the page is the same height and every step is the same size.
+    const heights = new Map();
+    const steps = [];
+    groups.forEach((ids) => {
+      const rows = ids.map((id) => doc.getElementById(id).closest(".choice-row"));
+      const panel = rows[0].closest(".panel");
+      doc.querySelectorAll(".panel").forEach((candidate) => candidate.classList.toggle("active", candidate === panel));
+      rows.forEach((row, index) => {
+        const rect = row.getBoundingClientRect();
+        heights.set(ids[index] + (row.classList.contains("context-help-host") ? " (help)" : ""), rect.height);
+        if (index) steps.push([ids[index], rect.top - rows[index - 1].getBoundingClientRect().top]);
+      });
     });
+    const hs = [...heights.values()];
+    const spread = Math.max(...hs) - Math.min(...hs);
+    assert(spread <= 1, "choice rows differ in height by " + spread + "px: " + [...heights].filter(([, h]) => Math.abs(h - hs[0]) > 1).map(([k, h]) => k + "=" + h).join(", "));
+    const stepValues = steps.map(([, s]) => s);
+    const stepSpread = Math.max(...stepValues) - Math.min(...stepValues);
+    assert(stepSpread <= 1, "row steps differ by " + stepSpread + "px: " + steps.filter(([, s]) => Math.abs(s - stepValues[0]) > 1).map(([id, s]) => id + "=" + s).join(", "));
+    assert(stepValues[0] >= 18 && stepValues[0] <= 26, "row step=" + stepValues[0] + " left the compact band");
   });
 
   test("support diagnostics belongs to General, not Storage", () => {

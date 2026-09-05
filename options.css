@@ -43,6 +43,10 @@
   --opt-sp-7: 24px;
   /* Form-group vertical rhythm (.fg / .hint / helper blocks). */
   --opt-rhythm: var(--opt-sp-5);
+  /* Subordinate-choice indent: the parent checkbox (13px) plus the label's
+     sp-3 gap, so nested rows start under the parent's text. Derived from
+     control geometry, deliberately not a scale rung. */
+  --opt-indent: 20px;
 
   /* Stacking ladder — values are the ones already shipping, named so the next
      overlay picks a rung instead of a magic number. Same semantics as popup's
@@ -323,16 +327,42 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 .fg-stack > .choice-row { margin-bottom: var(--opt-sp-1); }
 .fg-stack > div:last-child { margin-bottom: 0; }
 .fg-stack > div > label { padding: var(--opt-sp-1) 0; margin-bottom: 0; }
-.fg-stack > label.bl { margin-bottom: var(--opt-sp-3); }
+.fg.fg-stack > .bl { margin-bottom: var(--opt-sp-3); }   /* label.bl or a div.bl title: 6px to the first option. (0,3,0) on purpose:
+   the old `.fg-stack > label.bl` tied `.fg label.bl` at (0,2,1) and lost on source order, so the
+   documented 6px never rendered -- every plain stack title measured 4px (2026-09-05 probe). */
 .fg.fg-stack > .hint { margin-top: var(--opt-sp-3); }
 .fg-stack > div:has(input[type="number"]),
 .fg-stack > div:has(input[type="text"]) { margin-top: var(--opt-sp-2); margin-bottom: var(--opt-sp-3); }
 .fg label.bl { display: block; font-weight: bold; margin-bottom: var(--opt-sp-2); cursor: default; font-size: 12px; color: var(--opt-fg-soft); }
+/* A form group has exactly four vertical relationships, and each has ONE owner:
+   group -> group (.fg margin-bottom, 12px), label -> control (label.bl
+   margin-bottom, 4px), control -> hint (.fg > .hint, 2px) and control -> action
+   row (below, 6px). Every "Test connection" / "Reset to default" / toolbar row
+   on the page is a .fg-actions: as the LAST CHILD of a .fg it sits sp-3 under
+   the control it acts on; as a SIBLING of .fg blocks it inherits the group
+   rhythm from the preceding group's margin-bottom and adds nothing. The flex
+   gap already separates a button from its status line, so .save-status carries
+   no margin of its own. Before this rule the relationship had no owner: one
+   row was an inline style, one a bare button after the group, one a wrapper
+   with no margin at all -- the three "same button, different gap" shapes the
+   2026-09 spacing complaints kept finding. */
+.fg-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--opt-sp-4); }
+.fg > .fg-actions { margin-top: var(--opt-sp-3); }
+.fg-indent { margin-left: var(--opt-indent); }
+/* A follow-up field revealed under a <select> (translate: custom language). */
+.fg > select + input { margin-top: var(--opt-sp-3); }
 /* Contextual help keeps native <details> motion, but its visible pieces are
    placed on an explicit grid: anchor + compact help target in row 1, answer
    across row 2, and any owned controls in later full-width rows. Unlike the
    former wrapping flex layout, opening an answer cannot recenter an action or
-   make heading margins pull the help target off its text. */
+   make heading margins pull the help target off its text.
+   The 24px help target is positioned INTO its grid cell (absolute, centred on
+   the row) rather than laid out in it, so it never sets row 1's height: a
+   field with help now has the same label row, the same 4px label -> control
+   gap and the same top edge as a field without it. Measured before this
+   change: 12.67px vs 4px label gaps and a 4.67px lower label on every one of
+   the 19 help-bearing fields, i.e. the "uneven" look no per-role nudge could
+   fix because the row itself was 24px tall. */
 .context-help-host,
 .context-help-action-row {
   position: relative;
@@ -352,7 +382,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
   margin: 0;
   justify-self: start;
 }
-.context-help-section { padding-block: var(--opt-sp-2); }
+.context-help-section { margin: var(--opt-sp-4) 0; }   /* same margins as .section-title, so divider -> title -> content match a plain heading */
 .context-help-section > .section-title { margin: 0; }
 .context-help-host > .context-help,
 .context-help-action-row > .context-help { display: contents; }
@@ -368,27 +398,25 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
   grid-column: 1 / -1;
   min-width: 0;
 }
-/* A full-width row is right for the fields and status lines that follow the
-   help, but a grid item stretches by default -- which painted the two "Reset
-   to default" buttons as panel-wide grey bars that read as dividers or a
-   disabled state instead of members of the button family. The label/title
-   group above already carries `justify-self: start` for the same reason; this
-   is the branch that batch missed. Scoped to .btn so textareas, inputs and
-   .hint rows keep the whole row. */
-.context-help-host > .context-help ~ .btn,
-.context-help-action-row > .context-help ~ .btn { justify-self: start; }
 .context-help-action-row { margin-top: var(--opt-sp-3); }
 .context-help { margin: 0; }
 .context-help > summary.context-help-toggle {
+  --target: 24px;
   position: static;
   grid-column: 2;
   grid-row: 1;
   align-self: center;
-  margin: 0;
-  min-width: 24px;
-  width: 24px;
-  min-height: 24px;
-  height: 24px;
+  /* The 24px target stays in flow (an absolutely-positioned summary behind the
+     display:contents <details> is positioned against the whole host, not its
+     cell -- measured: it slid 10px when the answer opened) but contributes a
+     ZERO-height margin box: symmetric negative block margins of half the
+     target. Row 1 is therefore exactly the anchor's height and the target is
+     centred on it, overflowing the row's edges by (24px - anchor) / 2. */
+  margin: calc(var(--target) / -2) 0;
+  min-width: var(--target);
+  width: var(--target);
+  min-height: var(--target);
+  height: var(--target);
   padding: 0 0 0 var(--opt-sp-2);
   justify-content: flex-start;
   color: var(--opt-fg-hint);
@@ -420,7 +448,13 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 .context-help .context-help-body {
   margin: 0;
 }
-.context-help-host > .context-help + * { margin-top: var(--opt-sp-4); }
+.context-help-host > .context-help + * { margin-top: var(--opt-sp-2); }   /* closed: = .fg label.bl margin-bottom */
+.fg-stack.context-help-host > .context-help + * { margin-top: var(--opt-sp-3); }   /* closed: = .fg-stack > .bl margin-bottom */
+/* Open: the answer hangs 4px under its label and keeps 8px from the control it
+   precedes, so it reads as owned by the label, not the input (the test page
+   pins both bands). Source order after the group rule: same specificity. */
+.context-help-host > .context-help > .context-help-body { margin-top: var(--opt-sp-2); }
+.context-help-host > .context-help[open] + * { margin-top: var(--opt-sp-4); }
 .context-help-body + .context-help-body { margin-top: var(--opt-sp-1); }
 .context-help-link { margin-right: 0; }
 .context-help-inline { min-width: 0; }
@@ -474,6 +508,7 @@ html[data-theme] .panel-foot a { color: var(--opt-fg-hint, var(--opt-fg-muted));
 .hint { font-size: 11px; line-height: 1.5; color: var(--opt-fg-hint); margin: var(--opt-sp-1) 0 var(--opt-rhythm); }
 .fg > .hint { margin: var(--opt-sp-1) 0 0; }   /* inside a form group: tight to its control; the group's own margin-bottom (10px) provides separation */
 .fg + .hint { margin-top: -6px; }  /* a hint owned by the preceding group: pull close (net ~4px gap above, 10px below) */
+.shortcut-current + .btn { margin-left: var(--opt-sp-4); }   /* "Shortcut: <keys> [Open Chrome Shortcut Settings]" lines */
 .hint a { color: var(--opt-accent); }
 .hint code { background: var(--opt-code-bg); border-radius: var(--opt-radius-sm); padding: 1px var(--opt-sp-2); font-size: 10px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; }
 /* A hint slot that doubles as a failure report (tag governance's AI status,
@@ -546,6 +581,7 @@ html[data-theme] .opt-error {
   font-size: 12px;
   line-height: 16px;
   font-family: inherit;
+  text-decoration: none;
   cursor: pointer;
   border: 1px solid var(--opt-btn-border);
   border-radius: var(--opt-radius-md);
@@ -698,8 +734,7 @@ input[type="checkbox"], input[type="radio"] {
         CJK = Sarasa again. Must also name fast CJK fonts (YaHei/PingFang) BEFORE `monospace`.
    This is why fixing only the Latin half left Bookmark/Appearance still stalling. */
 .fg textarea { resize: vertical; min-height: 80px; font-family: "SF Mono", Consolas, Menlo, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", monospace; font-size: 11px; line-height: 1.5; }
-.vocab-entry-row { display: flex; align-items: center; gap: var(--opt-sp-4); }
-.save-status { font-size: 12px; color: var(--opt-save); margin-left: var(--opt-sp-4); }
+.save-status { font-size: 12px; color: var(--opt-save); }
 /* Connectivity tests used to pin their three states with inline styles
    (#888/#080/#c00), which no theme can override -- #c00 measured 1.71:1 on
    Nord Night. The states are classes now: setStatusIcon() owns .ok/.bad,
@@ -735,11 +770,7 @@ input[type="checkbox"], input[type="radio"] {
 .connection-health-state { color: var(--opt-fg-hint); font-size: 11px; text-align: right; }
 .connection-health-state.ok { color: var(--opt-save); }
 .connection-health-state.bad { color: var(--opt-danger); }
-.diagnostics-actions { display: flex; align-items: center; gap: var(--opt-sp-4); flex-wrap: wrap; }
-.support-diagnostics .diagnostics-actions { margin-bottom: 0; }
-/* Same precedent as .backup-actions below: the row's own flex gap already
-   spaces button from status, so drop .save-status's inline indent here too. */
-.vocab-entry-row .save-status { margin-left: 0; }
+.support-diagnostics > .fg-actions { margin-bottom: 0; }   /* last block of the section; .panel-foot brings its own top margin */
 /* Reserved-for-sync-notices slot: an empty span with no content still opens
    an anonymous block line box in flow, leaving a blank line's worth of gap
    below the button (real-device report). Collapse it entirely when idle. */
@@ -753,15 +784,6 @@ input[type="checkbox"], input[type="radio"] {
   color: var(--opt-fg);
   font-size: 12px;
 }
-.backup-actions,
-.backup-apply-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--opt-sp-4);
-}
-.backup-actions .save-status,
-.backup-export-note { margin-left: 0; }
 .backup-export-note { display: block; min-height: 18px; margin-top: var(--opt-sp-2); }
 .backup-export-note:empty,
 #ecdict-pack-status:empty,
@@ -831,6 +853,7 @@ html.motion-ready .backup-import-result:not([hidden]) {
    off, which is every new profile's default). Dim reuses .btn:disabled's step
    rather than inventing a second one. */
 .backup-section-picker input:disabled + span,
+#storage-cats { margin-bottom: var(--opt-rhythm); }
 .storage-cats input:disabled + span,
 .choice-row input:disabled + span { opacity: 0.45; }
 .backup-section-picker input:disabled,
@@ -2310,6 +2333,7 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
 /* ---- Tag Governance UI (T3) ---- */
 #tag-gov-groups {
   display: grid;
+  margin-bottom: var(--opt-rhythm);
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--opt-sp-4);
   align-items: start;        /* each card hugs its own height; no stretch to row max */
@@ -2374,6 +2398,7 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
   gap: var(--opt-sp-2) var(--opt-sp-5);
   margin-bottom: var(--opt-sp-4);
 }
+#tag-gov-lowcount-list { margin-bottom: var(--opt-sp-4); }   /* list -> select-all row; an empty list still separates summary and row */
 .tag-gov-lowcount-row {
   display: flex;
   align-items: center;
@@ -2392,6 +2417,7 @@ html.motion-ready .wayback-log-row:focus-within .wayback-perm-tip {
    yanking the view away from the groups list. Falls back into normal flow once the
    user scrolls down to it. */
 #tag-gov-progress {
+  margin-top: var(--opt-sp-5);
   position: sticky;
   bottom: 8px;
   z-index: var(--opt-z-sticky);
@@ -2476,7 +2502,6 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
   position: relative;
 }
 .tag-gov-reset-link {
-  margin-left: var(--opt-sp-4);
   position: relative;
 }
 
@@ -2584,10 +2609,6 @@ html[data-theme="flexoki-dark"] #panel-vocab .vocab-details-body > .hint {
   flex-wrap: wrap;
   margin: var(--opt-sp-4) 0 var(--opt-sp-5);
 }
-/* Both rows already space children with gap; do not add .save-status's
-   standalone inline indent a second time. */
-.vocab-drive-actions .save-status,
-.vocab-toolbar .save-status { margin-left: 0; }
 @media (max-width: 720px) {
   .container {
     grid-template-columns: 1fr;

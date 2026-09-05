@@ -2074,7 +2074,7 @@ function setTheme(sw, presetKey, mode) {
 // imported from a CHECKS entry -- there IS no CHECKS entry until a hit gets
 // fixed and turned into one).
 // ============================================================================
-const SWEEP_CFG = { textInsetH: 4, textInsetV: 2, rowTolerance: 1 };
+const SWEEP_CFG = { textInsetH: 4, textInsetV: 2, rowTolerance: 1, rhythmLabelMin: 3, rhythmLabelMax: 6, rhythmActionMin: 4 };
 
 // Runs INSIDE the page (Playwright serializes this function's source, same
 // constraint as probeSelector -- self-contained, no outer references).
@@ -2320,6 +2320,47 @@ function sweepProbe(cfg) {
     }
   }
 
+  // ---- 5. fgRhythm (options spacing retrospective, 2026-09-05): the vertical
+  // relationships INSIDE a form group, measured on the painted page. Two of
+  // the four (label -> control 4px; control/hint -> action row >= 4px) had no
+  // CSS owner and no gate: the same "Test connection" row shipped as an
+  // inline-styled div (6px), a bare button after the group (12px) and a
+  // wrapper with no margin (0px -- the AnkiConnect/Eudic report), and every
+  // help-bearing field carried a 12.67px label gap against 4px elsewhere
+  // because the 24px help target sized its grid row. Gated like family 4
+  // (one pass, theme-invariant geometry). Scoped to the .fg family, which
+  // only options has, so it is a no-op on popup/library.
+  {
+    const isControl = (el) => el.matches("input, select, textarea, .key-wrap");
+    const isAction = (el) => el.matches(".fg-actions, button, .btn");
+    const stackedGap = (a, b) => {
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      return rb.top < ra.bottom - 0.5 ? null : Math.round((rb.top - ra.bottom) * 100) / 100; // null = side by side
+    };
+    const push = (el, rel, gap) => hits.push({ kind: "fgRhythm", path: pathOf(el), rel, gap });
+    for (const fg of document.querySelectorAll(".fg")) {
+      if (!visible(fg)) continue;
+      const kids = Array.from(fg.children).filter(visible);
+      for (let i = 1; i < kids.length; i++) {
+        const a = kids[i - 1], b = kids[i];
+        const gap = stackedGap(a, b);
+        if (gap === null) continue;
+        if (a.matches("label.bl, .bl") && isControl(b) && (gap < cfg.rhythmLabelMin || gap > cfg.rhythmLabelMax)) push(b, "label-control", gap);
+        if (isAction(b) && !isAction(a) && gap < cfg.rhythmActionMin) push(b, "action", gap);
+      }
+    }
+    // Sibling placement (a .fg-actions after a .fg or another block) still owes
+    // the same minimum to whatever precedes it.
+    for (const row of document.querySelectorAll(".fg-actions")) {
+      if (!visible(row) || row.parentElement?.matches(".fg")) continue;
+      let prev = row.previousElementSibling;
+      while (prev && !visible(prev)) prev = prev.previousElementSibling;
+      if (!prev) continue;
+      const gap = stackedGap(prev, row);
+      if (gap !== null && gap < cfg.rhythmActionMin) push(row, "action", gap);
+    }
+  }
+
   return hits;
 }
 
@@ -2346,6 +2387,13 @@ async function runSweep(page, sw, extBase) {
   for (const tabId of tabIds) {
     await page.click(`#${tabId}`);
     await page.waitForTimeout(150);
+    // Open every non-help disclosure (vocab accordion, tag-gov low-count) so
+    // their contents are measured too: the AnkiConnect/Eudic rows that started
+    // the fgRhythm family live inside a closed .vocab-disclosure. Contextual
+    // help stays closed -- the default state is the one the rhythm rules
+    // describe.
+    await page.evaluate(() => { document.querySelectorAll(".panel.active details:not(.context-help)").forEach((d) => { d.open = true; }); });
+    await page.waitForTimeout(100);
     if (tabId === "tab-appearance") {
       // #preset-preview-section is `style="display:none"` until a site-theme
       // preset is picked (options.js renderPresetPreview) -- click one so
@@ -2435,7 +2483,7 @@ function reportSweep(hits) {
   const dedup = new Map();
   for (const h of hits) {
     const key = h.kind === "rowHeightEq" ? `${h.surface}|rowHeightEq|${[h.a, h.b].sort().join("~")}`
-      : `${h.surface}|${h.kind}|${h.path}${h.childKind ? "|" + h.childKind : ""}`;
+      : `${h.surface}|${h.kind}|${h.path}${h.childKind ? "|" + h.childKind : ""}${h.rel ? "|" + h.rel : ""}`;
     if (!dedup.has(key)) dedup.set(key, h);
   }
   const unique = [...dedup.values()];
@@ -2445,6 +2493,7 @@ function reportSweep(hits) {
     else if (h.kind === "childContainment") console.log(`  childContainment   [${h.surface}/${h.context}]  host=${h.path}  child=${h.childKind}  overflow=${JSON.stringify(h.overflow)}`);
     else if (h.kind === "rowHeightEq") console.log(`  rowHeightEq        [${h.surface}/${h.context}]  container=${h.containerPath}  ${h.a} vs ${h.b}  diff=${h.diff}px`);
     else if (h.kind === "hitAreaMin") console.log(`  hitAreaMin         [${h.surface}/${h.context}]  ${h.path}  shortSide=${h.shortSide}px`);
+    else if (h.kind === "fgRhythm") console.log(`  fgRhythm           [${h.surface}/${h.context}]  ${h.path}  ${h.rel} gap=${h.gap}px`);
   }
   console.log(unique.length ? "[render-audit --sweep] === hits found -- fix, then lock in as CHECKS entries ===" : "[render-audit --sweep] === clean ===");
   process.exit(0);
@@ -2661,7 +2710,8 @@ async function main() {
     // through the same known-failures reconciliation as the hand-enumerated
     // checks above -- see sweepProbe's family-4 comment for why one pass
     // (not one per THEMES entry) is sufficient coverage.
-    const hitAreaHits = (await runSweep(page, sw, extBase)).filter((h) => h.kind === "hitAreaMin");
+    const sweepHits = await runSweep(page, sw, extBase);
+    const hitAreaHits = sweepHits.filter((h) => h.kind === "hitAreaMin");
     for (const h of hitAreaHits) {
       results.push({
         surface: h.surface,
@@ -2673,6 +2723,20 @@ async function main() {
         actual: h.shortSide,
         expected: 24,
         note: null,
+      });
+    }
+    // ---- fgRhythm class-scan (family 5): same gating shape as hitAreaMin.
+    for (const h of sweepHits.filter((x) => x.kind === "fgRhythm")) {
+      results.push({
+        surface: h.surface,
+        theme: "",
+        selector: h.path,
+        state: `${h.context}|${h.rel}`,
+        check: "fgRhythm",
+        status: "FAIL",
+        actual: h.gap,
+        expected: h.rel === "label-control" ? "3..6" : ">=4",
+        note: h.rel === "label-control" ? "label.bl -> control gap (px)" : "gap above an action row (px)",
       });
     }
   } finally {

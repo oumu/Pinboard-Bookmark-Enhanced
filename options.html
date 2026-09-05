@@ -88,7 +88,7 @@
         <button type="button" class="key-toggle" data-target="opt-pinboard-token" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span>
         <span id="token-format-warn" class="field-warn" data-i18n="loginInvalidFormat">Invalid format. Use username:TOKEN</span>
         <p class="hint"><span data-i18n="hintApiToken">From</span> <a href="https://pinboard.in/settings/password" target="_blank" rel="noopener">pinboard.in/settings/password</a></p>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+        <div class="fg-actions">
           <button class="btn btn-sm" id="test-pinboard-token" data-i18n="testConnection">Test Connection</button>
           <span class="save-status" id="test-pinboard-status" role="status" aria-live="polite"></span>
         </div>
@@ -161,7 +161,7 @@
       <div class="choice-row"><label><input type="checkbox" id="opt-backup-include-secrets" aria-describedby="backup-secrets-warning" /> <span data-i18n="backupIncludeSecretsLabel">Include API keys and tokens in backups</span></label></div>
       </div>
       <p class="hint hint-warn" id="backup-secrets-warning" data-i18n="backupIncludeSecretsHint" hidden>Writes every credential to the file in plain text: your Pinboard token, all AI provider keys, and the Jina, Wayback, Anki, Eudic, Gist and Webhook credentials. Anyone who opens the file can use them. Keep it where you would keep a password.</p>
-      <div class="backup-actions">
+      <div class="backup-actions fg-actions">
         <button class="btn" id="export-settings" data-i18n="exportSettings">Export Settings</button>
         <button type="button" class="btn" id="import-settings" title="Import settings from JSON file" data-i18n="importSettings" data-i18n-title="importSettingsTitle">Import Settings</button>
         <input type="file" id="import-settings-file" accept=".json" hidden />
@@ -188,7 +188,7 @@
           <label><input type="checkbox" id="backup-section-vocabulary" /> <span data-i18n="backupSectionVocabulary">Vocabulary</span></label>
           <label><input type="checkbox" id="backup-section-secrets" /> <span data-i18n="backupSectionSecrets">API keys and tokens</span></label>
         </fieldset>
-        <div class="backup-apply-row">
+        <div class="backup-apply-row fg-actions">
           <button type="button" class="btn" id="backup-import-apply" data-i18n="backupApplySelected">Apply selected</button>
           <span id="backup-import-progress" role="status" aria-live="polite"></span>
         </div>
@@ -219,7 +219,7 @@
             <p class="hint context-help-body" data-i18n="diagnosticsHint">Copies extension, browser, feature, permission, storage and categorical error information. Credentials, account names, page URLs, content and custom endpoints are excluded.</p>
           </details>
         </div>
-        <div class="fg diagnostics-actions">
+        <div class="fg fg-actions">
           <button type="button" class="btn" id="copy-diagnostics-btn" data-i18n="diagnosticsCopy">Copy diagnostics</button>
           <span id="diagnostics-status" class="et-test-status hidden" role="status" aria-live="polite"></span>
         </div>
@@ -237,7 +237,7 @@
         <label class="bl" data-i18n="labelOpenPopupShortcut">Open popup shortcut</label>
         <p class="hint">
           <span class="shortcut-current" data-command="_execute_action"></span>
-          <a href="chrome://extensions/shortcuts" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a>
+          <a href="chrome://extensions/shortcuts" class="btn btn-sm" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a>
         </p>
       </div>
       <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-popup-behavior">
@@ -261,18 +261,18 @@
       <div class="divider"></div>
       <h2 class="section-title" data-i18n="optUrlCleanTitle">URL tracking parameter cleanup</h2>
       <div class="fg"><label><input type="checkbox" id="opt-urlclean-enabled" /> <span data-i18n="optUrlCleanEnabled">Auto-clean URL tracking parameters</span></label></div>
-      <div class="fg fg-stack" style="margin-left:20px">
+      <div class="fg fg-stack fg-indent">
         <div><label><input type="checkbox" id="opt-urlclean-on-open" /> <span data-i18n="optUrlCleanOnOpen">Clean when popup opens (silent, with undo link)</span></label></div>
         <div><label><input type="checkbox" id="opt-urlclean-on-paste" /> <span data-i18n="optUrlCleanOnPaste">Clean when pasting URL (toast feedback)</span></label></div>
         <div><label><input type="checkbox" id="opt-urlclean-aggressive" /> <span data-i18n="optUrlCleanAggressive">Aggressive mode: also remove ref/si/igshid and similar</span></label></div>
       </div>
-      <div class="fg" style="margin-top:8px">
+      <div class="fg">
         <label class="bl" for="opt-urlclean-custom" data-i18n="optUrlCleanCustom">Custom parameters (one per line, appended to default list)</label>
-        <textarea id="opt-urlclean-custom" rows="3" maxlength="2000" style="width:100%" placeholder="utm_other&#10;custom_track_id&#10;_branch_referrer" data-i18n-placeholder="optUrlCleanCustomPlaceholder"></textarea>
+        <textarea id="opt-urlclean-custom" rows="3" maxlength="2000" placeholder="utm_other&#10;custom_track_id&#10;_branch_referrer" data-i18n-placeholder="optUrlCleanCustomPlaceholder"></textarea>
       </div>
-      <div class="fg" style="margin-top:8px">
+      <div class="fg">
         <label class="bl" for="opt-urlclean-exclude" data-i18n="optUrlCleanExclude">Parameters that are never cleaned (one per line, e.g. tag= to keep affiliate tags)</label>
-        <textarea id="opt-urlclean-exclude" rows="3" maxlength="2000" style="width:100%" placeholder="tag&#10;ref&#10;si" data-i18n-placeholder="optUrlCleanExcludePlaceholder"></textarea>
+        <textarea id="opt-urlclean-exclude" rows="3" maxlength="2000" placeholder="tag&#10;ref&#10;si" data-i18n-placeholder="optUrlCleanExcludePlaceholder"></textarea>
       </div>
       <div class="divider"></div>
       <h2 class="section-title" id="sec-popup-elements" data-i18n="secPopupElements">Popup Elements</h2>
@@ -339,7 +339,7 @@
           <span class="accordion-arrow"></span> <span data-i18n="secQuickSave">Quick Save</span>
         </button>
         <div class="accordion-body" id="acc-qs">
-          <p style="margin-bottom:8px;"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="quick_save"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
+          <p class="hint"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="quick_save"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link" class="btn btn-sm" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
           <div class="fg fg-stack choice-stack">
             <div class="choice-row"><label><input type="checkbox" id="qs-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
             <div class="choice-row"><label><input type="checkbox" id="qs-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
@@ -360,7 +360,7 @@
           <span class="accordion-arrow"></span> <span data-i18n="secReadLater">Read Later</span>
         </button>
         <div class="accordion-body" id="acc-rl">
-          <p style="margin-bottom:8px;"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="read_later"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-rl" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
+          <p class="hint"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="read_later"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-rl" class="btn btn-sm" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
           <div class="fg fg-stack choice-stack">
             <div class="choice-row"><label><input type="checkbox" id="rl-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
             <div class="choice-row"><label><input type="checkbox" id="rl-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
@@ -400,13 +400,13 @@
             <div><label><input type="checkbox" id="batch-ai-tags" /> <span data-i18n="batchAiTags">Auto-generate AI tags for each tab</span></label></div>
             <div><label><input type="checkbox" id="batch-ai-summary" /> <span data-i18n="batchAiSummary">Auto-generate AI summary for each tab</span></label></div>
           </div>
-          <div class="fg" id="batch-legacy-permission" style="margin-top:10px" hidden>
-            <div style="display:flex;gap:8px;align-items:center;">
+          <div class="fg" id="batch-legacy-permission" hidden>
+            <div>
               <span data-i18n="batchPermLabel">Legacy all-sites permission:</span>
               <span id="batch-perm-status" class="hint" role="status" aria-live="polite"></span>
             </div>
             <p class="hint" data-i18n="batchRevokeHint">Older versions could grant access to every site. New Batch runs request only the listed sites; this button removes the legacy broad grant.</p>
-            <button class="btn btn-sm" id="batch-revoke-perm" style="margin-top:6px;" data-i18n="batchRevokeBtn">Revoke legacy all-sites access</button>
+            <div class="fg-actions"><button class="btn btn-sm" id="batch-revoke-perm" data-i18n="batchRevokeBtn">Revoke legacy all-sites access</button></div>
           </div>
         </div>
       </div>
@@ -452,8 +452,10 @@
         <h3 data-i18n="provGemini">Google Gemini</h3>
         <div class="fg"><label class="bl" for="opt-gemini-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-gemini-key" placeholder="AIzaSy…" /><button type="button" class="key-toggle" data-target="opt-gemini-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://aistudio.google.com/apikey" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-gemini-model" data-i18n="labelModel">Model</label><input type="text" id="opt-gemini-model" value="gemini-3.5-flash-lite" /></div>
-        <button class="btn btn-sm" id="test-gemini" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-gemini-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-gemini" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-gemini-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- OpenAI -->
@@ -462,8 +464,10 @@
         <div class="fg"><label class="bl" for="opt-openai-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-openai-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-openai-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://platform.openai.com/api-keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-openai-model" data-i18n="labelModel">Model</label><input type="text" id="opt-openai-model" value="gpt-5.4-nano" /></div>
         <div class="fg context-help-host" data-help-role="field"><label class="bl" for="opt-openai-baseurl" data-i18n="labelBaseUrl">Base URL</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintOpenAIBaseUrl">Change for proxy or compatible endpoint</p></details><input type="text" id="opt-openai-baseurl" value="https://api.openai.com/v1" /></div>
-        <button class="btn btn-sm" id="test-openai" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-openai-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-openai" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-openai-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- Claude -->
@@ -471,8 +475,10 @@
         <h3 data-i18n="provClaude">Anthropic Claude</h3>
         <div class="fg"><label class="bl" for="opt-claude-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-claude-key" placeholder="sk-ant-…" /><button type="button" class="key-toggle" data-target="opt-claude-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://console.anthropic.com/settings/keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-claude-model" data-i18n="labelModel">Model</label><input type="text" id="opt-claude-model" value="claude-haiku-4-5" /></div>
-        <button class="btn btn-sm" id="test-claude" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-claude-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-claude" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-claude-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- DeepSeek -->
@@ -480,8 +486,10 @@
         <h3 data-i18n="provDeepseek">DeepSeek</h3>
         <div class="fg"><label class="bl" for="opt-deepseek-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-deepseek-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-deepseek-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://platform.deepseek.com/api_keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-deepseek-model" data-i18n="labelModel">Model</label><input type="text" id="opt-deepseek-model" value="deepseek-v4-flash" /></div>
-        <button class="btn btn-sm" id="test-deepseek" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-deepseek-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-deepseek" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-deepseek-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- Qwen -->
@@ -489,8 +497,10 @@
         <h3 data-i18n="provQwen">Qwen</h3>
         <div class="fg"><label class="bl" for="opt-qwen-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-qwen-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-qwen-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-qwen-model" data-i18n="labelModel">Model</label><input type="text" id="opt-qwen-model" value="qwen-flash" /></div>
-        <button class="btn btn-sm" id="test-qwen" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-qwen-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-qwen" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-qwen-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- MiniMax -->
@@ -498,8 +508,10 @@
         <h3 data-i18n="provMinimax">MiniMax</h3>
         <div class="fg"><label class="bl" for="opt-minimax-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-minimax-key" /><button type="button" class="key-toggle" data-target="opt-minimax-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://platform.minimaxi.com/" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-minimax-model" data-i18n="labelModel">Model</label><input type="text" id="opt-minimax-model" value="MiniMax-M2" /></div>
-        <button class="btn btn-sm" id="test-minimax" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-minimax-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-minimax" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-minimax-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- OpenRouter -->
@@ -507,8 +519,10 @@
         <h3 data-i18n="provOpenrouter">OpenRouter</h3>
         <div class="fg context-help-host" data-help-role="field"><label class="bl" for="opt-openrouter-key" data-i18n="labelApiKey">API Key</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="openrouterTagline">Access 100+ models from one API.</p></details><span class="key-wrap"><input type="password" id="opt-openrouter-key" placeholder="sk-or-…" /><button type="button" class="key-toggle" data-target="opt-openrouter-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://openrouter.ai/keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-openrouter-model" data-i18n="labelModel">Model</label><input type="text" id="opt-openrouter-model" value="openai/gpt-oss-20b:free" /><p class="hint"><span data-i18n="browseModelsAt">Browse models at</span> <a href="https://openrouter.ai/models" target="_blank" rel="noopener">openrouter.ai/models</a></p></div>
-        <button class="btn btn-sm" id="test-openrouter" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-openrouter-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-openrouter" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-openrouter-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- Groq -->
@@ -516,8 +530,10 @@
         <h3 data-i18n="provGroq">Groq</h3>
         <div class="fg"><label class="bl" for="opt-groq-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-groq-key" placeholder="gsk_…" /><button type="button" class="key-toggle" data-target="opt-groq-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://console.groq.com/keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-groq-model" data-i18n="labelModel">Model</label><input type="text" id="opt-groq-model" value="llama-3.1-8b-instant" /></div>
-        <button class="btn btn-sm" id="test-groq" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-groq-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-groq" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-groq-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- Mistral -->
@@ -525,8 +541,10 @@
         <h3 data-i18n="provMistral">Mistral AI</h3>
         <div class="fg"><label class="bl" for="opt-mistral-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-mistral-key" /><button type="button" class="key-toggle" data-target="opt-mistral-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://console.mistral.ai/api-keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-mistral-model" data-i18n="labelModel">Model</label><input type="text" id="opt-mistral-model" value="mistral-small-latest" /></div>
-        <button class="btn btn-sm" id="test-mistral" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-mistral-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-mistral" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-mistral-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- Cohere -->
@@ -534,8 +552,10 @@
         <h3 data-i18n="provCohere">Cohere</h3>
         <div class="fg"><label class="bl" for="opt-cohere-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-cohere-key" /><button type="button" class="key-toggle" data-target="opt-cohere-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://dashboard.cohere.com/api-keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-cohere-model" data-i18n="labelModel">Model</label><input type="text" id="opt-cohere-model" value="command-r7b-12-2024" /></div>
-        <button class="btn btn-sm" id="test-cohere" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-cohere-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-cohere" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-cohere-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- SiliconFlow -->
@@ -543,8 +563,10 @@
         <h3 data-i18n="provSiliconflow">SiliconFlow</h3>
         <div class="fg"><label class="bl" for="opt-siliconflow-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-siliconflow-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-siliconflow-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://cloud.siliconflow.cn/account/ak" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-siliconflow-model" data-i18n="labelModel">Model</label><input type="text" id="opt-siliconflow-model" value="Qwen/Qwen3-8B" /></div>
-        <button class="btn btn-sm" id="test-siliconflow" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-siliconflow-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-siliconflow" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-siliconflow-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- Zhipu -->
@@ -552,8 +574,10 @@
         <h3 data-i18n="provZhipu">Zhipu</h3>
         <div class="fg"><label class="bl" for="opt-zhipu-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-zhipu-key" /><button type="button" class="key-toggle" data-target="opt-zhipu-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://open.bigmodel.cn/usercenter/apikeys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-zhipu-model" data-i18n="labelModel">Model</label><input type="text" id="opt-zhipu-model" value="glm-4.7-flash" /></div>
-        <button class="btn btn-sm" id="test-zhipu" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-zhipu-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-zhipu" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-zhipu-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- Kimi -->
@@ -561,8 +585,10 @@
         <h3 data-i18n="provKimi">Kimi</h3>
         <div class="fg"><label class="bl" for="opt-kimi-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-kimi-key" placeholder="sk-…" /><button type="button" class="key-toggle" data-target="opt-kimi-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://platform.moonshot.cn/console/api-keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
         <div class="fg"><label class="bl" for="opt-kimi-model" data-i18n="labelModel">Model</label><input type="text" id="opt-kimi-model" value="kimi-k2.6" /></div>
-        <button class="btn btn-sm" id="test-kimi" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-kimi-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-kimi" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-kimi-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- Ollama -->
@@ -570,8 +596,10 @@
         <h3 data-i18n="provOllama">Ollama (Local)</h3>
         <div class="fg"><label class="bl" for="opt-ollama-baseurl" data-i18n="labelBaseUrl">Base URL</label><input type="text" id="opt-ollama-baseurl" value="http://localhost:11434" /></div>
         <div class="fg context-help-host" data-help-role="field"><label class="bl" for="opt-ollama-model" data-i18n="labelModel">Model</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintOllamaModel">Run <code>ollama pull llama3.2</code> first</p></details><input type="text" id="opt-ollama-model" value="llama3.2" /></div>
-        <button class="btn btn-sm" id="test-ollama" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-ollama-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-ollama" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-ollama-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- Custom -->
@@ -581,8 +609,10 @@
         <div class="fg context-help-host" data-help-role="field"><label class="bl" for="opt-custom-baseurl" data-i18n="labelBaseUrl">Base URL</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintCustomBaseUrl">Must support <code>/chat/completions</code> endpoint</p></details><input type="text" id="opt-custom-baseurl" placeholder="https://api.example.com/v1" /></div>
         <div class="fg context-help-host" data-help-role="field"><label class="bl" for="opt-custom-key" data-i18n="labelApiKey">API Key</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="hintCustomKey">Leave empty if not required</p></details><span class="key-wrap"><input type="password" id="opt-custom-key" /><button type="button" class="key-toggle" data-target="opt-custom-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span></div>
         <div class="fg"><label class="bl" for="opt-custom-model" data-i18n="labelModel">Model</label><input type="text" id="opt-custom-model" placeholder="model-name" /></div>
-        <button class="btn btn-sm" id="test-custom" data-i18n="testConnection">Test Connection</button>
-        <span class="save-status" id="test-custom-status" role="status" aria-live="polite"></span>
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="test-custom" data-i18n="testConnection">Test Connection</button>
+          <span class="save-status" id="test-custom-status" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <div class="divider"></div>
@@ -696,7 +726,7 @@
           <p class="hint context-help-body" data-i18n="tagPromptHint">Leave empty to use the default prompt shown in this field. Must instruct AI to return <code>["tag1","tag2"]</code> format.</p>
         </details>
         <textarea id="opt-custom-tag-prompt" rows="8"></textarea>
-        <button class="btn btn-sm" id="reset-tag-prompt" style="margin-top:4px" data-i18n="resetToDefault">Reset to default</button>
+        <div class="fg-actions"><button class="btn btn-sm" id="reset-tag-prompt" data-i18n="resetToDefault">Reset to default</button></div>
       </div>
 
       <div class="fg context-help-host" data-help-role="field">
@@ -706,7 +736,7 @@
           <p class="hint context-help-body" data-i18n="summaryPromptHint">Leave empty to use the default prompt shown in this field. Use <code>{{lang_instruction}}</code> for auto language.</p>
         </details>
         <textarea id="opt-custom-summary-prompt" rows="8"></textarea>
-        <button class="btn btn-sm" id="reset-summary-prompt" style="margin-top:4px" data-i18n="resetToDefault">Reset to default</button>
+        <div class="fg-actions"><button class="btn btn-sm" id="reset-summary-prompt" data-i18n="resetToDefault">Reset to default</button></div>
       </div>
     </div>
 
@@ -751,7 +781,7 @@
           <option value="id">Bahasa Indonesia</option>
           <option value="custom" data-i18n="translateLangCustom">Custom…</option>
         </select>
-        <input type="text" id="translate-target-lang-custom" class="hidden" style="margin-top:6px;" aria-labelledby="translate-target-lang-label" placeholder="Any language name, e.g. Latin, Classical Chinese" data-i18n-placeholder="translateLangCustomPlaceholder" autocomplete="off" spellcheck="false" />
+        <input type="text" id="translate-target-lang-custom" class="hidden" aria-labelledby="translate-target-lang-label" placeholder="Any language name, e.g. Latin, Classical Chinese" data-i18n-placeholder="translateLangCustomPlaceholder" autocomplete="off" spellcheck="false" />
       </div>
 
       <div class="fg context-help-host" data-help-role="field">
@@ -813,7 +843,7 @@
         <label class="bl" data-i18n="mdShortcutLabel">Open the reader</label>
         <p class="hint">
           <span id="md-shortcut-current" class="shortcut-current" data-command="markdown_preview"></span>
-          <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-md" class="btn btn-sm" style="text-decoration:none;margin-left:8px;" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a>
+          <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-md" class="btn btn-sm" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a>
         </p>
       </div>
     </div>
@@ -822,7 +852,7 @@
     <div id="panel-vocab" class="panel" role="tabpanel" aria-labelledby="tab-vocab">
       <h2 class="section-title" data-i18n="dictVocabSection">Vocabulary</h2>
       <div class="vocab-entry-row">
-        <a class="btn btn-sm" id="vocab-open-library" href="library.html#vocab" target="_blank" rel="noopener" style="text-decoration:none">
+        <a class="btn btn-sm" id="vocab-open-library" href="library.html#vocab" target="_blank" rel="noopener">
           <span class="btn-ic" data-ic="bookMarked"></span><span data-i18n="libraryOpen">Open notes and vocabulary</span>
         </a>
       </div>
@@ -874,9 +904,9 @@
           <div class="fg"><label class="bl" for="dict-anki-port" data-i18n="dictAnkiPortLabel">AnkiConnect port</label>
             <input type="text" id="dict-anki-port" placeholder="8765" spellcheck="false" /></div>
           <div class="fg"><label class="bl" for="dict-anki-key" data-i18n="dictAnkiKeyLabel">AnkiConnect API key (optional)</label><span class="key-wrap"><input type="password" id="dict-anki-key" autocomplete="off" spellcheck="false" /><button type="button" class="key-toggle" data-target="dict-anki-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span>
-            <div class="vocab-entry-row"><button type="button" class="btn btn-sm" id="vocab-anki-test-btn" data-i18n="dictAnkiTest">Test AnkiConnect</button><span class="save-status" id="vocab-anki-test-status" role="status" aria-live="polite"></span></div></div>
+            <div class="fg-actions"><button type="button" class="btn btn-sm" id="vocab-anki-test-btn" data-i18n="dictAnkiTest">Test AnkiConnect</button><span class="save-status" id="vocab-anki-test-status" role="status" aria-live="polite"></span></div></div>
           <div class="fg context-help-host" data-help-role="field"><label class="bl" for="dict-eudic-token" data-i18n="dictEudicTokenLabel">Eudic OpenAPI authorization</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="dictEudicSupportedHint">Eudic supports only English, French, German, and Spanish (en/fr/de/es); other words are skipped.</p></details><span class="key-wrap"><input type="password" id="dict-eudic-token" autocomplete="off" spellcheck="false" /><button type="button" class="key-toggle" data-target="dict-eudic-token" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://my.eudic.net/OpenAPI/Authorization" target="_blank" rel="noopener noreferrer" data-i18n="dictEudicTokenHint">Copy the full authorization value from Eudic</a></p>
-            <div class="vocab-entry-row"><button type="button" class="btn btn-sm" id="vocab-eudic-test-btn" data-i18n="dictEudicTest">Test Eudic connection</button><span class="save-status" id="vocab-eudic-test-status" role="status" aria-live="polite"></span></div></div>
+            <div class="fg-actions"><button type="button" class="btn btn-sm" id="vocab-eudic-test-btn" data-i18n="dictEudicTest">Test Eudic connection</button><span class="save-status" id="vocab-eudic-test-status" role="status" aria-live="polite"></span></div></div>
           <div class="vocab-toolbar">
             <button type="button" class="btn btn-sm" id="vocab-export-btn" data-i18n="dictExportTsv">Export all (.tsv)</button>
             <button type="button" class="btn btn-sm" id="vocab-anki-btn" data-i18n="dictAnkiSend">Send all to Anki</button>
@@ -960,10 +990,12 @@
       </div>
       <p class="hint hint-warn tag-gov-warns" data-i18n="tagGovIrreversibleWarn">Merges and deletions cannot be undone. A snapshot of your tag list (names and counts) is downloaded before the first change, for manual reference only.</p>
       <div id="tag-gov-groups"></div>
-      <div class="fg" style="margin-top:10px">
-        <button class="btn btn-sm" id="tag-gov-ai-btn" data-i18n="tagGovAiBtn">AI deep analysis</button>
-        <small class="tag-gov-reset-link"><a href="#" id="tag-gov-reset-ignored" data-i18n="tagGovResetIgnored">Reset ignored list</a></small>
-        <div id="tag-gov-ai-status" class="hint" style="margin-top:4px;"></div>
+      <div class="fg">
+        <div class="fg-actions">
+          <button class="btn btn-sm" id="tag-gov-ai-btn" data-i18n="tagGovAiBtn">AI deep analysis</button>
+          <small class="tag-gov-reset-link"><a href="#" id="tag-gov-reset-ignored" data-i18n="tagGovResetIgnored">Reset ignored list</a></small>
+        </div>
+        <div id="tag-gov-ai-status" class="hint"></div>
       </div>
       <div class="divider"></div>
       <!-- No <h2> above this disclosure: its own <summary> is the section
@@ -975,12 +1007,12 @@
       <details id="tag-gov-lowcount">
         <summary data-i18n="tagGovLowCountTitle">Low-count tags (1 use or fewer)</summary>
         <div id="tag-gov-lowcount-list"></div>
-        <div style="margin-top:8px;display:flex;gap:8px;">
+        <div class="fg">
           <label><input type="checkbox" id="tag-gov-select-all" /> <span data-i18n="tagGovSelectAll">Select all</span></label>
+          <div class="fg-actions"><button class="btn btn-sm danger tag-gov-delete-btn" id="tag-gov-delete-selected" data-i18n="tagGovDeleteSelected" disabled>Delete selected</button></div>
         </div>
-        <button class="btn btn-sm danger tag-gov-delete-btn" id="tag-gov-delete-selected" data-i18n="tagGovDeleteSelected" disabled>Delete selected</button>
       </details>
-      <div id="tag-gov-progress" hidden style="margin-top:10px;">
+      <div id="tag-gov-progress" hidden>
         <div id="tag-gov-progress-bar" class="progress-bar" role="progressbar" aria-labelledby="tag-gov-progress-text" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <div id="tag-gov-progress-fill" class="progress-fill"></div>
         </div>
@@ -1010,7 +1042,7 @@
              keeps .hint-warn's triangle off an empty row. -->
         <span id="wayback-perm-status" class="hint hint-warn wayback-perm-status" role="status" aria-live="polite"></span>
       </div>
-      <div class="choice-row context-help-host" data-help-role="choice" style="margin-left:20px">
+      <div class="choice-row context-help-host fg-indent" data-help-role="choice">
         <label><input type="checkbox" id="opt-wayback-batch" /> <span data-i18n="optWaybackBatch">Also archive during batch save</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -1021,10 +1053,10 @@
            it (nothing is submitted to archive.org while archiving is off), so
            it carries the same indent instead of sitting at the parent's own
            level. -->
-      <div class="choice-row" style="margin-left:20px"><label><input type="checkbox" id="opt-wayback-skip-private" /> <span data-i18n="waybackSkipPrivate">Never archive bookmarks you save as private</span></label></div>
+      <div class="choice-row fg-indent"><label><input type="checkbox" id="opt-wayback-skip-private" /> <span data-i18n="waybackSkipPrivate">Never archive bookmarks you save as private</span></label></div>
       </div>
       <div class="divider"></div>
-      <div class="fg context-help-host" data-help-role="field" style="margin-top:10px">
+      <div class="fg context-help-host" data-help-role="field">
         <label class="bl" for="opt-wayback-s3key" data-i18n="optWaybackS3Key">archive.org S3 Access Key (optional)</label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
@@ -1115,7 +1147,7 @@
       </div>
       <div class="fg" id="saved-themes-section" style="display:none">
         <label class="bl" data-i18n="labelSavedThemes">Saved Themes</label>
-        <div id="saved-themes-list" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
+        <div id="saved-themes-list" class="theme-presets-group"></div>
       </div>
       <div class="fg context-help-host" data-help-role="field">
         <label class="bl" for="opt-custom-css" data-i18n="labelCustomCSSOverlay">Custom CSS Overlay</label>
@@ -1155,7 +1187,7 @@
         </details>
       </div>
       <div id="storage-cats" class="storage-cats"></div>
-      <div class="fg" style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div class="fg fg-actions">
         <button type="button" class="btn" id="storage-clear-btn" data-i18n="storageClear">Clear selected</button>
         <span id="storage-status" class="et-test-status hidden" role="status" aria-live="polite"></span>
       </div>

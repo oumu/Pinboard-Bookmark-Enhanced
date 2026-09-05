@@ -173,6 +173,7 @@ a { color: var(--lib-link, #1a66c2); }
   font-size: 12px;
   line-height: 16px;
   font-family: inherit;
+  text-decoration: none;
   cursor: pointer;
   border: 1px solid var(--lib-btn-border);
   border-radius: var(--lib-radius-md);

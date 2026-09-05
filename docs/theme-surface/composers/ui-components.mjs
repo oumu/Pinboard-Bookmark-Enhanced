@@ -111,6 +111,9 @@ function btnRules(ns) {
       ["font-size", "12px"],
       ["line-height", "16px"],
       ["font-family", "inherit"],
+      // <a class="btn"> (shortcut / library / settings links) must not carry
+      // the UA underline; options.html used to patch each one inline.
+      ["text-decoration", "none"],
       ["cursor", "pointer"],
       // Soft Fill (COMPONENTS.md §9 law 1): the resting border-color collapses INTO
       // the fill. --{ns}-btn-border IS --{ns}-btn-bg for every theme except

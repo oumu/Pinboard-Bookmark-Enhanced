@@ -694,8 +694,12 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
     eudicTest >= 0 && eudicStatus > eudicTest && eudicStatus < vocabToolbar &&
     vocabToolbar >= 0 && toolbarStatus > vocabToolbar,
     "options.html: vocabulary connection tests or export actions lost their local status slot");
-  check(/\.vocab-drive-actions \.save-status,\s*\.vocab-toolbar \.save-status\s*\{\s*margin-left:\s*0/.test(optionsCss),
-    "options.css: vocabulary action rows double-apply gap and save-status margin");
+  // The flex row's gap owns button -> status spacing everywhere (.fg-actions,
+  // .vocab-toolbar, .vocab-drive-actions); a margin on the status itself would
+  // double it in every row and need a per-row reset (five of those were
+  // deleted in the 2026-09 rhythm retrospective).
+  check(!/\.save-status\s*\{[^}]*margin-left/.test(optionsCss) && !/\.save-status\s*\{\s*margin-left:\s*0/.test(optionsCss),
+    "options.css: .save-status carries its own horizontal margin again; the row gap owns button->status spacing");
   check(!optionsVocabJs.includes('_pbpVocabConnectionResult(id, ok, text, code) {\n  _pbpVocabFlashStatus(ok, text);'),
     "options-vocab.js: connection tests still route feedback through the vocabulary toolbar status");
   for (const [buttonId, statusId] of [
