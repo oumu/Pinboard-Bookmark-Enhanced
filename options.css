@@ -989,12 +989,14 @@ html.motion-ready .accordion-section.motion-toggle .accordion-arrow {
 .accordion-body {
   /* bottom padding lives on .open (and transitions with the height): with it on
      the base rule, border-box height bottoms out at the 12px padding floor a
-     beat before display flips -- a visible end-of-close stall. */
-  display: none; height: 0; overflow: clip; padding: 0 0 0 var(--opt-sp-6);
-  /* Layout isolation: the 3 Quick-Actions accordions ship open, so switching to
-     that tab laid out all their bodies at once (~153ms at 4K, felt like ~1s with
-     paint). contain:layout keeps each body's internal layout from joining the
-     panel-wide reflow, dropping first-layout cost to ~0 without changing the UX. */
+     beat before display flips -- a visible end-of-close stall.
+     No left padding: a collapsed section's body is flush with the panel like
+     every other section body (h2 sections, the vocabulary disclosures). The
+     16px indent this used to carry was the only indented body on the page. */
+  display: none; height: 0; overflow: clip; padding: 0;
+  /* Layout isolation: contain:layout keeps an open body's internal layout from
+     joining the panel-wide reflow on tab switch (measured ~153ms at 4K for a
+     panel of open bodies before it was added). */
   contain: layout style;
 }
 .accordion-section.open .accordion-body { display: block; height: auto; padding-bottom: var(--opt-sp-5); }
@@ -1936,8 +1938,10 @@ html[data-theme] .et-onboarding { color: var(--opt-fg-muted); }
    same shape as .fg label.bl / .pf h3 above -- unthemed reads the --fg-dim /
    --accent-hover role, themed reads the plainer --fg-muted / --accent role. */
 html[data-theme] .section-title { color: var(--opt-fg-muted); }
-html[data-theme] .accordion-header { color: var(--opt-fg-muted); }
-html[data-theme] .accordion-header:hover { color: var(--opt-accent); }
+html[data-theme] .accordion-header,
+html[data-theme] .vocab-disclosure > summary { color: var(--opt-fg-muted); }
+html[data-theme] .accordion-header:hover,
+html[data-theme] .vocab-disclosure > summary:hover { color: var(--opt-accent); }
 /* .theme-preset-btn.active / .saved-theme-btn.active / .theme-preset-btn
    :focus-visible no longer need a themed override here: the borderless
    swatch-pill base rule (Tag Presets... options' Theme preset buttons,
@@ -2535,13 +2539,17 @@ html.motion-ready #tag-gov-progress:not([hidden]) {
   padding: var(--opt-sp-5) var(--opt-sp-3);
   margin: 0 calc(-1 * var(--opt-sp-3));
   border-radius: var(--opt-radius-sm);
-  color: var(--opt-fg-muted);
-  font-size: 12px;
-  font-weight: 600;
+  /* A collapsible section's header IS a section title (13px bold, --fg-dim,
+     accent hover) plus a chevron -- the same face as .section-title and
+     .accordion-header. It used to be a third face (12px/600 muted), so the
+     Vocabulary tab's headings read lighter than every other tab's. */
+  color: var(--opt-fg-dim);
+  font-size: 13px;
+  font-weight: bold;
   cursor: pointer;
   transition: color var(--motion-state), background-color var(--motion-state);
 }
-.vocab-disclosure > summary:hover { color: var(--opt-fg); background: var(--opt-panel); }
+.vocab-disclosure > summary:hover { color: var(--opt-accent-hover); background: var(--opt-panel); }
 /* Focus ring: shared soft-focus recipe (top of file). */
 /* Open state: the body's bottom padding faces the NEXT row's rule, so it
    matches the summaries' 12px rhythm instead of pinching to 6. */

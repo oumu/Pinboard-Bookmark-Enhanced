@@ -334,81 +334,65 @@
 
     <!-- Tab 4: Quick Actions -->
     <div id="panel-quick" class="panel" role="tabpanel" aria-labelledby="tab-quick">
-      <div class="accordion-section open">
-        <button type="button" class="accordion-header" data-target="acc-qs" aria-controls="acc-qs" aria-expanded="true">
-          <span class="accordion-arrow"></span> <span data-i18n="secQuickSave">Quick Save</span>
-        </button>
-        <div class="accordion-body" id="acc-qs">
-          <p class="hint"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="quick_save"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link" class="btn btn-sm" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
-          <div class="fg fg-stack choice-stack">
-            <div class="choice-row"><label><input type="checkbox" id="qs-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
-            <div class="choice-row"><label><input type="checkbox" id="qs-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
-          </div>
-          <div class="fg">
-            <label class="bl" for="qs-default-tags" data-i18n="labelDefaultTags">Default Tags (comma-separated)</label>
-            <input type="text" id="qs-default-tags" placeholder="tag1, tag2" data-i18n-placeholder="placeholderTags" autocomplete="off" spellcheck="false" />
-          </div>
-          <div class="fg fg-stack choice-stack">
-            <div class="choice-row"><label><input type="checkbox" id="qs-ai-tags" /> <span data-i18n="qsAiTags">Auto-generate AI tags</span></label></div>
-            <div class="choice-row"><label><input type="checkbox" id="qs-ai-summary" /> <span data-i18n="qsAiSummary">Auto-generate AI summary in notes</span></label></div>
-          </div>
-        </div>
+      <h2 class="section-title" data-i18n="secQuickSave">Quick Save</h2>
+      <p class="hint"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="quick_save"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link" class="btn btn-sm" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
+      <div class="fg fg-stack choice-stack">
+        <div class="choice-row"><label><input type="checkbox" id="qs-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="qs-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
+      </div>
+      <div class="fg">
+        <label class="bl" for="qs-default-tags" data-i18n="labelDefaultTags">Default Tags (comma-separated)</label>
+        <input type="text" id="qs-default-tags" placeholder="tag1, tag2" data-i18n-placeholder="placeholderTags" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="fg fg-stack choice-stack">
+        <div class="choice-row"><label><input type="checkbox" id="qs-ai-tags" /> <span data-i18n="qsAiTags">Auto-generate AI tags</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="qs-ai-summary" /> <span data-i18n="qsAiSummary">Auto-generate AI summary in notes</span></label></div>
       </div>
 
-      <div class="accordion-section open">
-        <button type="button" class="accordion-header" data-target="acc-rl" aria-controls="acc-rl" aria-expanded="true">
-          <span class="accordion-arrow"></span> <span data-i18n="secReadLater">Read Later</span>
-        </button>
-        <div class="accordion-body" id="acc-rl">
-          <p class="hint"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="read_later"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-rl" class="btn btn-sm" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
-          <div class="fg fg-stack choice-stack">
-            <div class="choice-row"><label><input type="checkbox" id="rl-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
-            <div class="choice-row"><label><input type="checkbox" id="rl-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
-          </div>
-          <div class="fg">
-            <label class="bl" for="rl-default-tags" data-i18n="labelDefaultTags">Default Tags (comma-separated)</label>
-            <input type="text" id="rl-default-tags" placeholder="tag1, tag2" data-i18n-placeholder="placeholderTags" autocomplete="off" spellcheck="false" />
-          </div>
-          <div class="fg fg-stack choice-stack">
-            <div class="choice-row"><label><input type="checkbox" id="rl-ai-tags" /> <span data-i18n="qsAiTags">Auto-generate AI tags</span></label></div>
-            <div class="choice-row"><label><input type="checkbox" id="rl-ai-summary" /> <span data-i18n="qsAiSummary">Auto-generate AI summary in notes</span></label></div>
-          </div>
-        </div>
+      <div class="divider"></div>
+      <h2 class="section-title" data-i18n="secReadLater">Read Later</h2>
+      <p class="hint"><span data-i18n="labelShortcut">Shortcut</span>: <span class="shortcut-current" data-command="read_later"></span> <a href="chrome://extensions/shortcuts" id="open-shortcuts-link-rl" class="btn btn-sm" data-i18n="openShortcuts">Open Chrome Shortcut Settings</a></p>
+      <div class="fg fg-stack choice-stack">
+        <div class="choice-row"><label><input type="checkbox" id="rl-auto-notes" checked /> <span data-i18n="qsAutoNotes">Auto-add page description to notes</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="rl-blockquote" checked /> <span data-i18n="qsBlockquote">Wrap selected text with blockquote</span></label></div>
+      </div>
+      <div class="fg">
+        <label class="bl" for="rl-default-tags" data-i18n="labelDefaultTags">Default Tags (comma-separated)</label>
+        <input type="text" id="rl-default-tags" placeholder="tag1, tag2" data-i18n-placeholder="placeholderTags" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="fg fg-stack choice-stack">
+        <div class="choice-row"><label><input type="checkbox" id="rl-ai-tags" /> <span data-i18n="qsAiTags">Auto-generate AI tags</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="rl-ai-summary" /> <span data-i18n="qsAiSummary">Auto-generate AI summary in notes</span></label></div>
       </div>
 
-      <div class="accordion-section open">
-        <button type="button" class="accordion-header" data-target="acc-batch" aria-controls="acc-batch" aria-expanded="true">
-          <span class="accordion-arrow"></span> <span data-i18n="secBatchSave">Batch Save</span>
-        </button>
-        <div class="accordion-body" id="acc-batch">
-          <div class="fg"><label><input type="checkbox" id="opt-batch-tag-enabled" checked /> <span data-i18n="batchAutoAddTags">Auto-add tags</span></label></div>
-          <div class="fg context-help-host" data-help-role="field">
-            <label class="bl" for="opt-batch-tag" data-i18n="batchTagsLabel">Tags (comma-separated)</label>
-            <details class="context-help">
-              <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
-              <p class="hint context-help-body" data-i18n="batchTagsHint">Multiple tags separated by commas. E.g. <code>batch_saved, research</code></p>
-            </details>
-            <input type="text" id="opt-batch-tag" value="batch_saved" />
-          </div>
-          <div class="fg"><label><input type="checkbox" id="batch-skip-existing" /> <span data-i18n="batchSkipExisting">Skip already bookmarked URLs</span></label></div>
-          <div class="fg fg-stack context-help-host" data-help-role="group" role="group" aria-labelledby="batch-ai-title">
-            <div class="bl context-help-anchor" id="batch-ai-title" data-i18n="tabGroupAI">AI</div>
-            <details class="context-help">
-              <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
-              <p class="hint context-help-body" data-i18n="batchAiHint">AI runs one call per tab and may be slow. On first use, Batch asks only for the listed tab sites and current AI provider.</p>
-            </details>
-            <div><label><input type="checkbox" id="batch-ai-tags" /> <span data-i18n="batchAiTags">Auto-generate AI tags for each tab</span></label></div>
-            <div><label><input type="checkbox" id="batch-ai-summary" /> <span data-i18n="batchAiSummary">Auto-generate AI summary for each tab</span></label></div>
-          </div>
-          <div class="fg" id="batch-legacy-permission" hidden>
-            <div>
-              <span data-i18n="batchPermLabel">Legacy all-sites permission:</span>
-              <span id="batch-perm-status" class="hint" role="status" aria-live="polite"></span>
-            </div>
-            <p class="hint" data-i18n="batchRevokeHint">Older versions could grant access to every site. New Batch runs request only the listed sites; this button removes the legacy broad grant.</p>
-            <div class="fg-actions"><button class="btn btn-sm" id="batch-revoke-perm" data-i18n="batchRevokeBtn">Revoke legacy all-sites access</button></div>
-          </div>
+      <div class="divider"></div>
+      <h2 class="section-title" data-i18n="secBatchSave">Batch Save</h2>
+      <div class="fg"><label><input type="checkbox" id="opt-batch-tag-enabled" checked /> <span data-i18n="batchAutoAddTags">Auto-add tags</span></label></div>
+      <div class="fg context-help-host" data-help-role="field">
+        <label class="bl" for="opt-batch-tag" data-i18n="batchTagsLabel">Tags (comma-separated)</label>
+        <details class="context-help">
+          <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
+          <p class="hint context-help-body" data-i18n="batchTagsHint">Multiple tags separated by commas. E.g. <code>batch_saved, research</code></p>
+        </details>
+        <input type="text" id="opt-batch-tag" value="batch_saved" />
+      </div>
+      <div class="fg"><label><input type="checkbox" id="batch-skip-existing" /> <span data-i18n="batchSkipExisting">Skip already bookmarked URLs</span></label></div>
+      <div class="fg fg-stack context-help-host" data-help-role="group" role="group" aria-labelledby="batch-ai-title">
+        <div class="bl context-help-anchor" id="batch-ai-title" data-i18n="tabGroupAI">AI</div>
+        <details class="context-help">
+          <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
+          <p class="hint context-help-body" data-i18n="batchAiHint">AI runs one call per tab and may be slow. On first use, Batch asks only for the listed tab sites and current AI provider.</p>
+        </details>
+        <div><label><input type="checkbox" id="batch-ai-tags" /> <span data-i18n="batchAiTags">Auto-generate AI tags for each tab</span></label></div>
+        <div><label><input type="checkbox" id="batch-ai-summary" /> <span data-i18n="batchAiSummary">Auto-generate AI summary for each tab</span></label></div>
+      </div>
+      <div class="fg" id="batch-legacy-permission" hidden>
+        <div>
+          <span data-i18n="batchPermLabel">Legacy all-sites permission:</span>
+          <span id="batch-perm-status" class="hint" role="status" aria-live="polite"></span>
         </div>
+        <p class="hint" data-i18n="batchRevokeHint">Older versions could grant access to every site. New Batch runs request only the listed sites; this button removes the legacy broad grant.</p>
+        <div class="fg-actions"><button class="btn btn-sm" id="batch-revoke-perm" data-i18n="batchRevokeBtn">Revoke legacy all-sites access</button></div>
       </div>
     </div>
 
