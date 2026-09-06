@@ -1972,7 +1972,7 @@ function _pbpHlEnsureCard() {
   card.appendChild(degraded);
 
   const dots = document.createElement("div");
-  dots.className = "hl-card-colors";
+  dots.className = "row";
   dots.setAttribute("role", "group");
   for (let color = 1; color <= 5; color++) {
     const dot = document.createElement("button");

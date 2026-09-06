@@ -1006,7 +1006,7 @@ function _pbpRailBottomRow() {
   if (row) return row;
   row = document.createElement("div");
   row.id = "rail-bottom-row";
-  row.className = "rail-bottom-row";
+  row.className = "row";
   rail.appendChild(row); // #toc (nav) is #rail's static last child today, and every
   // dynamic rail section (tr/ask/hl) inserts itself BEFORE #toc -- so a
   // plain appendChild here always lands truly last, i.e. at the rail's
@@ -1563,7 +1563,7 @@ function _pbpTypoEnsurePop() {
   fontLabel.textContent = t("typoFontLabel");
   fontRow.appendChild(fontLabel);
   const steps = document.createElement("div");
-  steps.className = "typo-steps";
+  steps.className = "row";
   const minus = document.createElement("button");
   minus.type = "button";
   minus.id = "typo-font-minus";

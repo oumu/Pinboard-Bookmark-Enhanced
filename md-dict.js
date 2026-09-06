@@ -1438,7 +1438,7 @@ async function pbpDictRun(cap, ctx, pop, ctrl, s) {
   const wrap = document.createElement("div");
   wrap.className = "xp-dict";
   const head = document.createElement("div");
-  head.className = "xp-dict-head";
+  head.className = "panel-head xp-dict-head";
   const sel = document.createElement("select");
   sel.className = "xp-dict-lang";
   sel.setAttribute("aria-label", t("dictLangAria"));

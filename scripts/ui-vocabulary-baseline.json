@@ -396,11 +396,6 @@
     },
     {
       "surface": "md-preview",
-      "token": "ask-head",
-      "structural": true
-    },
-    {
-      "surface": "md-preview",
       "token": "ask-open",
       "structural": false
     },
@@ -461,11 +456,6 @@
     },
     {
       "surface": "md-preview",
-      "token": "exp-toggles",
-      "structural": true
-    },
-    {
-      "surface": "md-preview",
       "token": "export-fmt",
       "structural": false
     },
@@ -513,11 +503,6 @@
       "surface": "md-preview",
       "token": "hl-card-ai",
       "structural": false
-    },
-    {
-      "surface": "md-preview",
-      "token": "hl-card-colors",
-      "structural": true
     },
     {
       "surface": "md-preview",
@@ -766,11 +751,6 @@
     },
     {
       "surface": "md-preview",
-      "token": "rail-bottom-row",
-      "structural": true
-    },
-    {
-      "surface": "md-preview",
       "token": "rail-collapsed",
       "structural": false
     },
@@ -818,11 +798,6 @@
       "surface": "md-preview",
       "token": "skim-err",
       "structural": false
-    },
-    {
-      "surface": "md-preview",
-      "token": "skim-head",
-      "structural": true
     },
     {
       "surface": "md-preview",
@@ -876,11 +851,6 @@
     },
     {
       "surface": "md-preview",
-      "token": "tr-row",
-      "structural": true
-    },
-    {
-      "surface": "md-preview",
       "token": "tr-target",
       "structural": false
     },
@@ -902,11 +872,6 @@
     {
       "surface": "md-preview",
       "token": "typo-seg",
-      "structural": true
-    },
-    {
-      "surface": "md-preview",
-      "token": "typo-steps",
       "structural": true
     },
     {

@@ -1110,7 +1110,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    ("Zweisprachig" / "Двуязычный") pushed the group past the rail edge
    (user report 2026-07-15). min-width:0 lets segments actually share the
    row; labels wrap INSIDE their segment (wrap-not-truncate is the rail's
-   established overflow strategy -- see .exp-toggles), hyphenating long
+   established overflow strategy -- see .exp-tgl), hyphenating long
    single words (html lang is set per locale) with overflow-wrap:anywhere
    as the no-dictionary fallback. */
 .rail .view-toggle .toggle-btn {
@@ -1156,7 +1156,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    controls (.view-toggle) keep ONE row and wrap/hyphenate INSIDE segments
    (breaking a segment to a new line destroys the one-control gestalt;
    de/ru users read dictionary hyphenation as normal orthography);
-   independent toggle chips (.exp-toggles) are icon-only (text labels used
+   independent toggle chips (.exp-tgl) are icon-only (text labels used
    to reflow whole chips to a second line in wordy locales; the flex-wrap
    stays as a safety net only).
    CITE-CHIP STATE SEMANTICS (do not "clean up"): .ask-chip's dashed border
@@ -1168,7 +1168,19 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
   color: var(--fg-secondary);
   margin: var(--sp-3) 0 var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--border);
 }
-/* exp-toggles: the three boolean export options (frontmatter/toc/hl), real
+/* ---- Reader chrome primitives (COMPONENTS.md §10.2) ----
+   .row         a row of controls: flex, wrap, centred, the surface's one gap
+                (sp-2 = 8px). Absorbed .exp-toggles, #tr-section .tr-row,
+                .typo-steps, .hl-card-colors and .rail-bottom-row (2026-09-06);
+                placement stays with the parent or the id (#rail-bottom-row).
+   .panel-head  a panel's title row: flex, centred, gap sp-2, the <h2> taking
+                the slack at 1.05em/600. .ask-head and .skim-head were this
+                rule twice; .xp-dict-head keeps only its bottom margin. */
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.panel-head { display: flex; align-items: center; gap: var(--sp-2); }
+.panel-head > h2 { flex: 1; font-size: 1.05em; font-weight: 600; margin: 0; }
+
+/* Export toggles (.exp-tgl in a .row): the three boolean export options (frontmatter/toc/hl), real
    <button aria-pressed> toggles -- not checkboxes (spec sec.0 control
    vocabulary #2: "toggle button", real button + aria-pressed, no checkmark
    glyph). Icon-only (Lucide braces/table-of-contents/highlighter): the old
@@ -1176,8 +1188,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    identity lives in title + aria-label now. flex-wrap stays as a safety
    net; the icon-only padding keeps each chip past the 24px hit-area floor
    (6+14+6 tall, 9+14+9 wide). */
-.exp-toggles { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
-.exp-toggles .exp-tgl { flex: none; padding: 6px var(--sp-2); justify-content: center; }
+.exp-tgl { flex: none; padding: 6px var(--sp-2); justify-content: center; } /* the toggles sit in a .row */
 /* Pressed state reuses .toggle-btn.active's color declarations
    (md-preview.css ~:163) -- same --active-bg/--active-fg tokens, so the
    dark-mode AA contrast already established for that control carries over
@@ -1418,7 +1429,7 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    absolute box has clearance on every side inside #hl-rail-section. */
 .rail-sec-open:focus-visible { color: var(--fg); background: var(--btn-hover); outline: 2px solid var(--link); outline-offset: 2px; }
 /* !important: this collapse rule is (0,2,0) specificity, but several rail
-   section rules scope through an ID (e.g. #tr-section .tr-row / .tr-target,
+   section rules scope through an ID (e.g. #tr-section .row / .tr-target,
    (1,1,0)) which outspecifies it — those rows stayed visible through a
    collapsed section without this. !important keeps "collapsed hides
    everything but the header" true regardless of what ID-scoped display rule
@@ -1986,7 +1997,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   height: 1.05em;
 }
 /* Dictionary view (md-dict.js) */
-.xp-dict-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.xp-dict-head { margin-bottom: var(--sp-2); } /* shape: .panel-head */
 /* Joins the .exp-img-row select recipe above (shared border/background/chevron);
    this override only densifies for the dict view's tighter header row. */
 .xp-dict-lang { flex: 0 1 auto; padding: 3px 22px 3px var(--sp-2); font-size: 0.8em; background-position: right 6px center; }
@@ -2675,9 +2686,8 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
 #tr-retry-all:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
 /* Rail translate section */
-#tr-section .tr-row { display: flex; gap: var(--sp-2); }
-#tr-section .tr-row .action-btn { flex: 1; justify-content: center; }
-#tr-section .tr-row .action-btn svg { width: 14px; height: 14px; }
+#tr-section .row .action-btn { flex: 1; justify-content: center; }
+#tr-section .row .action-btn svg { width: 14px; height: 14px; }
 #tr-section .tr-meta { margin-top: var(--sp-2); font-size: 12px; color: var(--fg-secondary); }
 #tr-section .tr-meta[hidden] { display: none; }
 #tr-section .tr-glossary > summary { cursor: pointer; display: flex; align-items: center; gap: 6px; list-style: none; }
@@ -2714,7 +2724,7 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
 /* .action-btn sets display:inline-flex, which outspecifies the UA [hidden] rule —
    restate it so btn.hidden / stop.hidden actually hide the translate & stop buttons
    (otherwise they stay visible reading "翻译中" after the run finishes). */
-#tr-section .tr-row .action-btn[hidden] { display: none; }
+#tr-section .row .action-btn[hidden] { display: none; }
 #tr-section .tr-target { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
 #tr-section .tr-link {
   border: 0; background: none; padding: 0; cursor: pointer;
@@ -2784,8 +2794,6 @@ body.tr-only #rendered-view .pb-tr { cursor: pointer; }
 /* panel width (380) + panel padding (--sp-4) */
 body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 
-.ask-head { display: flex; align-items: center; gap: var(--sp-2); }
-.ask-head h2 { flex: 1; font-size: 1.05em; font-weight: 600; margin: 0; }
 /* Region buttons inside the panel follow the panel's em base, not the rail's
    fixed md tier -- a 13px Send next to the payload-size input read tiny. */
 #ask-panel .action-btn { font-size: 0.85em; }
@@ -3038,7 +3046,6 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
   white-space: pre-wrap;
 }
 .hl-card-degraded { color: var(--danger); font-size: 12px; }
-.hl-card-colors { display: flex; gap: var(--sp-2); }
 .hl-card-dot {
   width: 22px; height: 22px; padding: 0;
   border-radius: 50%;
@@ -3050,7 +3057,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 /* 22px swatch -> 24px hit area, same idiom as .pb-hl-dot above. -3px, not
    -1px: the inset resolves against the padding box, and the 2px transparent
    border (the selected-state ring) leaves only 18px there. The zone ends up
-   1px outside the border box on each side, well inside .hl-card-colors' 8px
+   1px outside the border box on each side, well inside the colour row's (.row) 8px
    gap. */
 .hl-card-dot::before { content: ""; position: absolute; inset: -3px; }
 /* L5 (edit-card dots, same swatch-legend rationale as .pb-hl-dot above). */
@@ -3427,11 +3434,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
    var(--btn-border)/var(--btn-hover) causes no layout shift. Uses
    --btn-hover, not --btn-bg: --btn-bg equals --surface (the rail's own
    background), so painting it here would be a visible no-op. */
-.rail-bottom-row {
-  display: flex;
-  gap: var(--sp-2);
-  margin-top: var(--sp-3);
-}
+#rail-bottom-row { margin-top: var(--sp-3); } /* placement only; the row's shape is .row */
 .rail-kbd-help-btn {
   flex: 1 1 auto;
   height: 26px;            /* md rung (was a stray 28px) */
@@ -3474,7 +3477,6 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
    width available to the controls in all 9 locales. */
 .typo-row { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-2); }
 .typo-label { color: var(--fg-secondary); }
-.typo-steps { display: flex; align-items: center; gap: var(--sp-2); }
 .typo-step {
   width: 26px;
   height: 24px;
@@ -3551,8 +3553,6 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
   line-height: 1.55;
   color: var(--fg);
 }
-.skim-head { display: flex; align-items: center; gap: var(--sp-2); }
-.skim-head h2 { flex: 1; font-size: 1.05em; font-weight: 600; margin: 0; }
 #skim-stop[hidden] { display: none; }
 /* Icon-only header buttons -- same 26x26/border/hover/focus-visible
    token family as .ask-ic (md-preview.css ~:1442-1450), given its own

@@ -308,10 +308,12 @@
       ],
       "primitives": [
         "msg-bar",
+        "panel-head",
         "pop-panel",
         "rail-label",
         "rail-sec-head",
         "rail-section",
+        "row",
         "send-menu",
         "send-mi"
       ],

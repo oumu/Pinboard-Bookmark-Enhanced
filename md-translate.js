@@ -1301,7 +1301,7 @@ function _pbpTrBuildSection(st) {
   sec.appendChild(label);
 
   const row = document.createElement("div");
-  row.className = "tr-row";
+  row.className = "row";
   const btn = document.createElement("button");
   btn.type = "button";
   btn.id = "btn-translate";

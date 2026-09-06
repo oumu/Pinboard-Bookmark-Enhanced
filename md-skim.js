@@ -204,7 +204,7 @@ function _pbpSkimBuildSection(view) {
   const refreshSvg = (typeof PBP_ICONS === "object" && PBP_ICONS && PBP_ICONS.refresh) || "";
   const collapseSvg = (typeof PBP_ICONS === "object" && PBP_ICONS && PBP_ICONS.arrowDown) || "";
   sec.innerHTML = [
-    '<div class="skim-head">',
+    '<div class="panel-head">',
     '  <h2 id="skim-title" data-i18n="skimTitle">Key points</h2>',
     '  <button type="button" id="skim-stop" class="action-btn" hidden data-i18n="skimStop">Stop</button>',
     '  <button type="button" id="skim-regen" class="skim-ic" data-i18n-title="skimRegen" data-i18n-aria="skimRegen">' + refreshSvg + '</button>',

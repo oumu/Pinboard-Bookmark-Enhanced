@@ -158,7 +158,7 @@ function _pbpAskBuildPanel() {
   panel.hidden = true;
   panel.setAttribute("aria-labelledby", "ask-title");
   panel.innerHTML = [
-    '<header class="ask-head">',
+    '<header class="panel-head">',
     '  <h2 id="ask-title" data-i18n="askTitle">Ask the page</h2>',
     // askCopyThread, not mdCopyMarkdown: this button copies the Q&A thread
     // (_pbpAskCopyThread), while the rail's #btn-copy-md copies the ARTICLE
