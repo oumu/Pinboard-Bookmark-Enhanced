@@ -1950,7 +1950,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   border-radius: var(--radius-md);
   background: var(--btn-bg);
   color: var(--btn-fg);
-  font-size: 0.8em;
+  font-size: 12px; /* secondary md face in px, not the panel's prose scale */
   cursor: pointer;
   white-space: nowrap;
   /* Same hover treatment as the .action-btn family; :active transform below
@@ -2001,7 +2001,7 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 .xp-dict-head { margin-bottom: var(--sp-2); } /* shape: .panel-head */
 /* Joins the .exp-img-row select recipe above (shared border/background/chevron);
    this override only densifies for the dict view's tighter header row. */
-.xp-dict-lang { flex: 0 1 auto; padding: 0 22px 0 var(--sp-2); font-size: 0.8em; background-position: right 6px center; }
+.xp-dict-lang { flex: 0 1 auto; padding: 0 22px 0 var(--sp-2); font-size: 12px; /* secondary md face in px, not the panel's prose scale */ background-position: right 6px center; }
 .xp-dict-speak { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--btn-border); border-radius: var(--radius-md); padding: 0; width: 26px; height: 26px; cursor: pointer; color: inherit; font-size: 1em; /* buttons don't inherit font-size; the 0.8em svg needs this anchor */ }
 .xp-dict-speak:hover { background: var(--btn-hover); }
 .xp-dict-speak:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
@@ -2345,6 +2345,7 @@ body.tr-only #rendered-view [data-pb-hl-mirror="5"] { box-shadow: inset 3px 0 0 
 .confirm-popover .confirm-msg { flex: 1 1 16ch; min-width: 0; font-weight: 600; color: inherit; white-space: pre-line; overflow-wrap: anywhere; }
 .confirm-popover button {
   flex: none;
+  display: inline-flex; align-items: center; justify-content: center; /* centres the 11px glyph box in the 14px line box: 1.67px each side, the sm rung's structural inset */
   padding: var(--sp-0) var(--sp-2);
   line-height: 14px; /* 2+14+2+2 = 20, the sm rung (was normal line-height = 21.3) */
   font-size: 11px; /* the sm rung's face (.btn-sm): a 12px glyph box overflows a 14px line box */
@@ -2798,12 +2799,11 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 
 /* Region buttons inside the panel follow the panel's em base, not the rail's
    fixed md tier -- a 13px Send next to the payload-size input read tiny. */
-#ask-panel .action-btn { font-size: 0.85em; }
 /* Content-attached micro actions keep the sm step below region buttons --
    they carry .action-btn too, so the panel-scope rule above would flatten
    the two tiers without this heavier selector. */
 #ask-panel .ask-copy-btn, #ask-panel .ask-regenerate,
-#ask-panel .ask-retry, #ask-panel .ask-clear-btn { font-size: 0.8em; }
+#ask-panel .ask-retry, #ask-panel .ask-clear-btn { font-size: 12px; } /* secondary md face, in px: control faces do not follow the panel's prose scale */
 .ask-ic {
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; padding: 0; /* md rung (was 28): the reader's icon buttons share .action-btn's height */
@@ -2862,7 +2862,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
   border-radius: var(--radius-full);
   background: transparent;
   color: var(--fg-secondary);
-  font-size: 0.85em;
+  font-size: 13px; /* md face in px */
   font-weight: 400;
   vertical-align: baseline;
   cursor: pointer;
@@ -2958,7 +2958,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 
 .ask-stopped { font-size: 0.8em; color: var(--fg-muted); margin: var(--sp-2) 0 0; }
 .ask-err { font-size: 0.85em; color: var(--danger); margin: 0 0 var(--sp-2); overflow-wrap: break-word; }
-.ask-retry { padding: var(--sp-1) var(--sp-2); font-size: 0.8em; border-radius: var(--radius-sm); }
+.ask-retry { padding: var(--sp-1) var(--sp-2); font-size: 12px; /* secondary md face in px, not the panel's prose scale */ border-radius: var(--radius-sm); }
 
 /* ---- Ask history chrome: restored note / clear confirm / answer copy ---- */
 .ask-restored {
@@ -3002,7 +3002,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
   margin-right: var(--sp-2);
   padding: var(--sp-1) var(--sp-2);
   border-radius: var(--radius-sm);
-  font-size: 0.8em;
+  font-size: 12px; /* secondary md face in px, not the panel's prose scale */
 }
 .ask-copy-btn svg, .ask-regenerate svg { width: 13px; height: 13px; flex-shrink: 0; }
 
@@ -3592,14 +3592,14 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
   display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap;
   margin-top: var(--sp-2); font-size: 0.8em;
 }
-.skim-stale-btn { padding: var(--sp-1) var(--sp-2); font-size: 0.8em; }
+.skim-stale-btn { padding: var(--sp-1) var(--sp-2); font-size: 12px; /* secondary md face in px, not the panel's prose scale */ }
 #skim-body { margin-top: var(--sp-2); }
 #skim-body > :first-child { margin-top: 0; }
 #skim-body > :last-child { margin-bottom: 0; }
 #skim-body ul { margin: 0; padding-left: 1.3em; }
 #skim-body li { margin: var(--sp-1) 0; }
 .skim-err { font-size: 0.85em; color: var(--danger); margin: 0 0 var(--sp-2); overflow-wrap: break-word; }
-.skim-retry { padding: var(--sp-1) var(--sp-2); font-size: 0.8em; }
+.skim-retry { padding: var(--sp-1) var(--sp-2); font-size: 12px; /* secondary md face in px, not the panel's prose scale */ }
 #skim-status, #skim-usage { margin-top: var(--sp-2); font-size: 0.8em; color: var(--fg-secondary); }
 #skim-status[hidden], #skim-usage[hidden] { display: none; }
 /* Collapsed state (spec 1.2.1/1.3): CSS-only, storage-persisted via

@@ -31,7 +31,7 @@ paths:
 
 - 编辑期：`.claude/settings.json` 的 PostToolUse 钩子对 Edit/Write 命中表面文件时跑 `scripts/ui-consumer-lint.mjs`（layout-lint + ui-vocabulary，<1s），红了直接把结论回喂。
 - 提交期：`scripts/pre-commit-hook.sh` 第二触发组（HTML/JS/md-preview.css/注册表/基线）。
-- push 期：`scripts/verify.sh` 的 `[ui-vocabulary]`；渲染几何由 `scripts/ui-render-audit.mjs` 的类扫描家族兜底（family 4–12，见 COMPONENTS.md §10.3）。**新增任何交互后才出现的界面（弹层、面板、菜单、隐藏态），要在 `READER_SURFACES` / popup 状态腿登记开启方式**，否则它不在门内。控件高度一律 px（height / min-height / px line-height），em 只给文字——阅读器弹层曾因 `1.9em` 方块在默认字号档下量出 36px。`spacingScale` 的存量债在 `tests/render-audit-spacing-baseline.json`，只减不增：新写一个刻度外的 margin/padding/gap 会直接 FAIL，不要把它加进账本，改成 token。
+- push 期：`scripts/verify.sh` 的 `[ui-vocabulary]`；渲染几何由 `scripts/ui-render-audit.mjs` 的类扫描家族兜底（family 4–12，见 COMPONENTS.md §10.3）。**新增任何交互后才出现的界面（弹层、面板、菜单、隐藏态），要在 `READER_SURFACES` / popup 状态腿登记开启方式**，否则它不在门内。控件高度一律 px（height / min-height / px line-height），控件字面也是 px（md 13、次级 12、sm 11），em 只给正文——阅读器弹层曾因 `1.9em` 方块在默认字号档下量出 36px，`0.85em` 标签把 26px 按钮的文字内缩吃到 1.3px。`spacingScale` 的存量债在 `tests/render-audit-spacing-baseline.json`，只减不增：新写一个刻度外的 margin/padding/gap 会直接 FAIL，不要把它加进账本，改成 token。
 
 ## 已知反模式（本仓库真实踩过）
 

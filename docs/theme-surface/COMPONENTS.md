@@ -1093,7 +1093,7 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | `fgRhythm` | options `.fg` 内：`label.bl` → 控件 3–6px；任何动作行（`.fg-actions` / 裸按钮）上方 ≥4px | `[render]` family 5 |
 | `noInlineSpacing` | 四个表面 HTML 不得出现 `style="…margin/padding/gap…"` | `[static]` layout-lint RULE 5 |
 | `vocabRegistered` | 结构类名必须在注册表或遗留基线；基线只减不增 | `[static]` ui-vocabulary-lint |
-| `controlRung` | 所有可见 `input/select/.btn`/融合壳 高度 ∈ {26±1, 20±1}；结构性豁免：页签 32、textarea、设置搜索框、链接态按钮、整行可点元素与状态卡、无边框色板药丸、融合内层 | `[render]` family 6 |
+| `controlRung` | 所有可见 `input/select/.btn`/融合壳 高度 ∈ {26±1, 20±1}；控件字面也是 px（md 13、次级 12、sm 11），em 只给正文；结构性豁免：页签 32、textarea、设置搜索框、链接态按钮、整行可点元素与状态卡、无边框色板药丸、融合内层 | `[render]` family 6 |
 | `headerFace` | 同表面分区标题集（options：h2 + `.disclosure > summary`；md-preview：`.rail-label` + `.rail-sec-head`）computed 面唯一 | `[render]` family 7 |
 | `actionRowGap` | 含按钮的 flex/grid 行 column-gap **= 8px**（`--opt-sp-4` / `--pp-sp-4` / `--lib-sp-2` / `--sp-2`），四表面同一值；space-between 行、页签、融合壳、图标簇、色板/chip 行、分段条豁免 | `[render]` family 8 |
 | `clusterGap` | 图标簇（library `.lib-cluster`、popup `.header-icons`、md-preview `.xp-window-actions`）column-gap **= 4px**，四表面同值；这三处是同一形状的三个名字，门锁形状、名字留在各表面 | `[render]` family 12 |

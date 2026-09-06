@@ -2085,7 +2085,12 @@ function setTheme(sw, presetKey, mode) {
 // fixed and turned into one).
 // ============================================================================
 const SWEEP_CFG = {
-  textInsetH: 4, textInsetV: 2, rowTolerance: 1, rhythmLabelMin: 3, rhythmLabelMax: 6, rhythmActionMin: 4,
+  // textInsetV by the host's rung (2026-09-06): the sm rung (2 + 14 + 2 + 2 = 20)
+  // leaves an 11px face 1.67px of glyph inset by construction, so it is held
+  // to 1.5; md (26) and every other host keep the 2px law. Glyph boxes are font
+  // metrics and vary by platform, which is why textInset stays a discovery
+  // family rather than a gate.
+  textInsetH: 4, textInsetV: { sm: 1.5, md: 2, other: 2 }, rowTolerance: 1, rhythmLabelMin: 3, rhythmLabelMax: 6, rhythmActionMin: 4,
   // Families 6-9 (design-language gates, 2026-09-05). Geometry is a theme
   // invariant, so one light pass per surface covers every preset.
   // Prose in the reader is typography, not chrome: excluded wholesale.
@@ -2270,6 +2275,9 @@ function sweepProbe(cfg) {
   }
   for (const el of document.querySelectorAll("body *")) {
     if (!visible(el)) continue;
+    // sr-only / off-screen text is not painted: nothing to inset
+    const er = el.getBoundingClientRect();
+    if (er.width <= 1 || er.height <= 1 || er.right <= 0 || er.bottom <= 0 || er.left >= innerWidth || er.top >= innerHeight) continue;
     const directText = Array.from(el.childNodes).filter((n) => n.nodeType === 3 && n.textContent.trim().length > 0);
     if (!directText.length) continue;
     const borderHost = findBorderBoxHost(el);
@@ -2289,8 +2297,11 @@ function sweepProbe(cfg) {
     const bw = borderHost.bw;
     const minH = Math.min(uL - (hostRect.left + bw.l), (hostRect.right - bw.r) - uR);
     const minV = Math.min(uT - (hostRect.top + bw.t), (hostRect.bottom - bw.b) - uB);
-    if (minH < cfg.textInsetH - 0.5 || minV < cfg.textInsetV - 0.5) {
-      hits.push({ kind: "textInset", path: pathOf(el), minH: Math.round(minH * 100) / 100, minV: Math.round(minV * 100) / 100 });
+    const hostH = hostRect.height;
+    const rung = Math.abs(hostH - 20) <= 1 ? "sm" : Math.abs(hostH - 26) <= 1 ? "md" : "other";
+    const vFloor = typeof cfg.textInsetV === "object" ? cfg.textInsetV[rung] : cfg.textInsetV;
+    if (minH < cfg.textInsetH - 0.5 || minV < vFloor - 0.5) {
+      hits.push({ kind: "textInset", path: pathOf(el), minH: Math.round(minH * 100) / 100, minV: Math.round(minV * 100) / 100, rung });
     }
   }
 
@@ -2955,7 +2966,7 @@ function reportSweep(hits) {
   const unique = [...dedup.values()];
   console.log(`[render-audit --sweep] ${hits.length} raw hit(s) across all contexts, ${unique.length} unique (deduped by surface+kind+element)`);
   for (const h of unique) {
-    if (h.kind === "textInset") console.log(`  textInset          [${h.surface}/${h.context}]  ${h.path}  minH=${h.minH}px minV=${h.minV}px`);
+    if (h.kind === "textInset") console.log(`  textInset          [${h.surface}/${h.context}]  ${h.path}  minH=${h.minH}px minV=${h.minV}px  rung=${h.rung}`);
     else if (h.kind === "childContainment") console.log(`  childContainment   [${h.surface}/${h.context}]  host=${h.path}  child=${h.childKind}  overflow=${JSON.stringify(h.overflow)}`);
     else if (h.kind === "rowHeightEq") console.log(`  rowHeightEq        [${h.surface}/${h.context}]  container=${h.containerPath}  ${h.a} vs ${h.b}  diff=${h.diff}px`);
     else if (h.kind === "hitAreaMin") console.log(`  hitAreaMin         [${h.surface}/${h.context}]  ${h.path}  shortSide=${h.shortSide}px`);
