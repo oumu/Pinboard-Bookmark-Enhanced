@@ -3,21 +3,6 @@
   "identity": "surface + `parent > element` (tag.classes or #id, no sibling index) + property + computed px value that is off that surface's live --*-sp-N scale (spacingScale, ui-render-audit family 11). Shrink-only: delete entries as rules migrate to the scale; regenerate deliberately with --write-spacing-baseline. `scale` is informational.",
   "entries": [
     {
-      "surface": "options",
-      "path": "div.tabs > div.tab-group-label",
-      "prop": "padding-left",
-      "value": 14,
-      "scale": [
-        2,
-        4,
-        6,
-        8,
-        12,
-        16,
-        24
-      ]
-    },
-    {
       "surface": "popup",
       "path": "body > div.quick-actions",
       "prop": "padding-bottom",

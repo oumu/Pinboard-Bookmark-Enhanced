@@ -216,7 +216,7 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 .mobile-tab-picker { display: none; }
 .options-search { position: relative; margin-bottom: var(--opt-sp-5); }
 .options-search input[type="search"] {
-  width: 100%; min-height: 34px;
+  width: 100%; min-height: 32px; /* the sidebar column's one rung: the tab buttons below are 32px (was 34, two px off both that and the control rungs) */
   padding: var(--opt-sp-3) var(--opt-sp-4);
   border: 1px solid var(--opt-input-border);
   border-radius: var(--opt-radius-md);

@@ -338,7 +338,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
    24x24 targets instead of two locale-length words fighting the account name
    for one row -- and a real hit area where the links had padding:0. */
 #user-info { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.header-icons { display: inline-flex; gap: var(--pp-sp-1); flex: none; }
+.header-icons { display: inline-flex; gap: var(--pp-sp-2); flex: none; } /* icon-button cluster: gap 4px on every surface (clusterGap); sat at 2px until 2026-09-06 */
 .header-bar .header-ic {
   width: 24px; height: 24px; display: inline-grid; place-items: center;
   background: none; border: none; padding: 0; margin: 0;

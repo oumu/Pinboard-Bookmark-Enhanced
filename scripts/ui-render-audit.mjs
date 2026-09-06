@@ -2099,7 +2099,7 @@ const SWEEP_CFG = {
     exempt: [
       "textarea",                                   // multi-line by nature
       "[role='tab']", ".tab-btn", ".lib-tab",       // tab family: 32px on both surfaces
-      "#options-search-input",                      // the settings sidebar search box (34px, deliberate)
+      "#options-search-input",                      // the settings sidebar search box: 32px, the sidebar column's rung shared with the tabs
       ".action-link", ".clear-all-link", ".reset-tab-btn",
       ".tr-link", ".xp-dict-more", ".xp-dict-lemma-link", ".pbp-img-fix-btn", // link-styled, no chrome (COMPONENTS.md §0)
       "summary", ".rail-sec-head", ".notes-hit-btn", ".notes-card-head", ".notes-card-top", ".notes-sib", ".connection-health-row", // row rung: whole-row clickables / section headers / status cards
@@ -2124,11 +2124,17 @@ const SWEEP_CFG = {
     exempt: [
       ".tabs, .lib-tabs",                                                     // tab strips
       ".vocab-sort-seg, .source-badge, .view-toggle, .vocab-group-unit, .tags-input-wrap, .send-split, .typo-seg", // fused shells / segmented strips
-      ".header-icons, .xp-window-actions, .lib-cluster", // tight icon/button clusters: library's .lib-cluster primitive (gap sp-1); the reader's two are the same shape, not yet named
+      ".header-icons, .xp-window-actions, .lib-cluster", // icon-button clusters: not button rows; clusterGap (family 12) holds them to 4px instead
       ".connection-health, .theme-presets-group, .kbd-help-chips, .rail-badges", // status-card grid, swatch-pill / chip rows
       ".notes-card-top",                                                      // card head: title + chips, the remove X is absolutely positioned
     ].join(", "),
   },
+  // 12. clusterGap -- the icon-button cluster rung: 4px on every surface. The
+  //     three clusters actionRowGap exempts are the same shape under three
+  //     names (library .lib-cluster, popup .header-icons, reader
+  //     .xp-window-actions); popup's sat at 2px until 2026-09-06 -- the drift a
+  //     shared name would have caught, so the gate holds the shape instead.
+  clusterGap: { selectors: { library: ".lib-cluster", popup: ".header-icons", "md-preview": ".xp-window-actions" }, expected: 4 },
   // 9. radiusScale -- every chromed box's uniform border-radius must be one of
   //    the surface's radius TOKENS as currently resolved on <html> (they are
   //    theme-variant: 15 presets restyle --opt-radius-md, so the probe reads
@@ -2168,8 +2174,9 @@ const SWEEP_CFG = {
   //     layout dimensions (rail width, content column, scrollbar gutter math).
   //     `derivedOffsets`: leading-column alignment (options indent = checkbox
   //     16 + gap 4; reader note = dot 8 + gap 6 + inset 4; reader section count
-  //     = 24px button + gap) -- computed from a sibling's width, so never a
-  //     scale value by construction. `hairline`: 1px is border compensation.
+  //     = 24px button + gap; options sidebar group label = tab inset sp-5 + the
+  //     tab's 2px indicator border) -- computed from a sibling's width, so never
+  //     a scale value by construction. `hairline`: 1px is border compensation.
   spacingScale: {
     prefix: { options: "--opt-sp-", popup: "--pp-sp-", library: "--lib-sp-", "md-preview": "--sp-" },
     names: ["0", "1", "2", "3", "4", "5", "6", "7"], // sp-0 = the library/reader hairline rung (2px)
@@ -2184,7 +2191,7 @@ const SWEEP_CFG = {
       ".token-badge", ".bookmark-badge", ".kbd-help-chip", ".hl-item-lang", ".ask-chip", // reader chips/badges (md-preview is not composed)
     ].join(", "),
     shells: ["html", "body", "main", ".rail", ".empty-state", ".preview-loading"],
-    derivedOffsets: [".fg-indent", ".hl-item-note", "#hl-rail-section .rail-sec-count"],
+    derivedOffsets: [".fg-indent", ".hl-item-note", "#hl-rail-section .rail-sec-count", ".tab-group-label"],
   },
 };
 
@@ -2533,6 +2540,15 @@ function sweepProbe(cfg) {
       const gap = cs.columnGap === "normal" ? 0 : Math.round(parseFloat(cs.columnGap));
       if (!allowedGaps.includes(gap)) hits.push({ kind: "actionRowGap", path: pathOf(el), gap, allowed: allowedGaps, detail: `${gap}px` });
     }
+    const clusterSel = cfg.clusterGap && cfg.clusterGap.selectors[surface];
+    if (clusterSel) {
+      for (const el of document.querySelectorAll(clusterSel)) {
+        if (!visible(el) || excluded(el)) continue;
+        const cs = getComputedStyle(el);
+        const gap = cs.columnGap === "normal" ? 0 : Math.round(parseFloat(cs.columnGap) * 100) / 100;
+        if (Math.abs(gap - cfg.clusterGap.expected) > 0.5) hits.push({ kind: "clusterGap", path: pathOf(el), gap, expected: cfg.clusterGap.expected, detail: `${gap}px` });
+      }
+    }
     const rootCs = getComputedStyle(document.documentElement);
     const liveTokens = (cfg.radiusScale.names || []).map((n) => parseFloat(rootCs.getPropertyValue(`${cfg.radiusScale.prefix[surface] || "--radius-"}${n}`))).filter((v) => Number.isFinite(v));
     for (const el of document.querySelectorAll("*")) {
@@ -2823,6 +2839,7 @@ function reportSweep(hits) {
     else if (h.kind === "radiusScale") console.log(`  radiusScale        [${h.surface}/${h.context}]  ${h.path}  radius=${h.radius}  tokens=${h.tokens.join("|")}`);
     else if (h.kind === "textFloor") console.log(`  textFloor          [${h.surface}/${h.context}]  ${h.path}  font-size=${h.fontSize}px`);
     else if (h.kind === "spacingScale") console.log(`  spacingScale       [${h.surface}/${h.context}]  ${h.path}  ${h.prop}=${h.value}px  scale=${h.scale.join("|")}`);
+    else if (h.kind === "clusterGap") console.log(`  clusterGap         [${h.surface}/${h.context}]  ${h.path}  gap=${h.gap}px  expected=${h.expected}px`);
   }
   console.log(unique.length ? "[render-audit --sweep] === hits found -- fix, then lock in as CHECKS entries ===" : "[render-audit --sweep] === clean ===");
   process.exit(0);
@@ -3076,6 +3093,7 @@ async function main() {
       actionRowGap: (h) => ({ actual: h.gap, expected: h.allowed.join("|"), note: "column-gap of a button row (px)" }),
       radiusScale: (h) => ({ actual: h.radius, expected: h.tokens.map((t) => t + "px").join("|"), note: "border-radius off the surface's token scale" }),
       textFloor: (h) => ({ actual: h.fontSize, expected: ">=11", note: "visible text below the 11px floor" }),
+      clusterGap: (h) => ({ actual: h.gap, expected: String(h.expected), note: "column-gap of an icon-button cluster (px): one rung on every surface" }),
     };
     for (const h of sweepHits) {
       const f = FAMILY[h.kind];

@@ -1077,6 +1077,15 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 
 清点（2026-09-05 工作流，四表面 138/97/134/273 个 token）同时给出了**候选**原语——popup 的 `actions`/`field-foot`/`banner`/`card`/`list-row`、library 的 `lib-row`/`lib-cluster`/`lib-section`/`lib-block`/`lib-quote`、md-preview 的 `rail-row`/`panel-head`/`panel-actions`/`seg-row`/`stack`/`pop-body`/`scroll-list`——每个都能吸收 5～15 个遗留类。它们**尚未登记**：登记的时机是把对应遗留类真正迁过去的那次施工，不提前占名。
 
+**同形原语对照（2026-09-06）**。四份样式表各有自己的 token 命名空间，也没有一份被四个表面共同加载的 CSS（composer 只发射到三个工厂表面，md-preview 手写），所以同一形状在各表面各有一个名字；不靠名字统一，靠门锁形状：
+
+| 形状 | options | popup | library | md-preview | 锁形状的门 |
+|---|---|---|---|---|---|
+| 按钮行（flex、wrap、居中、gap 8） | `.fg-actions` | `.actions` | — | `.row` | `actionRowGap` = 8 |
+| 图标簇（flex、不收缩、gap 4） | — | `.header-icons` | `.lib-cluster` | `.xp-window-actions` | `clusterGap` = 4 |
+
+若将来出现第三种同形或 md-preview 进了工厂，再考虑升为 composer 配方（一份配方发射三个表面 + 阅读器手写同名）。
+
 ### 10.3 关系律（间距由关系拥有，不由元素拥有）
 
 | ID | 律 | 层 |
@@ -1087,9 +1096,10 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | `controlRung` | 所有可见 `input/select/.btn`/融合壳 高度 ∈ {26±1, 20±1}；结构性豁免：页签 32、textarea、设置搜索框、链接态按钮、整行可点元素与状态卡、无边框色板药丸、融合内层 | `[render]` family 6 |
 | `headerFace` | 同表面分区标题集（options：h2 + `.disclosure > summary`；md-preview：`.rail-label` + `.rail-sec-head`）computed 面唯一 | `[render]` family 7 |
 | `actionRowGap` | 含按钮的 flex/grid 行 column-gap **= 8px**（`--opt-sp-4` / `--pp-sp-4` / `--lib-sp-2` / `--sp-2`），四表面同一值；space-between 行、页签、融合壳、图标簇、色板/chip 行、分段条豁免 | `[render]` family 8 |
+| `clusterGap` | 图标簇（library `.lib-cluster`、popup `.header-icons`、md-preview `.xp-window-actions`）column-gap **= 4px**，四表面同值；这三处是同一形状的三个名字，门锁形状、名字留在各表面 | `[render]` family 12 |
 | `radiusScale` | 有 chrome 的盒子统一圆角 ∈ 本表面 radius token 的**实时**值（token 逐主题不同）或 pill；融合壳后代豁免 | `[render]` family 9 |
 | `textFloor` | 任何可见文字 computed font-size ≥ 11px（`sup`/`sub` 除外；阅读器正文不在 chrome 扫描内） | `[render]` family 10 |
-| `spacingScale` | 所有元素的 margin、以及**布局盒**（条/面板/弹层/行/列表）的 padding 与 gap，computed 值 ∈ 本表面 sp 刻度的**实时**值（`--opt-sp-N` / `--pp-sp-N` / `--lib-sp-N` / `--sp-N`）；`auto`/百分比/负值/≤1px hairline 不计。**控件与 chip 自身的 inset 是组件几何**（`.btn-sm` 2/8、chip padV 2、select 箭头位 26、key 字段眼睛位 32），由 controlRung / hitAreaMin / chip 律管，本律只查其 margin。页面壳（`main` / `.rail` / 空态）与派生对齐偏移（`.fg-indent` = 复选框 16 + 4）豁免。存量债在 `tests/render-audit-spacing-baseline.json`（只减不增：新增即 FAIL，删除放行并报 STALE；`--write-spacing-baseline` 是唯一写入口） | `[render]` family 11 |
+| `spacingScale` | 所有元素的 margin、以及**布局盒**（条/面板/弹层/行/列表）的 padding 与 gap，computed 值 ∈ 本表面 sp 刻度的**实时**值（`--opt-sp-N` / `--pp-sp-N` / `--lib-sp-N` / `--sp-N`）；`auto`/百分比/负值/≤1px hairline 不计。**控件与 chip 自身的 inset 是组件几何**（`.btn-sm` 2/8、chip padV 2、select 箭头位 26、key 字段眼睛位 32），由 controlRung / hitAreaMin / chip 律管，本律只查其 margin。页面壳（`main` / `.rail` / 空态）与派生对齐偏移（`.fg-indent` = 复选框 16 + 4、`.tab-group-label` = 页签内距 sp-5 + 2px 指示条）豁免。存量债在 `tests/render-audit-spacing-baseline.json`（只减不增：新增即 FAIL，删除放行并报 STALE；`--write-spacing-baseline` 是唯一写入口） | `[render]` family 11 |
 
 ### 10.4 门与触发面
 

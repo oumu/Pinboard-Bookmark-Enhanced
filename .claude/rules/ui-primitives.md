@@ -20,7 +20,7 @@ paths:
 ## 新增任何 UI 元素，先答三问
 
 1. **它属于哪个既有原语？** 先查注册表该表面的 `primitives`（options：`.fg` / `.fg-stack` / `.fg-indent` / `.fg-actions` / `.hint` / `.section-title` / `.divider` / `.choice-row` / `details.disclosure` + `.disclosure-body` / `.context-help-host` / `.pf`；popup：`.row` / `.label` / `.field` / `.suggest-area` / `.divider` / `.actions`（按钮行，gap sp-4）；library：`.notes-toolbar` / `.vocab-batch-bar` + `.notes-batch-bar` / `.notes-empty` / `.lib-cluster`（紧凑控件簇，gap sp-1）/ `.lib-section` / `.lib-block` / `.lib-quote`（详情面板的分节 / 文本块 / 引文）；md-preview：`.rail-section` / `.rail-label` / `.rail-sec-head` / `.msg-bar` / `.send-menu` / `.send-mi` / `.pop-panel`（浮层面板 chrome + sp-3 内距）/ `.row`（控件行，gap sp-2）/ `.panel-head`（面板标题行））。能用就用，不新造包装类。
-2. **它的几何落在哪个阶梯？** 按钮/字段高度只有 md 26px 与 sm 20px 两阶（COMPONENTS.md §1.1 / §6.3），图标按钮命中区 ≥24px；按钮行 gap 一律 8px；可见文字 ≥11px；间距只用本表面的 `--*-sp-N` 刻度（md-preview 是 `--sp-N`）——margin、以及条/面板/弹层/行的 padding 与 gap 都算；控件与 chip 自身的竖向 inset 是组件几何（阶梯算术），可以是字面 px；圆角只用 `--*-radius-*` token。刻度外的字面 px 是缺陷，不是微调。
+2. **它的几何落在哪个阶梯？** 按钮/字段高度只有 md 26px 与 sm 20px 两阶（COMPONENTS.md §1.1 / §6.3），图标按钮命中区 ≥24px；按钮行 gap 一律 8px、图标簇 gap 一律 4px；可见文字 ≥11px；间距只用本表面的 `--*-sp-N` 刻度（md-preview 是 `--sp-N`）——margin、以及条/面板/弹层/行的 padding 与 gap 都算；控件与 chip 自身的竖向 inset 是组件几何（阶梯算术），可以是字面 px；圆角只用 `--*-radius-*` token。刻度外的字面 px 是缺陷，不是微调。
 3. **它的间距由谁拥有？** 关系规则（容器 margin-bottom、`.fg > .fg-actions` 这类相邻规则）拥有间距；元素自身不带 margin，HTML 不写内联 `style="margin/padding/gap"`（layout-lint RULE 5 会 BLOCK）。
 
 ## 真要新造一个结构类
