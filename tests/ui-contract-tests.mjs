@@ -617,14 +617,18 @@ check(sharedJs.includes('const state = ok ? "ok" : "bad"') &&
   check(/html\.motion-ready details\.motion-toggle::details-content[\s\S]{0,240}var\(--motion-collapse\) var\(--ease-in-out\)/.test(optionsCss) &&
     !/\.context-help[^{]*\{[^}]*transition\s*:/.test(optionsCss),
     "options.css: contextual help no longer reuses the native-details accordion motion");
-  // Text-only hosts anchor the toggle to the copy baseline (font ascent/descent
+  // Hosts with copy anchor the toggle to the copy baseline (font ascent/descent
   // splits differ between the Windows and CI font stacks; a centred constant fits
-  // only one of them); hosts whose copy carries a control stay centred.
-  check(["section", "field", "group"].every((role) =>
+  // only one of them); the choice label exposes its text baseline through the
+  // copy span opting into baseline alignment; only the action row (a button,
+  // no text baseline) stays centred.
+  check(["section", "field", "group", "choice"].every((role) =>
     new RegExp(`\\.context-help-host\\[data-help-role="${role}"\\][^{]*\\{[^}]*align-items:\\s*baseline`).test(optionsCss) &&
     new RegExp(`\\.context-help-host\\[data-help-role="${role}"\\] > \\.context-help > summary\\.context-help-toggle[^{]*\\{[^}]*align-self:\\s*baseline`).test(optionsCss)) &&
-    !/\[data-help-role="(?:choice|action)"\][^{]*\{[^}]*align-(?:items|self):\s*baseline/.test(optionsCss),
-    "options.css: contextual help lost its anchoring split (text-only roles on the copy baseline, control roles centred)");
+    /\.context-help-host\[data-help-role="choice"\] > label > span[^{]*\{[^}]*align-self:\s*baseline/.test(optionsCss) &&
+    /\.choice-row > label > span \{ line-height: 16px; \}/.test(optionsCss) &&
+    !/\[data-help-role="action"\][^{]*\{[^}]*align-(?:items|self):\s*baseline/.test(optionsCss),
+    "options.css: contextual help lost its anchoring split (copy roles on the text baseline via the label span, the action row centred)");
   check(/const det = summary && summary\.closest\("details"\);[\s\S]{0,500}details\.context-help\[open\]/.test(optionsJs),
     "options.js: contextual help lost the native-details motion gate or one-open-per-panel behavior");
   check(/const det = e\.target\.matches\?\.\("details\[data-acc-key\]"\) \? e\.target : null/.test(optionsJs) &&

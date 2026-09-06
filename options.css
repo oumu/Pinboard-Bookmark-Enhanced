@@ -329,12 +329,17 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
    is a FONT metric: on CI (Ubuntu, DejaVu Sans + a CJK fallback for the zh_CN
    labels the layout test applies) the rows holding CJK text came out 23px
    against 19px for Latin ones, while Windows fonts happened to agree. Pin the
-   LABEL BOX to the sm rung -- not the line-height: the label is already a
-   centred flex row, so the text keeps its own line box and the ink stays
-   where the help toggle's optical offsets (--context-help-optical-y, tuned
-   per script against rasters) expect it; a 20px line-height moved that ink
-   and threw the raster audit off under CI fonts. */
+   LABEL BOX to the sm rung -- not the label's line-height: a 20px line-height
+   on the label moved that ink and threw the raster audit off under CI fonts.
+   The copy SPAN's line box is pinned to the label's 16px content height: on
+   the Windows fonts that equals the font's own line box (zero movement), on
+   CI it stops the CJK fallback from growing the line box to 23px, and it lets
+   the span take part in baseline alignment for the help toggle (see the
+   context-help block). Blink floors the top half-leading, so an odd font
+   height (DejaVu 15) sits 0.5px higher than a centred line box would; pinning
+   every choice row keeps rows with and without a help toggle identical. */
 .choice-row > label { height: 20px; }
+.choice-row > label > span { line-height: 16px; }
 .fg-stack > div:last-child { margin-bottom: 0; }
 .fg-stack > div > label { padding: var(--opt-sp-1) 0; margin-bottom: 0; }
 .fg.fg-stack > .bl { margin-bottom: var(--opt-sp-3); }   /* label.bl or a div.bl title: 6px to the first option. (0,3,0) on purpose:
@@ -443,15 +448,11 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
    "API Key" label without per-setting exceptions. The 24px summary target
    itself never moves, so focus and pointer geometry stay stable. */
 [data-help-role] { --context-help-optical-y: 0px; }
-/* Centre-anchored roles (the copy is a flex label with a checkbox, or the
-   action row): one constant per script, sitting at the midpoint of the two
-   font stacks the raster audit runs under (Segoe UI / Microsoft YaHei on the
+/* Centre-anchored role (the action row: a button, no text baseline to
+   borrow): one constant per script, sitting at the midpoint of the two font
+   stacks the raster audit runs under (Segoe UI / Microsoft YaHei on the
    Windows host, DejaVu / WenQuanYi Zen Hei on CI via scripts/ci-fonts.conf).
-   CJK choice copy sits ~1.25 CSS px lower under YaHei than under WenQuanYi,
-   so its midpoint leaves only ~0.25 physical px of headroom on either side
-   at DPR 2; re-measure with PBP_HELP_RASTER_RANGES=1 before touching it. */
-[data-help-script="alphabetic"][data-help-role="choice"] { --context-help-optical-y: 0.25px; }
-[data-help-script="cjk"][data-help-role="choice"] { --context-help-optical-y: -0.375px; }
+   Re-measure with PBP_HELP_RASTER_RANGES=1 before touching it. */
 [data-help-script="alphabetic"][data-help-role="action"] { --context-help-optical-y: -1.5px; }
 [data-help-script="cjk"][data-help-role="action"] { --context-help-optical-y: -1px; }
 /* Text-only hosts (section / field / group) anchor the toggle to the copy's
@@ -476,6 +477,23 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
 [data-help-script="cjk"][data-help-role="section"] { --context-help-optical-y: 1.75px; }
 [data-help-script="cjk"][data-help-role="field"] { --context-help-optical-y: 2.25px; }
 [data-help-script="cjk"][data-help-role="group"] { --context-help-optical-y: 2px; }
+/* Choice hosts anchor the same way, but their copy is a flex label whose
+   startmost item is the checkbox: a flex container's baseline comes from its
+   startmost item unless some item takes part in baseline alignment, and a
+   checkbox has no text baseline (it is synthesised from its bottom edge, a
+   constant that never tracks the font). So the copy span alone opts into
+   baseline alignment, which makes the label's baseline the text's. Its line
+   box already equals the label's 16px content height (.choice-row rule), so
+   "flush with the cross-start edge" (what baseline participants get) is where
+   the centred line box already was: no movement, and the checkbox keeps its
+   centred placement. CJK choice copy sat ~1.25 CSS px lower under YaHei than
+   under WenQuanYi, so a centred constant had 0.25 physical px of headroom at
+   DPR 2 (2026-09-06); the baseline absorbs that too. */
+.context-help-host[data-help-role="choice"] { align-items: baseline; }
+.context-help-host[data-help-role="choice"] > label > span { align-self: baseline; }
+.context-help-host[data-help-role="choice"] > .context-help > summary.context-help-toggle { align-self: baseline; }
+[data-help-script="alphabetic"][data-help-role="choice"] { --context-help-optical-y: 2.375px; }
+[data-help-script="cjk"][data-help-role="choice"] { --context-help-optical-y: 2.125px; }
 .context-help-toggle .btn-ic {
   margin: 0;
   transform: translateY(var(--context-help-optical-y));

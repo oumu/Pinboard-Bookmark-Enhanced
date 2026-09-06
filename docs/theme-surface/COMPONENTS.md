@@ -282,12 +282,15 @@ inline 元素的默认基线对齐在「图标 + 文字」场景下几乎总是�
 - 校准最多按「角色 × 实际文案文字系统族」声明一次；禁止 ID、文案、单项 class、主题选择器或内联 transform。
   同一角色出现不同偏差时先修 DOM/布局异常，不新增例外；校准值必须同时落在 Windows 常用字体与
   CI 的 DejaVu + 文泉驿正黑（`scripts/ci-fonts.conf`，必须以绝对路径传给 `FONTCONFIG_FILE`）字体栅格交集内，门禁容许至多 2 个物理像素的抗锯齿量化差异。
-- 两种锚定模型，按角色的文案形态选择：**纯文字宿主**（`section` / `field` / `group`）用 `align-items: baseline`
-  把 summary 锚到文案基线，再按字号常量下移到光学中心（拉丁小写混排 ≈0.3em、方块字 ≈0.38em；
-  文案字面钉 px 所以常量也是 px）——行内墨迹相对行盒的位置是字体的升降部拆分，Segoe UI 与 DejaVu
-  差约 1 CSS px 且没有 CSS 单位能表达它，中心锚定的常量只能拟合其中一家（2026-09-06 栅格门实测）；
-  **带控件的宿主**（`choice` 的 checkbox/radio 行、`action` 的按钮行）保持 `align-self: center`，
-  常量取两家字体区间的中值。summary 的 margin box 仍是零高，两种锚定都不参与行高。
+- 两种锚定模型，按宿主有没有文字基线可借选择：**有文案的宿主**（`section` / `field` / `group` / `choice`）用
+  `align-items: baseline` 把 summary 锚到文案基线，再按字号常量下移到光学中心（拉丁小写混排 ≈0.3em、
+  方块字 ≈0.38em；文案字面钉 px 所以常量也是 px）——行内墨迹相对行盒的位置是字体的升降部拆分，Segoe UI 与
+  DejaVu 差约 1 CSS px 且没有 CSS 单位能表达它，中心锚定的常量只能拟合其中一家（2026-09-06 栅格门实测）。
+  `choice` 的 label 是 flex 行且首项是 checkbox，flex 容器的基线默认取首项（checkbox 没有文字基线，按底边合成、
+  不随字体动），所以由文案 span 单独 `align-self: baseline` 参与基线对齐，label 的基线即成为文字基线；所有 `.choice-row` 文案 span 的
+  `line-height` 钉成 label 的 16px 内容高（Windows 字体下等于其自然行盒，零位移；CI 字体下阻止 CJK 回退把行盒撑到 23px），文字与 checkbox 均不动。
+  **只有 `action`**（按钮行，无文字基线可借）保持 `align-self: center`，常量取两家字体区间的中值。
+  summary 的 margin box 仍是零高，两种锚定都不参与行高。
   校准时用 `PBP_HELP_RASTER_RANGES=1` 让栅格门在通过时也打印各角色区间，本机与 `FONTCONFIG_FILE="$PWD/scripts/ci-fonts.conf"`
   各跑一次，取两者都落在容差内的值。
 - `<details>` 继续复用全局 disclosure 的 `::details-content` 动画与 one-open-per-panel 行为，组件层
