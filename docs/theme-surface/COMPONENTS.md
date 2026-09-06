@@ -1065,6 +1065,9 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | library | `.vocab-batch-bar` / `.notes-batch-bar` | 粘底批量条（同一选择器列表） |
 | library | `.notes-empty` | 空态块 |
 | library | `.lib-cluster` | 紧凑控件簇（inline-flex，align center，gap sp-1，flex none）：两处「Select all」组与批量条里的标记簇。簇内 quiet 按钮走 `.btn.ghost`，只有静息前景 `--lib-fg-muted` 是簇自己的规则 |
+| library | `.lib-section` | 详情面板的分节：margin-top sp-4、padding-top sp-3、`--lib-border-section` 1px 上边线；词典区、同源高亮列表、两个收尾动作行共用 |
+| library | `.lib-block` | 详情面板流内的文本块：margin sp-3 0（释义、语境） |
+| library | `.lib-quote` | 引文：3px 左竖线（`--lib-quote-bar`，默认 `--lib-border`；高亮引文以高亮色覆盖）+ sp-3 左内距 |
 | md-preview | `.rail-section` / `.rail-label` / `.rail-sec-head` | 侧栏分区容器 / 静态标题 / 可折叠标题（共享 margin sp-3 0 sp-2 契约） |
 | md-preview | `.msg-bar` | 状态/提示/错误条（padding sp-2 sp-3，与 `.send-status` / `.export-note` / `#ask-tip` 同一条家族；`data-state`） |
 | md-preview | `.send-menu` / `.send-mi` | 下拉菜单与菜单项 |

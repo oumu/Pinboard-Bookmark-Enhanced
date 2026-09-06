@@ -1211,10 +1211,10 @@ for (const [file, css, ns] of [["popup.css", popupCss, "pp"], ["options.css", op
     "library.css: the colour dot's off-state opacity is back on the BUTTON — a focus ring paints at its own element's opacity (border and box-shadow alike), so it would render at a third strength on exactly the dots a keyboard user is about to re-enable");
   // Both panes end the same way: one rule-topped row, destructive action
   // pushed to its right end. Two panes, one closing gesture.
-  check(/\.vocab-detail-footer,\s*\n\.notes-detail-footer \{[^}]*border-top:/.test(libraryCss) &&
+  check(/^\.lib-section \{[^}]*border-top:/m.test(libraryCss) &&
     /\.vocab-detail-footer > \.vocab-detail-delete,\s*\n\.notes-detail-footer > \.notes-detail-delete \{ margin-left: auto; \}/.test(libraryCss) &&
-    /footer\.className = "vocab-detail-footer"/.test(libraryVocabJs) &&
-    /footer\.className = "notes-detail-footer"/.test(read("library-notes.js")),
+    /footer\.className = "lib-section vocab-detail-footer"/.test(libraryVocabJs) &&
+    /footer\.className = "lib-section notes-detail-footer"/.test(read("library-notes.js")),
     "library.css/library-{vocab,notes}.js: the detail panes' shared closing action row is gone or asymmetric");
 }
 // List header, round 2 (2026-08-07). Four bare rows that each run the full

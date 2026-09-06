@@ -640,7 +640,7 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   // 3. Stored gloss + IPA
   if (w.ipa || w.gloss) {
     const glossBox = document.createElement("div");
-    glossBox.className = "vocab-detail-gloss";
+    glossBox.className = "lib-block vocab-detail-gloss";
     if (w.ipa) {
       const ipa = document.createElement("div");
       ipa.className = "vocab-gloss-ipa";
@@ -660,7 +660,7 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   for (const c of (Array.isArray(w.contexts) ? w.contexts : [])) {
     if (!c) continue;
     const item = document.createElement("div");
-    item.className = "vocab-detail-context";
+    item.className = "lib-block lib-quote vocab-detail-context";
     const quote = document.createElement("blockquote");
     quote.className = "notes-item-quote";
     _pbpVocabHighlightTerm(quote, c.quote || "", w.term);
@@ -689,14 +689,14 @@ function _pbpVocabRenderDetail(w, enterNarrow) {
   // material to read, not an action, and hanging it under the actions would
   // put the row's rule in the middle of the pane.
   const dictHost = document.createElement("div");
-  dictHost.className = "vocab-detail-dict";
+  dictHost.className = "lib-section vocab-detail-dict";
   frag.appendChild(dictHost);
 
   // 7. Closing action row (variant C): re-lookup left, delete right. Both are
   // "what you do with this word once you are done reading it", so they share
   // one rule-topped row instead of stacking as two.
   const footer = document.createElement("div");
-  footer.className = "vocab-detail-footer";
+  footer.className = "lib-section vocab-detail-footer";
 
   // On-demand dictionary re-lookup: zero network until clicked. One live
   // lookup per detail render -- the button hides itself on click, and a
@@ -999,7 +999,7 @@ function _pbpVocabFreeLookup() {
   }
 
   const host = document.createElement("div");
-  host.className = "vocab-detail-dict";
+  host.className = "lib-section vocab-detail-dict";
   frag.appendChild(host);
   detail.replaceChildren(frag);
   // Same reason as _pbpVocabRenderDetail's own reset: the pane is the scroll

@@ -121,11 +121,6 @@
     },
     {
       "surface": "library",
-      "token": "notes-detail-siblings",
-      "structural": true
-    },
-    {
-      "surface": "library",
       "token": "notes-detail-source",
       "structural": false
     },

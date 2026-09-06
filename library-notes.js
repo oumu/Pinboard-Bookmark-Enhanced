@@ -670,7 +670,7 @@ function _pbpNotesRenderDetail(hit, enterNarrow) {
 
   // 2. The highlight itself, in full
   const quote = document.createElement("blockquote");
-  quote.className = "notes-detail-quote notes-c" + _pbpNotesColorOf(hit.item);
+  quote.className = "lib-quote notes-detail-quote notes-c" + _pbpNotesColorOf(hit.item);
   _pbpNotesMarkText(quote, typeof hit.item.quote === "string" ? hit.item.quote : "", q);
   frag.appendChild(quote);
 
@@ -698,7 +698,7 @@ function _pbpNotesRenderDetail(hit, enterNarrow) {
   // unit the reader writes) -- the confirm popover names that page before
   // anything is removed, which is where the scope is disclosed.
   const footer = document.createElement("div");
-  footer.className = "notes-detail-footer";
+  footer.className = "lib-section notes-detail-footer";
   const del = document.createElement("button");
   del.type = "button";
   del.className = "btn btn-sm danger ghost notes-detail-delete";
@@ -711,7 +711,7 @@ function _pbpNotesRenderDetail(hit, enterNarrow) {
   const siblings = _pbpNotesHits().filter((h) => h.row.key === hit.row.key && h.key !== hit.key);
   if (siblings.length) {
     const section = document.createElement("section");
-    section.className = "notes-detail-siblings";
+    section.className = "lib-section";
     const title = document.createElement("h2");
     title.className = "notes-detail-sib-title";
     title.textContent = t("hlSectionTitle");

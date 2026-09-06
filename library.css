@@ -872,12 +872,25 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
 }
 .notes-detail-empty { color: var(--lib-fg-hint); padding: var(--lib-sp-5) 0; text-align: center; }
 .notes-detail-pane .notes-meta-chip { font-size: 12px; line-height: normal; }
+/* Detail-pane primitives (COMPONENTS.md §10.2). Both panes are built from the
+   same three shapes; each used to be restated per class, with one drift
+   (.notes-detail-siblings sat at sp-5 above a pane-divider token that resolves
+   to the same colour as --lib-border-section).
+   .lib-section  a rule-topped section: one rung of air, the section divider,
+                 sp-3 under it -- the dictionary region, the sibling list and
+                 both closing rows.
+   .lib-block    a prose block in the pane's flow: sp-3 above and below.
+   .lib-quote    a quoted passage: left bar (3px, --lib-quote-bar, default
+                 --lib-border) and an sp-3 inset -- the highlight quote (bar in
+                 the highlight's colour) and the vocabulary context sentence. */
+.lib-section { margin-top: var(--lib-sp-4); padding-top: var(--lib-sp-3); border-top: 1px solid var(--lib-border-section); }
+.lib-block { margin: var(--lib-sp-3) 0; }
+.lib-quote { padding-left: var(--lib-sp-3); border-left: 3px solid var(--lib-quote-bar, var(--lib-border)); }
 .notes-detail-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--lib-sp-2); margin-bottom: var(--lib-sp-3); }
 .notes-detail-source { font-weight: bold; }
 .notes-detail-quote {
   margin: 0;
-  padding-left: var(--lib-sp-3);
-  border-left: 3px solid var(--hl-color, var(--lib-note-c1));
+  --lib-quote-bar: var(--hl-color, var(--lib-note-c1)); /* .lib-quote paints its bar in the highlight's colour */
   white-space: pre-wrap;
   /* Same break policy the list side already applies to this exact quote
      (.notes-hit-text): a highlight can carry an unbreakable run -- a data
@@ -887,11 +900,6 @@ html.motion-ready .notes-hit-btn { transition: background-color var(--motion-sta
   overflow-wrap: anywhere;
 }
 .notes-detail-note { margin: var(--lib-sp-3) 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--lib-fg-muted); }
-.notes-detail-siblings {
-  margin-top: var(--lib-sp-5);
-  padding-top: var(--lib-sp-3);
-  border-top: 1px solid var(--lib-pane-divider);
-}
 .notes-detail-sib-title {
   margin: 0 0 var(--lib-sp-2);
   font-size: 12px; line-height: normal; font-weight: bold;
@@ -1169,9 +1177,8 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
 /* Touch has no :hover to reveal the remove "x" -- same fallback .row-del-x
    already uses (library.css, @media (hover:none) block). */
 @media (hover: none) { .chip-remove { opacity: 1; } }
-.vocab-detail-gloss { margin: var(--lib-sp-3) 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.vocab-detail-gloss { white-space: pre-wrap; overflow-wrap: anywhere; } /* placement: .lib-block */
 .vocab-gloss-ipa { color: var(--lib-fg-muted); }
-.vocab-detail-context { margin: var(--lib-sp-3) 0; padding-left: var(--lib-sp-3); border-left: 3px solid var(--lib-border); }
 .vocab-detail-context mark { background: transparent; color: var(--lib-accent); font-weight: 600; }
 /* Closing action row (USER RULING 2026-08-06, variant C). "Look up again"
    and "Remove from vocabulary" used to be two separate full-width-ish rows
@@ -1186,10 +1193,7 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
 .notes-detail-footer {
   display: flex;
   align-items: center;
-  gap: var(--lib-sp-2);
-  margin-top: var(--lib-sp-4);
-  padding-top: var(--lib-sp-3);
-  border-top: 1px solid var(--lib-border-section);
+  gap: var(--lib-sp-2); /* the rule-topped separator above the row is .lib-section */
 }
 .vocab-detail-footer > .vocab-detail-delete,
 .notes-detail-footer > .notes-detail-delete { margin-left: auto; }
@@ -1224,7 +1228,7 @@ html.motion-ready .notes-sib { transition: background-color var(--motion-state) 
    consistent size instead of the select sitting at the 15px ambient while
    the results below it sit at 14px. Every .xp-dict-* size below this point
    is relative (em) to whatever lands here. */
-.vocab-detail-dict { margin-top: var(--lib-sp-4); border-top: 1px solid var(--lib-border-section); padding-top: var(--lib-sp-3); font-size: 14px; }
+.vocab-detail-dict { font-size: 14px; } /* separator: .lib-section */
 /* The host exists on every render but stays empty until "Look up again" is
    pressed, and an empty box still paints its own separator: with the closing
    row's rule now sitting right under it, that was two horizontal lines with

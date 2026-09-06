@@ -1637,7 +1637,7 @@ check("selection still covers all filtered results beyond rendered chunks", _voc
   // sibling link, which is the alignment a reader actually compares.
   const detailPane = frame.contentDocument.querySelector(".vocab-detail-pane");
   const contextProbe = frame.contentDocument.createElement("div");
-  contextProbe.className = "vocab-detail-context";
+  contextProbe.className = "lib-block lib-quote vocab-detail-context";
   const probeQuote = frame.contentDocument.createElement("blockquote");
   probeQuote.className = "notes-item-quote";
   probeQuote.textContent = "context sentence";
