@@ -2359,7 +2359,15 @@ function sweepProbe(cfg) {
   }
   function collectControls(el, depth) {
     if (depth > 3 || !visible(el)) return [];
-    if (isControl(el)) return [el];
+    // Same two rules controlRung applies (2026-09-06): a fused shell
+    // (.vocab-group-unit, .source-badge, ...) is ONE control -- its borderless
+    // inners are 18px by construction while a standalone sm control is 20px
+    // with its 1px frame (19.33px at DPR 1.5), so comparing them produced 25
+    // phantom 1.33px pairs; and a control controlRung exempts (textarea,
+    // whole-row buttons, tabs, link-styled buttons) is not on a rung to
+    // compare against.
+    if (el.matches(cfg.rung.shells)) return [el];
+    if (isControl(el)) return cfg.rung.exempt.some((sel) => el.matches(sel)) ? [] : [el];
     if (isFlexOrGrid(getComputedStyle(el))) {
       let out = [];
       for (const child of el.children) out = out.concat(collectControls(child, depth + 1));

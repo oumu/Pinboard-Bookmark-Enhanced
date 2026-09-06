@@ -495,8 +495,8 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 26px; /* md rung: the toolbar's search field, filter select and Select all are 26; a 24px cell sat 1px proud on each side */
+  height: 26px;
   border: 1px solid color-mix(in srgb, var(--lib-border, #ccc) 70%, transparent);
   border-radius: var(--lib-radius-sm, 3px);
   background: transparent;
