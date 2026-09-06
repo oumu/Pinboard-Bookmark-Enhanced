@@ -1291,11 +1291,11 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
    span + action-btn(s)) become the actual grid items, so the mixed
    auto-placed (fmt-name) + explicit-column (.exp-fmt-span, EPUB row) items
    land in the same row without a flattening rewrite. */
-.export-grid { margin-top: var(--sp-2); display: grid; grid-template-columns: 68px 1fr 40px; gap: var(--sp-2); align-items: stretch; }
+.export-grid { margin-top: var(--sp-2); display: grid; grid-template-columns: 68px 1fr 40px; gap: var(--sp-2); align-items: center; } /* center, not stretch: every control keeps its own 26px; stretch let the tallest cell in a row set the others (27.33 measured) */
 .export-fmt { display: contents; }
 .export-fmt .fmt-name { width: 68px; font-size: 13px; color: var(--fg-secondary); }
 .export-fmt .action-btn { justify-content: center; }
-.export-fmt .action-btn.icon-only { padding: 6px var(--sp-2); justify-content: center; }
+.export-fmt .action-btn.icon-only { padding: 0 var(--sp-2); height: 26px; justify-content: center; } /* md rung pinned in px */
 .export-fmt .action-btn.icon-only svg { margin: 0; }
 /* Export in flight (md-preview.js's _exporting gate): an embed export spends
    seconds behind a permission prompt and an image-fetch round. Two of the
@@ -2347,7 +2347,7 @@ body.tr-only #rendered-view [data-pb-hl-mirror="5"] { box-shadow: inset 3px 0 0 
   flex: none;
   padding: var(--sp-0) var(--sp-2);
   line-height: 14px; /* 2+14+2+2 = 20, the sm rung (was normal line-height = 21.3) */
-  font-size: 12px;
+  font-size: 11px; /* the sm rung's face (.btn-sm): a 12px glyph box overflows a 14px line box */
   cursor: pointer;
   border-radius: var(--radius-md);
   border: 1px solid;
@@ -2855,6 +2855,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
   align-items: center;
   min-width: 0;
   height: auto;
+  line-height: 16px; /* md rung: 4+16+4+2 = 26 (was em text x 1.6 = 32) */
   margin: 0;
   padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--btn-border);
@@ -2863,7 +2864,6 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
   color: var(--fg-secondary);
   font-size: 0.85em;
   font-weight: 400;
-  line-height: 1.4;
   vertical-align: baseline;
   cursor: pointer;
 }
@@ -3134,7 +3134,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 .hl-rail-btn { width: 100%; justify-content: center; }
 
 /* ---- Highlight notebook list (md-highlight.js, spec 2026-07-04 sec.2) ---- */
-.hl-filter-row { display: flex; gap: var(--sp-3); padding: var(--sp-1) 0 var(--sp-2); }
+.hl-filter-row { display: flex; gap: var(--sp-4); padding: var(--sp-1) 0 var(--sp-2); }
 .hl-filter-dot {
   width: 12px; height: 12px; padding: 0;
   border-radius: 50%;
@@ -3143,11 +3143,12 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
   position: relative;
   transition: opacity 140ms var(--ease-out);
 }
-/* Hit pad: a full 24px square. The legend's gap is sp-3 (12px) precisely so two
-   6px pads meet without overlapping -- over the old 8px gap a symmetric pad let
-   a click just right of dot A silently toggle dot B (Codex catch), and the
-   18px-wide compromise fell under the 24px hit floor. */
-.hl-filter-dot::before { content: ""; position: absolute; inset: -6px; }
+/* Hit pad: a full 24px square. The pad is positioned from the PADDING box --
+   the 12px dot minus its 1px border is 10px -- so -7px (not -6px) lands on 24
+   (measured 22.67 with -6). The legend's gap is sp-4 (16px) so two 7px pads
+   never overlap: over a narrower gap a symmetric pad let a click just right of
+   dot A silently toggle dot B (Codex catch). */
+.hl-filter-dot::before { content: ""; position: absolute; inset: -7px; }
 /* L5 (filter-legend dots, same rationale as .pb-hl-dot above). */
 .hl-filter-dot-1 { background: light-dark(#facc15, #D9A441); }
 .hl-filter-dot-2 { background: light-dark(#4ade80, #5E9C69); }

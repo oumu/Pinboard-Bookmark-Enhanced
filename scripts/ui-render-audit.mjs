@@ -2102,7 +2102,7 @@ const SWEEP_CFG = {
       "#options-search-input",                      // the settings sidebar search box: 32px, the sidebar column's rung shared with the tabs
       ".action-link", ".clear-all-link", ".reset-tab-btn",
       ".tr-link", ".xp-dict-more", ".xp-dict-lemma-link", ".pbp-img-fix-btn", // link-styled, no chrome (COMPONENTS.md §0)
-      "summary", ".rail-sec-head", ".notes-hit-btn", ".notes-card-head", ".notes-card-top", ".notes-sib", ".connection-health-row", // row rung: whole-row clickables / section headers / status cards
+      "summary", ".rail-sec-head", ".notes-hit-btn", ".notes-card-head", ".notes-card-top", ".notes-sib", ".connection-health-row", ".hl-item-main", ".send-mi", // row rung: whole-row clickables / section headers / status cards / menu rows
       ".theme-preset-btn", ".saved-theme-btn",       // borderless swatch pills (user-selected variant A, d57cdcf): the sm rung minus the collapsed frame
       ".tags-input-wrap > input", ".vocab-group-unit > input", ".source-badge > .src-seg", // fused-shell inners: the shell is measured instead
     ],
@@ -2125,7 +2125,7 @@ const SWEEP_CFG = {
       ".tabs, .lib-tabs",                                                     // tab strips
       ".vocab-sort-seg, .source-badge, .view-toggle, .vocab-group-unit, .tags-input-wrap, .send-split, .typo-seg", // fused shells / segmented strips
       ".header-icons, .xp-window-actions, .lib-cluster", // icon-button clusters: not button rows; clusterGap (family 12) holds them to 4px instead
-      ".connection-health, .theme-presets-group, .kbd-help-chips, .rail-badges", // status-card grid, swatch-pill / chip rows
+      ".connection-health, .theme-presets-group, .kbd-help-chips, .rail-badges, .hl-filter-row", // status-card grid, swatch-pill / chip rows, the highlight legend (gap = two 6px hit pads)
       ".notes-card-top",                                                      // card head: title + chips, the remove X is absolutely positioned
     ].join(", "),
   },
@@ -2231,6 +2231,11 @@ function sweepProbe(cfg) {
     const r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0;
   }
+  // A button's LABEL text for the icon-only test. x (U+00D7) is the one literal
+  // glyph CLAUDE.md sanctions in place of an SVG (the four dismiss sites), so a
+  // button whose only text is x is a close icon and is measured as one: the
+  // 24px hit floor applies, the text rungs do not.
+  const iconLabel = (el) => el.textContent.replace(/\u00D7/g, "").trim();
 
   // ---- 1. textInset: any element with a direct (own, non-descendant)
   // non-whitespace text node, measured against the nearest element-or-
@@ -2440,7 +2445,7 @@ function sweepProbe(cfg) {
     // Safe against the icon side because this repo's SVG icon set carries no
     // <text> nodes (see PBP_ICONS comment in shared.js), so .btn-ic never
     // contributes stray text; no aria-hidden-scoped exclusion is needed here.
-    const hasOwnText = el.textContent.trim().length > 0;
+    const hasOwnText = iconLabel(el).length > 0;
     if (hasOwnText) continue; // has its own label text -- not the icon-only shape this rule scopes to
     const rect = el.getBoundingClientRect();
     let effRect = { width: rect.width, height: rect.height };
@@ -2509,7 +2514,7 @@ function sweepProbe(cfg) {
     for (const el of controls) {
       if (!visible(el) || excluded(el)) continue;
       if (cfg.rung.exempt.some((sel) => el.matches(sel))) continue;
-      if (el.matches("button, .btn, a.btn") && !el.matches(shellSel) && !el.textContent.trim()) continue; // icon-only: family 4
+      if (el.matches("button, .btn, a.btn") && !el.matches(shellSel) && !iconLabel(el)) continue; // icon-only (x counts as an icon): family 4
       if (!el.matches(shellSel) && el.closest(shellSel)) continue; // inner of a fused shell: the shell is measured
       const h = el.getBoundingClientRect().height;
       if (!cfg.rung.values.some((v) => Math.abs(h - v) <= cfg.rung.tol)) {
@@ -2688,6 +2693,77 @@ function reconcileSpacing(sweepHits) {
   return fresh;
 }
 
+// The reader's interaction-only surfaces and how the sweep opens them. Page-
+// side functions (serialized by Playwright): they may use the reader's own
+// globals but nothing from this file. `open` returns true when the surface is
+// on screen. The explain popover is opened once and probed twice (explain, then
+// the dictionary view), so "explain-pop" leaves it open and "explain-dict"
+// closes it. The answered-state footer actions are unhidden by hand: they
+// appear once a reply lands, and the sweep measures geometry, not the flow.
+const READER_SURFACES = ["explain-pop", "explain-dict", "ask-panel", "search-pop", "kbd-help-pop", "typo-pop", "pb-hl-card", "send-menu", "confirm-popover"];
+async function openReaderSurface(name) {
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const shown = (el) => !!(el && el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }) && el.getBoundingClientRect().width > 0);
+  switch (name) {
+    case "explain-pop": {
+      const p = document.querySelector("#rendered-view p");
+      if (!p || !p.firstChild || typeof pbpExplainInvoke !== "function") return false;
+      const r = document.createRange(); r.setStart(p.firstChild, 4); r.setEnd(p.firstChild, 9);
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+      pbpExplainInvoke("explain"); await wait(700);
+      const pop = document.getElementById("explain-pop");
+      if (!shown(pop)) return false;
+      pop.querySelectorAll(".xp-foot button").forEach((b) => { b.hidden = false; });
+      return true;
+    }
+    case "explain-dict": {
+      const pop = document.getElementById("explain-pop");
+      const act = pop && pop.querySelector('.xp-act[data-action="dict"]');
+      if (!act) return false;
+      act.click(); await wait(700);
+      return shown(pop) && shown(pop.querySelector(".xp-dict-head"));
+    }
+    case "ask-panel": {
+      const btn = document.getElementById("ask-open");
+      if (btn) btn.click(); else if (typeof _pbpExplainOpenAsk === "function") _pbpExplainOpenAsk("quick"); else return false;
+      await wait(500);
+      return shown(document.getElementById("ask-panel"));
+    }
+    case "search-pop": { if (typeof _pbpSearchOpen !== "function") return false; _pbpSearchOpen(); await wait(300); return shown(document.getElementById("search-pop")); }
+    case "kbd-help-pop": { if (typeof _pbpKbdHelpOpen !== "function") return false; _pbpKbdHelpOpen(); await wait(300); return shown(document.getElementById("kbd-help-pop")); }
+    case "typo-pop": { const b = document.getElementById("rail-typo-btn"); if (!b) return false; b.click(); await wait(300); return shown(document.getElementById("typo-pop")); }
+    case "pb-hl-card": { if (typeof _pbpHlOpenCard !== "function") return false; _pbpHlOpenCard("h1"); await wait(500); return shown(document.getElementById("pb-hl-card")); }
+    case "send-menu": {
+      // the export section starts collapsed; a menu inside a collapsed section measures 0x0
+      const sec = document.getElementById("export-section");
+      if (sec && sec.classList.contains("rail-collapsed")) { sec.querySelector(".rail-sec-head")?.click(); await wait(400); }
+      const c = document.getElementById("send-caret");
+      if (!c) return "no #send-caret";
+      if (c.hidden) return "caret hidden: no enabled Send-to target resolved from the seeded settings";
+      c.click(); await wait(400);
+      return shown(document.getElementById("send-menu")) || "menu not visible after the caret click";
+    }
+    case "confirm-popover": {
+      if (typeof showConfirmPopover !== "function") return false;
+      showConfirmPopover(document.getElementById("rail-zen-btn") || document.body.firstElementChild, { msg: "Delete this highlight?", yesText: "Delete", noText: "Cancel" });
+      await wait(300);
+      return shown(document.querySelector(".confirm-popover"));
+    }
+  }
+  return false;
+}
+function closeReaderSurface(name) {
+  const hide = (el) => { try { if (el && el.matches(":popover-open")) el.hidePopover(); } catch (_) {} };
+  switch (name) {
+    case "explain-pop": return; // stays open for explain-dict
+    case "explain-dict": { const pop = document.getElementById("explain-pop"); if (pop && typeof _pbpExplainClose === "function") _pbpExplainClose(pop); return; }
+    case "ask-panel": { const btn = document.getElementById("ask-open"); const panel = document.getElementById("ask-panel"); if (btn && panel && !panel.hidden) btn.click(); return; }
+    case "send-menu": { const c = document.getElementById("send-caret"); const m = document.getElementById("send-menu"); if (c && m && !m.hidden) c.click(); return; }
+    case "confirm-popover": { document.querySelector(".confirm-popover .confirm-no")?.click(); return; }
+    default: hide(document.getElementById(name));
+  }
+}
+
 async function runSweep(page, sw, extBase) {
   const hits = [];
   const add = (found, surface, context) => { for (const h of found) hits.push({ surface, context, ...h }); };
@@ -2766,19 +2842,54 @@ async function runSweep(page, sw, extBase) {
     add(await page.evaluate(sweepProbe, SWEEP_CFG), "library", "notes-batch-bar");
   }
 
-  // ---- md-preview: the reader's chrome (rail, toolbar, source badge). The
+  // ---- md-preview: the reader's chrome, static AND interaction-only. The
   // payload key is one-shot (md-preview consumes it on load), so it is seeded
-  // right before the navigation; prose is excluded by cfg.excludeWithin so the
-  // families measure chrome, not typography. Added 2026-09-05 when the reader
-  // joined the shared height/radius rungs. ----
-  await sw.evaluate((k) => chrome.storage.local.set({ [`md_preview_data_${k}`]: {
-    markdown: "# Render audit fixture\n\nA paragraph with a [link](https://example.com/).\n\n## Section\n\n- item one\n- item two\n\n`code` and **bold**.\n",
-    contentHtml: "", title: "Render Audit Fixture", url: "https://example.com/render-audit-fixture", baseUrl: "https://example.com/render-audit-fixture",
+  // right before each navigation; prose is excluded by cfg.excludeWithin so
+  // the families measure chrome, not typography. AI-dependent chrome (the
+  // ask / translate / skim sections, the explain popover's actions) renders
+  // only when a provider and key exist -- seeded here; nothing is sent until
+  // a control is clicked, and the sweep clicks none of those. Highlights live
+  // under a hash of the URL that only the page can compute, so the record is
+  // seeded after a first load and the page reloaded (the fixed-key record
+  // seeded in main() feeds library.html, whose Notes view enumerates every
+  // pbp_hl_* key; the reader never matched it). Before 2026-09-06 the
+  // highlight section, its card and every popover were never rendered here:
+  // a 17px delete button and 36px footer buttons lived there unmeasured. ----
+  const readerUrl = "https://example.com/render-audit-fixture";
+  const readerPayload = (k) => ({ [`md_preview_data_${k}`]: {
+    markdown: "# Render audit fixture\n\nA paragraph with a [link](https://example.com/) and the quick brown fox.\n\n## Section\n\n- item one\n- item two\n\n`code` and **bold**.\n",
+    contentHtml: "", title: "Render Audit Fixture", url: readerUrl, baseUrl: readerUrl,
     tags: ["qa"], tokens: 0, hasApiKey: true, source: "local", math: false, forum: false, ts: Date.now(),
-  } }), "render-audit-sweep");
+  } });
+  await sw.evaluate((o) => chrome.storage.local.set(o), {
+    ...readerPayload("render-audit-sweep"),
+    aiProvider: "openai", openaiApiKey: "sk-render-audit-fixture", previewSkimEnabled: true,
+    // two Send-to targets: the split button's menu lists only the non-primary ones, so one target renders an empty menu
+    exportTargets: { obsidian: { enabled: true, vault: "Render QA", folder: "" }, webhook: { enabled: true, url: "https://example.com/hook" } },
+  });
   await page.goto(`${extBase}md-preview.html?k=render-audit-sweep`, { waitUntil: "load", timeout: TIMEOUT_MS });
   await page.waitForTimeout(900);
+  const hlKey = await page.evaluate((u) => (typeof _pbpHlKey === "function" ? _pbpHlKey(u) : null), readerUrl);
+  if (hlKey) {
+    await sw.evaluate((o) => chrome.storage.local.set(o), { ...readerPayload("render-audit-sweep2"), [hlKey]: {
+      url: readerUrl, title: "Render Audit Fixture Page",
+      items: [{ id: "h1", ts: Date.now(), quote: "quick brown fox", note: "A short fixture note for the render audit.", color: 1 }],
+    } });
+    await page.goto(`${extBase}md-preview.html?k=render-audit-sweep2`, { waitUntil: "load", timeout: TIMEOUT_MS });
+    await page.waitForTimeout(900);
+  } else console.warn("[render-audit] reader: _pbpHlKey is not a function; the highlight section stays unseeded");
   add(await page.evaluate(sweepProbe, SWEEP_CFG), "md-preview", "reader");
+
+  // Each interaction-only surface is opened through the page's own opener,
+  // probed as its own context, then closed. A surface that fails to render
+  // is printed, never skipped silently -- the gate's coverage is the point.
+  for (const name of READER_SURFACES) {
+    const ok = await page.evaluate(openReaderSurface, name).catch((e) => `threw: ${e.message}`);
+    if (ok !== true) { console.warn(`[render-audit] reader surface NOT RENDERED: ${name} (${ok || "opener returned false"}) -- its controls were not measured`); continue; }
+    await page.waitForTimeout(150);
+    add(await page.evaluate(sweepProbe, SWEEP_CFG), "md-preview", name);
+    await page.evaluate(closeReaderSurface, name).catch(() => {});
+  }
 
   // ---- popup: default light + no-preset dark (since batch 2 D6 the latter
   // resolves to the flexoki-dark preset, same as options/library; kept as a
@@ -2790,6 +2901,22 @@ async function runSweep(page, sw, extBase) {
   await page.evaluate(async () => { if (window.PPOffline) await window.PPOffline.refresh(); }).catch(() => {});
   await page.waitForSelector("#offline-queue-bar:not(.hidden)", { timeout: TIMEOUT_MS }).catch(() => {});
   add(await page.evaluate(sweepProbe, SWEEP_CFG), "popup", "light");
+  // Hidden-by-default states -- feedback card (with its fallback action),
+  // URL warning and clean hint, presets and suggest rows, batch permission
+  // card and progress bar, markdown strip, expanded offline queue -- shown
+  // by class rather than by driving the flows that show them: the families
+  // gate geometry, and these blocks carry their own button recipes (.fc-btn,
+  // .md-strip-btn, .offline-queue-item > .actions button) that the default
+  // popup never renders.
+  await page.evaluate(() => {
+    for (const id of ["existing-banner", "url-warning", "url-clean-hint", "presets-row", "suggest-row", "ai-error-card", "ai-error-fallback", "batch-permission", "batch-progress", "md-actions-strip", "offline-queue-list"]) {
+      document.getElementById(id)?.classList.remove("hidden");
+    }
+    const fb = document.getElementById("ai-error-fallback");
+    if (fb && !fb.textContent.trim()) fb.textContent = "Use fallback";
+  });
+  await page.waitForTimeout(150);
+  add(await page.evaluate(sweepProbe, SWEEP_CFG), "popup", "states");
 
   await setTheme(sw, "", "dark");
   await page.goto(`${extBase}popup.html?_ra=sweepdark`, { waitUntil: "load", timeout: TIMEOUT_MS });
@@ -2985,6 +3112,12 @@ async function main() {
     cached_user_tags: { account, counts: { book: 5, books: 3 }, timestamp: Date.now() },
   }), SEED_TOKEN_ACCOUNT);
 
+  // Highlight record for library.html's Notes view, which enumerates every
+  // pbp_hl_* key -- so this fixed key is fine for it, and the notes list,
+  // detail pane and batch bar legs depend on it (removing it broke their
+  // SETUP, 2026-09-06). The READER looks a record up by pbpAiHash(url), a key
+  // only the page can compute, so the sweep's reader leg seeds a second
+  // record under that computed key before it opens the highlight section.
   await sw.evaluate(() => chrome.storage.local.set({
     "pbp_hl_render-audit-fixture": {
       url: "https://example.com/render-audit-fixture",

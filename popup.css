@@ -472,7 +472,7 @@ html[data-section="login"] .quick-actions { display: none !important; }
 .fc-btn {
   background: transparent; border: 1px solid currentColor;
   border-radius: var(--pp-radius-sm); color: inherit;
-  padding: var(--pp-sp-1) var(--pp-sp-4); font-size: 11px; cursor: pointer; font-family: inherit;
+  padding: var(--pp-sp-1) var(--pp-sp-4); font-size: 11px; line-height: 14px; /* sm rung: 2+14+2+2 = 20 (the UA line box gave 18.67) */ cursor: pointer; font-family: inherit;
   white-space: nowrap;
 }
 .fc-btn:hover { background: color-mix(in srgb, currentColor 18%, transparent); }
@@ -488,12 +488,12 @@ html[data-section="login"] .quick-actions { display: none !important; }
    must inherit the card's foreground — which is AA against the card bg by construction.
    (Using --pp-fg-hint here, a main-bg grey, made "Details"/× unreadable on dark cards.)
    De-emphasis comes from smaller size + a subtle hover wash, not a different colour. */
-.fc-btn-secondary { border: 0; color: inherit; font-size: 11px; padding: var(--pp-sp-1) var(--pp-sp-3); }
+.fc-btn-secondary { border: 0; color: inherit; font-size: 11px; line-height: 16px; /* borderless: 2+16+2 = 20, the sm rung */ padding: var(--pp-sp-1) var(--pp-sp-3); }
 .fc-btn-secondary:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
 .fc-btn-secondary:active:not(:disabled) { transform: scale(0.97); }
 .fc-dismiss {
   background: transparent; border: 0; color: inherit;
-  cursor: pointer; padding: 0 var(--pp-sp-2); font-size: 14px; line-height: 1; font-family: inherit;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; /* the 24px hit floor: an x-only button is a dismiss icon (CLAUDE.md sanctions the U+00D7 glyph) */ font-size: 14px; line-height: 1; font-family: inherit;
 }
 .fc-dismiss:hover { background: color-mix(in srgb, currentColor 18%, transparent); border-radius: var(--pp-radius-sm); }
 .fc-dismiss:active:not(:disabled) { transform: scale(0.97); }
@@ -1424,7 +1424,7 @@ html[data-theme] .batch-progress-text {
    its own fill, so only the UA's 2px outset border needs clearing to keep the
    pre-conversion box. */
 .edit-cancel {
-  display: inline-block;
+  display: inline-flex; align-items: center; min-height: 24px; /* x-only dismiss: the 24px hit floor */
   margin-left: var(--pp-sp-3);
   padding: 0 var(--pp-sp-3);
   border: none;
