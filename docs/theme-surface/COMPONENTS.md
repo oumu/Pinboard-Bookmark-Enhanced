@@ -281,7 +281,15 @@ inline 元素的默认基线对齐在「图标 + 文字」场景下几乎总是�
   命中盒或焦点盒；说明正文由同一个 `<details>` 在第二行全宽展开。
 - 校准最多按「角色 × 实际文案文字系统族」声明一次；禁止 ID、文案、单项 class、主题选择器或内联 transform。
   同一角色出现不同偏差时先修 DOM/布局异常，不新增例外；校准值必须同时落在 Windows 常用字体与
-  CI 的 Liberation Sans/WenQuanYi 字体栅格交集内，门禁容许至多 2 个物理像素的抗锯齿量化差异。
+  CI 的 DejaVu（`scripts/ci-fonts.conf`）字体栅格交集内，门禁容许至多 2 个物理像素的抗锯齿量化差异。
+- 两种锚定模型，按角色的文案形态选择：**纯文字宿主**（`section` / `field` / `group`）用 `align-items: baseline`
+  把 summary 锚到文案基线，再按字号常量下移到光学中心（拉丁小写混排 ≈0.3em、方块字 ≈0.38em；
+  文案字面钉 px 所以常量也是 px）——行内墨迹相对行盒的位置是字体的升降部拆分，Segoe UI 与 DejaVu
+  差约 1 CSS px 且没有 CSS 单位能表达它，中心锚定的常量只能拟合其中一家（2026-09-06 栅格门实测）；
+  **带控件的宿主**（`choice` 的 checkbox/radio 行、`action` 的按钮行）保持 `align-self: center`，
+  常量取两家字体区间的中值。summary 的 margin box 仍是零高，两种锚定都不参与行高。
+  校准时用 `PBP_HELP_RASTER_RANGES=1` 让栅格门在通过时也打印各角色区间，本机与 `FONTCONFIG_FILE=scripts/ci-fonts.conf`
+  各跑一次，取两者都落在容差内的值。
 - `<details>` 继续复用全局 disclosure 的 `::details-content` 动画与 one-open-per-panel 行为，组件层
   不另写 transition。
 - 门：`options-context-help-tests.html` 扫完整角色注册表、相邻锚点、24px 命中区、展开归属与间距；
@@ -1055,7 +1063,7 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 | options | `.section-title` | h2，13px/700，上下 sp-4；配 `.divider`（sp-6 0，1px） |
 | options | `.choice-row` | 复选/单选行标记；在 `.fg-stack` 内行距 sp-1 |
 | options | `details.disclosure` + `.disclosure-body` | 唯一折叠原语；标题 = section-title 面 + 右侧 chevron；成员自带上边线，堆叠对称 12px；正文齐平，`> :last-child` 去下 margin |
-| options | `.context-help-host` (+ `-section` / `-action-row`) | 上下文帮助宿主 grid；24px 帮助按钮**不参与行高**（零高 margin box） |
+| options | `.context-help-host` (+ `-section` / `-action-row`) | 上下文帮助宿主 grid；24px 帮助按钮**不参与行高**（零高 margin box）；纯文字角色 baseline 锚定、带控件角色 center 锚定（§2.5） |
 | options | `.pf` | 带边框子面板（provider 卡）：padding sp-5，radius md |
 | popup | `.row` / `.label` / `.field` | 表单行壳（flex，padding sp-2 sp-5，gap sp-4）/ 52px 标签槽 / 控件槽（flex:1，min-width:0） |
 | popup | `.suggest-area` | chip 流容器 |

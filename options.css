@@ -443,13 +443,36 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
    "API Key" label without per-setting exceptions. The 24px summary target
    itself never moves, so focus and pointer geometry stay stable. */
 [data-help-role] { --context-help-optical-y: 0px; }
-[data-help-script="alphabetic"][data-help-role="section"],
-[data-help-script="alphabetic"][data-help-role="choice"],
-[data-help-script="alphabetic"][data-help-role="group"] { --context-help-optical-y: 0.5px; }
-[data-help-script="alphabetic"][data-help-role="field"] { --context-help-optical-y: 0.375px; }
+/* Centre-anchored roles (the copy is a flex label with a checkbox, or the
+   action row): one constant per script, sitting between the two font
+   families the raster audit is run under (Segoe UI locally, DejaVu via
+   scripts/ci-fonts.conf) so both stay within its tolerance. */
+[data-help-script="alphabetic"][data-help-role="choice"] { --context-help-optical-y: 0.25px; }
+[data-help-script="cjk"][data-help-role="choice"] { --context-help-optical-y: 0.75px; }
 [data-help-script="alphabetic"][data-help-role="action"] { --context-help-optical-y: -1.5px; }
-[data-help-script="cjk"][data-help-role="section"] { --context-help-optical-y: -0.25px; }
 [data-help-script="cjk"][data-help-role="action"] { --context-help-optical-y: -1px; }
+/* Text-only hosts (section / field / group) anchor the toggle to the copy's
+   BASELINE instead of the row's centre. Where a line's ink sits inside its box
+   is the font's ascent/descent split -- Segoe UI and DejaVu differ by ~1 CSS
+   px there and no CSS unit exposes it, so a centre-anchored constant fitted
+   one family and missed the other (raster audit, 2026-09-06). The baseline
+   absorbs that split; what remains, baseline -> optical centre, is a stable
+   fraction of the em per script (Latin mixed case ~0.3em, ideographs ~0.38em),
+   written in px because the copy faces are pinned px (13 / 12 / 12). The
+   toggle's baseline is its glyph's bottom edge, so the offset moves it DOWN
+   from "icon bottom on the baseline" to "icon centre at the optical centre". */
+.context-help-host[data-help-role="section"],
+.context-help-host[data-help-role="field"],
+.context-help-host[data-help-role="group"] { align-items: baseline; }
+.context-help-host[data-help-role="section"] > .context-help > summary.context-help-toggle,
+.context-help-host[data-help-role="field"] > .context-help > summary.context-help-toggle,
+.context-help-host[data-help-role="group"] > .context-help > summary.context-help-toggle { align-self: baseline; }
+[data-help-script="alphabetic"][data-help-role="section"] { --context-help-optical-y: 2.5px; }
+[data-help-script="alphabetic"][data-help-role="field"] { --context-help-optical-y: 2.75px; }
+[data-help-script="alphabetic"][data-help-role="group"] { --context-help-optical-y: 2.5px; }
+[data-help-script="cjk"][data-help-role="section"] { --context-help-optical-y: 1.75px; }
+[data-help-script="cjk"][data-help-role="field"] { --context-help-optical-y: 2.25px; }
+[data-help-script="cjk"][data-help-role="group"] { --context-help-optical-y: 2px; }
 .context-help-toggle .btn-ic {
   margin: 0;
   transform: translateY(var(--context-help-optical-y));
