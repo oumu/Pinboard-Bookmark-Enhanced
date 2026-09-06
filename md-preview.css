@@ -1222,7 +1222,8 @@ body.tr-only #rendered-view blockquote blockquote > .pb-tr > p:first-child::befo
 .exp-img-row select, .xp-dict-lang {
   flex: 1;
   appearance: none; -webkit-appearance: none;
-  padding: 6px var(--sp-5) 6px var(--sp-3);
+  box-sizing: border-box; height: 26px; /* md rung pinned in px (the dict view inherits a typography-scaled em base) */
+  padding: 0 var(--sp-5) 0 var(--sp-3);
   border: 1px solid var(--btn-border); border-radius: var(--radius-md);
   background-color: var(--btn-bg); color: var(--btn-fg);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a94a0' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -1943,7 +1944,8 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
 }
 .xp-error p { color: var(--danger); margin: 0 0 var(--sp-2); font-size: 0.9em; }
 .xp-retry, .xp-ask, .xp-save, .xp-vocab, .xp-known, .xp-open-vocab, .xp-dict-connect {
-  padding: var(--sp-1) var(--sp-2);
+  box-sizing: border-box; min-height: 26px; display: inline-flex; align-items: center; justify-content: center; /* md rung pinned in px; only the label scales with the popover's em base */
+  padding: 0 var(--sp-2);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -1988,23 +1990,22 @@ html.motion-ready :is(#explain-pop, #typo-pop):popover-open {
   align-items: center;
   justify-content: center;
   padding: 0;
-  width: 1.9em;
-  height: 1.9em;
-  font-size: 1em; /* anchor: the svg below is sized in em and must not inherit UA 13.33px */
+  width: 26px;  /* md rung in px (was 1.9em of the popover's typography-scaled base: 36px at the
+  height: 26px;    default tier, beside a 26px gear -- the four footer buttons "came in different sizes") */
 }
 .xp-foot :is(.xp-save, .xp-vocab, .xp-known, .xp-open-vocab, .xp-ask) svg {
-  width: 1.05em;
-  height: 1.05em;
+  width: 14px;
+  height: 14px; /* px like .xp-gear svg in the same row */
 }
 /* Dictionary view (md-dict.js) */
 .xp-dict-head { margin-bottom: var(--sp-2); } /* shape: .panel-head */
 /* Joins the .exp-img-row select recipe above (shared border/background/chevron);
    this override only densifies for the dict view's tighter header row. */
-.xp-dict-lang { flex: 0 1 auto; padding: 3px 22px 3px var(--sp-2); font-size: 0.8em; background-position: right 6px center; }
-.xp-dict-speak { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--btn-border); border-radius: var(--radius-md); padding: var(--sp-1); cursor: pointer; color: inherit; font-size: 1em; /* buttons don't inherit font-size; the 0.8em svg needs this anchor */ }
+.xp-dict-lang { flex: 0 1 auto; padding: 0 22px 0 var(--sp-2); font-size: 0.8em; background-position: right 6px center; }
+.xp-dict-speak { display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--btn-border); border-radius: var(--radius-md); padding: 0; width: 26px; height: 26px; cursor: pointer; color: inherit; font-size: 1em; /* buttons don't inherit font-size; the 0.8em svg needs this anchor */ }
 .xp-dict-speak:hover { background: var(--btn-hover); }
 .xp-dict-speak:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
-.xp-dict-speak svg { width: 0.8em; height: 0.8em; }
+.xp-dict-speak svg { width: 14px; height: 14px; }
 /* AI-gloss ready signal: same head-button family as speak, tinted so the
    "new content below" state is visible at a glance. */
 .xp-dict-ctx-ready { color: var(--link); border-color: var(--link); }
@@ -2345,6 +2346,7 @@ body.tr-only #rendered-view [data-pb-hl-mirror="5"] { box-shadow: inset 3px 0 0 
 .confirm-popover button {
   flex: none;
   padding: var(--sp-0) var(--sp-2);
+  line-height: 14px; /* 2+14+2+2 = 20, the sm rung (was normal line-height = 21.3) */
   font-size: 12px;
   cursor: pointer;
   border-radius: var(--radius-md);
@@ -3132,7 +3134,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 .hl-rail-btn { width: 100%; justify-content: center; }
 
 /* ---- Highlight notebook list (md-highlight.js, spec 2026-07-04 sec.2) ---- */
-.hl-filter-row { display: flex; gap: var(--sp-2); padding: var(--sp-1) 0 var(--sp-2); }
+.hl-filter-row { display: flex; gap: var(--sp-3); padding: var(--sp-1) 0 var(--sp-2); }
 .hl-filter-dot {
   width: 12px; height: 12px; padding: 0;
   border-radius: 50%;
@@ -3141,11 +3143,11 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
   position: relative;
   transition: opacity 140ms var(--ease-out);
 }
-/* Hit pad: full 24px vertically (no neighbors there), half-gap horizontally
-   -- a symmetric -6px made the zones overlap the whole 6px gap and a click
-   just right of dot A silently toggled dot B (Codex catch). 18px wide is the
-   ceiling until the legend's gap grows. */
-.hl-filter-dot::before { content: ""; position: absolute; inset: -6px -3px; }
+/* Hit pad: a full 24px square. The legend's gap is sp-3 (12px) precisely so two
+   6px pads meet without overlapping -- over the old 8px gap a symmetric pad let
+   a click just right of dot A silently toggle dot B (Codex catch), and the
+   18px-wide compromise fell under the 24px hit floor. */
+.hl-filter-dot::before { content: ""; position: absolute; inset: -6px; }
 /* L5 (filter-legend dots, same rationale as .pb-hl-dot above). */
 .hl-filter-dot-1 { background: light-dark(#facc15, #D9A441); }
 .hl-filter-dot-2 { background: light-dark(#4ade80, #5E9C69); }
@@ -3202,7 +3204,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 }
 .hl-item-del {
   flex-shrink: 0;
-  background: none; border: none; padding: var(--sp-0);
+  background: none; border: none; padding: 0; width: 24px; height: 24px; align-items: center; justify-content: center; /* the 24px hit floor (was 17x17) */
   display: inline-flex;
   color: var(--fg-muted);
   border-radius: var(--radius-sm);
@@ -3271,6 +3273,7 @@ html.motion-ready #fn-pop:popover-open {
 .fn-pop-jump {
   display: inline-flex;
   align-items: center;
+  box-sizing: border-box; min-height: 26px; /* md rung pinned in px */
   gap: 6px;
   padding: var(--sp-1) var(--sp-2);
   border: 1px solid var(--btn-border);
@@ -3303,7 +3306,8 @@ html.motion-ready #fn-pop:popover-open {
    copied verbatim, spec sec.6.4). */
 #search-input {
   width: min(240px, 40vw);
-  padding: 6px var(--sp-2);
+  box-sizing: border-box; height: 26px; /* md rung pinned in px (was 6px + em text = 31.5) */
+  padding: 0 var(--sp-2);
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -3479,7 +3483,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
 .typo-label { color: var(--fg-secondary); }
 .typo-step {
   width: 26px;
-  height: 24px;
+  height: 26px; /* md rung (was 24) */
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -3502,7 +3506,8 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
 .typo-seg-btn {
   flex: 1 1 0;
   min-width: 0;
-  padding: 3px var(--sp-1);
+  padding: var(--sp-1);
+  line-height: 16px; /* 4+16+4+2 = 26, the md rung (was 3px + normal line-height = 23.3) */
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
@@ -3586,14 +3591,14 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
   display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap;
   margin-top: var(--sp-2); font-size: 0.8em;
 }
-.skim-stale-btn { padding: 3px var(--sp-2); font-size: 0.8em; }
+.skim-stale-btn { padding: var(--sp-1) var(--sp-2); font-size: 0.8em; }
 #skim-body { margin-top: var(--sp-2); }
 #skim-body > :first-child { margin-top: 0; }
 #skim-body > :last-child { margin-bottom: 0; }
 #skim-body ul { margin: 0; padding-left: 1.3em; }
 #skim-body li { margin: var(--sp-1) 0; }
 .skim-err { font-size: 0.85em; color: var(--danger); margin: 0 0 var(--sp-2); overflow-wrap: break-word; }
-.skim-retry { padding: 3px var(--sp-2); font-size: 0.8em; }
+.skim-retry { padding: var(--sp-1) var(--sp-2); font-size: 0.8em; }
 #skim-status, #skim-usage { margin-top: var(--sp-2); font-size: 0.8em; color: var(--fg-secondary); }
 #skim-status[hidden], #skim-usage[hidden] { display: none; }
 /* Collapsed state (spec 1.2.1/1.3): CSS-only, storage-persisted via
