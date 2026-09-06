@@ -903,7 +903,7 @@ html.motion-ready .pf:not([hidden]) {
 .et-field input[type="text"],
 .et-field input[type="password"],
 .et-field select {
-  width: 100%; padding: var(--opt-sp-2) var(--opt-sp-4); border: 1px solid var(--opt-input-border);
+  width: 100%; padding: var(--opt-sp-2) var(--opt-sp-4); line-height: 16px; /* md rung in px like the .fg field recipe: 4+16+4+2 = 26 under any font (a DejaVu fallback gave 24.67 with `normal`) */ border: 1px solid var(--opt-input-border);
   border-radius: var(--opt-radius-md);
   background-color: var(--opt-input-bg); font-size: 13px; font-family: inherit;
   -webkit-appearance: none; appearance: none; box-shadow: none;

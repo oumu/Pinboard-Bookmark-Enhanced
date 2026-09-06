@@ -449,6 +449,7 @@ html[data-theme] .confirm-popover .confirm-no:hover { background: var(--lib-btn-
 .vocab-lookup-bar input[type="search"] {
   width: 100%;
   padding: var(--lib-sp-1) var(--lib-sp-2);
+  line-height: 16px; /* md rung in px: 4+16+4+2 = 26 under any font -- a CJK placeholder on a fallback font gave 24.67 with `normal`; .vocab-lookup-bar re-pins 14px for its sm rung below */
   border: 1px solid var(--lib-input-border);
   border-radius: var(--lib-radius-md);
   background-color: var(--lib-input-bg, #fff);
@@ -1611,7 +1612,7 @@ html.motion-ready .vocab-note-save {
      height, no explicit line-height needed. .vocab-sort-btn's height comes
      along for free too -- .vocab-filter-row's align-items: stretch matches
      it to whichever sibling there is tallest. */
-  padding: var(--lib-sp-1) 26px var(--lib-sp-1) var(--lib-sp-3);
+  padding: var(--lib-sp-1) 26px var(--lib-sp-1) var(--lib-sp-3); line-height: 16px; /* md rung in px (see the search field above) */
   border: 1px solid var(--lib-input-border, #cdd1d6);
   border-radius: var(--lib-radius-md);
   background-color: var(--lib-btn-bg, #fff);
@@ -1762,6 +1763,7 @@ html[data-theme="rose-pine"] .vocab-filter-row select {
      reason to be positioned. */
   position: relative;
   width: 34px;
+  height: 24px; /* fused inner of the 26px shell, in px: the icon's line box was a font metric */
   padding: 0;
   /* Same centering recipe as .vocab-group-step above -- one rule for both
      segment families. These two happen to render correctly under inline-grid

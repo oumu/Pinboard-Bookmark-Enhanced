@@ -3109,6 +3109,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 .hl-card-foot { display: flex; justify-content: space-between; gap: var(--sp-2); }
 .hl-card-save, .hl-card-delete {
   padding: var(--sp-1) var(--sp-2);
+  line-height: 16px; /* md rung in px: 4+16+4+2 = 26 under any font (CI's fallback gave 23.33 with `normal`) */
   border: 1px solid var(--btn-border);
   border-radius: var(--radius-md);
   background: var(--btn-bg);
