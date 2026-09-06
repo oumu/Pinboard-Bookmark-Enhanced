@@ -325,12 +325,16 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
      vertical margin to balance the taller control. */
 .fg-stack > div { margin-bottom: var(--opt-sp-2); }
 .fg-stack > .choice-row { margin-bottom: var(--opt-sp-1); }
-/* A choice row is as tall as its label's line box, and `line-height: normal`
+/* A choice row was as tall as its label's line box, and `line-height: normal`
    is a FONT metric: on CI (Ubuntu, DejaVu Sans + a CJK fallback for the zh_CN
    labels the layout test applies) the rows holding CJK text came out 23px
    against 19px for Latin ones, while Windows fonts happened to agree. Pin the
-   row to the sm rung in px so no fallback font can move it. */
-.choice-row > label { line-height: 20px; }
+   LABEL BOX to the sm rung -- not the line-height: the label is already a
+   centred flex row, so the text keeps its own line box and the ink stays
+   where the help toggle's optical offsets (--context-help-optical-y, tuned
+   per script against rasters) expect it; a 20px line-height moved that ink
+   and threw the raster audit off under CI fonts. */
+.choice-row > label { height: 20px; }
 .fg-stack > div:last-child { margin-bottom: 0; }
 .fg-stack > div > label { padding: var(--opt-sp-1) 0; margin-bottom: 0; }
 .fg.fg-stack > .bl { margin-bottom: var(--opt-sp-3); }   /* label.bl or a div.bl title: 6px to the first option. (0,3,0) on purpose:
