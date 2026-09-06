@@ -2106,8 +2106,8 @@ const SWEEP_CFG = {
       "[role='tab']", ".tab-btn", ".lib-tab",       // tab family: 32px on both surfaces
       "#options-search-input",                      // the settings sidebar search box: 32px, the sidebar column's rung shared with the tabs
       ".action-link", ".clear-all-link", ".reset-tab-btn",
-      ".tr-link", ".xp-dict-more", ".xp-dict-lemma-link", ".pbp-img-fix-btn", // link-styled, no chrome (COMPONENTS.md §0)
-      "summary", ".rail-sec-head", ".notes-hit-btn", ".notes-card-head", ".notes-card-top", ".notes-sib", ".connection-health-row", ".hl-item-main", ".send-mi", // row rung: whole-row clickables / section headers / status cards / menu rows
+      ".tr-link", ".xp-dict-more", ".xp-dict-lemma-link", ".pbp-img-fix-btn", ".pbv-time", // link-styled, no chrome (COMPONENTS.md §0); .pbv-time is the cue row's timestamp (24px hit floor)
+      "summary", ".rail-sec-head", ".notes-hit-btn", ".notes-card-head", ".notes-card-top", ".notes-sib", ".connection-health-row", ".hl-item-main", ".send-mi", ".pbv-poster", // row rung: whole-row clickables / section headers / status cards / menu rows / the video poster card
       ".theme-preset-btn", ".saved-theme-btn",       // borderless swatch pills (user-selected variant A, d57cdcf): the sm rung minus the collapsed frame
       ".tags-input-wrap > input", ".vocab-group-unit > input", ".source-badge > .src-seg", // fused-shell inners: the shell is measured instead
     ],
@@ -2867,9 +2867,9 @@ async function runSweep(page, sw, extBase) {
   // highlight section, its card and every popover were never rendered here:
   // a 17px delete button and 36px footer buttons lived there unmeasured. ----
   const readerUrl = "https://example.com/render-audit-fixture";
-  const readerPayload = (k) => ({ [`md_preview_data_${k}`]: {
+  const readerPayload = (k, url = readerUrl) => ({ [`md_preview_data_${k}`]: {
     markdown: "# Render audit fixture\n\nA paragraph with a [link](https://example.com/) and the quick brown fox.\n\n## Section\n\n- item one\n- item two\n\n`code` and **bold**.\n",
-    contentHtml: "", title: "Render Audit Fixture", url: readerUrl, baseUrl: readerUrl,
+    contentHtml: "", title: "Render Audit Fixture", url, baseUrl: url,
     tags: ["qa"], tokens: 0, hasApiKey: true, source: "local", math: false, forum: false, ts: Date.now(),
   } });
   await sw.evaluate((o) => chrome.storage.local.set(o), {
@@ -2901,6 +2901,37 @@ async function runSweep(page, sw, extBase) {
     add(await page.evaluate(sweepProbe, SWEEP_CFG), "md-preview", name);
     await page.evaluate(closeReaderSurface, name).catch(() => {});
   }
+
+  // ---- video workbench. A YouTube payload renders only the poster card: the
+  // bar, the view toggle and the cue list appear after a user-gesture origin
+  // grant plus live caption traffic, which no sweep can produce. md-video.js's
+  // prepareVideoSession honours window.pbpVideoFixture (tracks / segments in
+  // the module's own normalized shapes, the ones tests/md-video-tests.html
+  // builds) and skips the grant and the fetch; the poster click then mounts
+  // the real workbench offline. Before 2026-09-06 these controls were never
+  // measured (their 28 -> 26px move had CSS arithmetic as its only evidence).
+  const videoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  await sw.evaluate((o) => chrome.storage.local.set(o), readerPayload("render-audit-video", videoUrl));
+  await page.goto(`${extBase}md-preview.html?k=render-audit-video`, { waitUntil: "load", timeout: TIMEOUT_MS });
+  await page.waitForTimeout(900);
+  const videoOk = await page.evaluate(async (url) => {
+    window.pbpVideoFixture = {
+      tracks: [{ baseUrl: "https://x/en.xml", lang: "en", label: "English", asr: false }, { baseUrl: "https://x/zh.xml", lang: "zh-Hans", label: "Chinese (Simplified)", asr: false }],
+      track: { baseUrl: "https://x/en.xml", lang: "en", label: "English", asr: false },
+      segments: [{ from: 0, to: 2.4, content: "Render audit fixture, first cue." }, { from: 2.4, to: 5.1, content: "Second cue of the fixture transcript." }, { from: 5.1, to: 9, content: "Third cue, long enough to wrap inside the study column at a narrow width." }],
+      meta: { title: "Render Audit Video", url, trackLabel: "English" },
+    };
+    const poster = document.querySelector(".pbv-poster");
+    if (!poster) return "no .pbv-poster";
+    poster.click();
+    await new Promise((r) => setTimeout(r, 1500));
+    const bar = document.querySelector(".pbv-bar"), rows = document.querySelectorAll(".pbv-row");
+    if (!bar || !bar.checkVisibility()) return "no visible .pbv-bar after the poster click";
+    if (!rows.length) return ".pbv-bar rendered but no .pbv-row cues";
+    return true;
+  }, videoUrl).catch((e) => `threw: ${e.message}`);
+  if (videoOk !== true) console.warn(`[render-audit] reader surface NOT RENDERED: video workbench (${videoOk}) -- its controls were not measured`);
+  else add(await page.evaluate(sweepProbe, SWEEP_CFG), "md-preview", "video");
 
   // ---- popup: default light + no-preset dark (since batch 2 D6 the latter
   // resolves to the flexoki-dark preset, same as options/library; kept as a

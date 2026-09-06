@@ -3411,6 +3411,19 @@ for (const [src, file, v, id] of [
 check(/^\.pop-panel \{[\s\S]*?\}/m.test(mdCss) && !/#pb-hl-card \{[^}]*box-shadow/.test(mdCss) && !/#fn-pop \{[^}]*box-shadow/.test(mdCss),
   "md-preview.css: .pop-panel must exist and the popover id rules must not restate the panel shadow");
 
+// The render sweep measures the video workbench through window.pbpVideoFixture
+// (md-video.js prepareVideoSession): the fixture check must sit BEFORE the
+// origin check, or the sweep silently falls back to the poster card and the
+// bar / view toggle / cue list leave the gate again.
+{
+  const mdVideoJs = read("md-video.js");
+  const prep = /async function prepareVideoSession\(ctx\) \{([\s\S]*?)\n  \}\n/.exec(mdVideoJs);
+  const fixtureAt = prep ? prep[1].indexOf("window.pbpVideoFixture") : -1;
+  const containsAt = prep ? prep[1].indexOf("chrome.permissions.contains") : -1;
+  check(prep && fixtureAt >= 0 && containsAt > fixtureAt && /if \(window\.pbpVideoFixture\) return true;/.test(mdVideoJs),
+    "md-video.js: prepareVideoSession must build a session from window.pbpVideoFixture before it checks the origin grant, and requestVideoOrigin must honour it -- the render sweep's video leg depends on it");
+}
+
 if (fail.length) {
   console.error(fail.join("\n"));
   process.exit(1);

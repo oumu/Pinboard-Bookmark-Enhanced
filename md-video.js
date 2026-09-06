@@ -3972,6 +3972,7 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
   // Callers therefore check chrome.permissions.contains() first and only
   // reach this helper on a real click when that check came back false.
   async function requestVideoOrigin(detected) {
+    if (window.pbpVideoFixture) return true; // QA fixture path: no grant to ask for (see prepareVideoSession)
     const isBili = detected.provider === "bilibili";
     // bilibili: captions AND the player bridge in ONE prompt (both exact
     // bilibili origins). The bridge script goes in as soon as the grant
@@ -4058,6 +4059,28 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
     const detected = pbpVideoDetect(ctx && ctx.pageUrl);
     if (!detected) {
       const session = { detected: null, granted: false };
+      window.pbpVideoSession = session;
+      return session;
+    }
+    // QA fixture path (scripts/ui-render-audit.mjs; the same precedent as
+    // vocab-gdrive's injected identityApi, "测试注入的 fixture 仍优先"): when this
+    // extension page's own script has set window.pbpVideoFixture = { tracks,
+    // track, segments, meta }, the session is built from it -- no origin
+    // check, no caption traffic, no player relay. The workbench chrome (bar,
+    // view toggle, cue list) otherwise appears only after a user-gesture grant
+    // plus live captions, which no automated sweep can produce; this is how its
+    // controls get measured. Not reachable from page content: content scripts
+    // never run in extension pages and the preview payload is inert JSON.
+    const fixture = window.pbpVideoFixture;
+    if (fixture && typeof fixture === "object") {
+      const session = {
+        detected, granted: true,
+        tracks: Array.isArray(fixture.tracks) ? fixture.tracks : [], track: fixture.track || null,
+        segments: Array.isArray(fixture.segments) ? fixture.segments : [], error: fixture.error || null,
+        wasUnpunct: false, meta: fixture.meta || { title: (ctx && ctx.title) || "", url: (ctx && ctx.pageUrl) || "" },
+        useLogin: false, ytHadTab: false, ytFetchFn: null, ytFetchTabId: null,
+        errorStatus: null, captionsVia: "fixture",
+      };
       window.pbpVideoSession = session;
       return session;
     }
@@ -5402,7 +5425,8 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
       const media = el("div", "pbv-media");
       _iframe = document.createElement("iframe");
       _isBili = detected.provider === "bilibili";
-      _iframe.src = detected.provider === "bilibili"
+      _iframe.src = window.pbpVideoFixture ? "about:blank" // QA fixture path: no player / relay traffic (see prepareVideoSession)
+        : detected.provider === "bilibili"
         ? "https://player.bilibili.com/player.html?bvid=" + detected.bvid + "&page=" + detected.part + "&high_quality=1&danmaku=0&autoplay=0" // explicit: with autoplay delegated to the frame (bridge), the embed's default would start playing on open
         // p=2 is the relay protocol version (r on time reports, batch 2 C4):
         // a cache-buster so a browser/CDN copy of the previous relay page is
@@ -5420,7 +5444,7 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
       // relay being slow to ANSWER after load. bilibili's player speaks the
       // same protocol only through the bridge script, so its handler greets
       // only once that can be there (origin granted).
-      _iframe.addEventListener("load", detected.provider === "youtube" ? startRelayHello : onBiliFrameLoad);
+      if (!window.pbpVideoFixture) _iframe.addEventListener("load", detected.provider === "youtube" ? startRelayHello : onBiliFrameLoad);
       media.appendChild(_iframe);
       const bar = el("div", "pbv-bar");
       // No aria-live here (research T7.4): announcements go through the

@@ -1106,7 +1106,7 @@ label span（`<span class="btn-ic">svg</span><span></span>`），在 grid 下它
 - 编辑期：`.claude/settings.json` PostToolUse → `scripts/ui-consumer-lint.mjs`（layout-lint + ui-vocabulary，<1s，红即回喂）。
 - 提交期：`scripts/pre-commit-hook.sh` 第二触发组（四 HTML / 表面 JS / md-preview.css / 注册表 / 基线）。
 - push 期：`scripts/verify.sh` `[ui-vocabulary]`（含 `tests/ui-vocabulary-tests.mjs` CLI 契约）+ `[render-audit]` 的类扫描家族（family 4–12；`spacingScale` 对账 `tests/render-audit-spacing-baseline.json`，其余对账 `render-audit-known-failures.json`）。
-- **扫描覆盖面**（2026-09-06 起）：sweep 不只扫静态页——阅读器会种 AI 配置、两个 Send-to 目标与按 URL 哈希键的高亮记录，然后逐个打开 explain 弹层（含词典视图、显示回答态的底栏按钮）、ask 面板、搜索/快捷键/字号弹层、高亮卡、发送菜单、确认弹层；popup 会显示默认隐藏的反馈卡、批量授权、进度条、Markdown 条、离线队列。任何「交互后才出现」的新界面都要在 `READER_SURFACES` 或 popup 状态腿里登记开启方式，否则它的控件不在门内（explain 底栏 36px 按钮就是这样漏掉的）。含 `×`（U+00D7）为唯一文字的按钮按图标键度量（命中区 ≥24）。
+- **扫描覆盖面**（2026-09-06 起）：sweep 不只扫静态页——阅读器会种 AI 配置、两个 Send-to 目标与按 URL 哈希键的高亮记录，然后逐个打开 explain 弹层（含词典视图、显示回答态的底栏按钮）、ask 面板、搜索/快捷键/字号弹层、高亮卡、发送菜单、确认弹层；popup 会显示默认隐藏的反馈卡、批量授权、进度条、Markdown 条、离线队列；视频工作台通过 `window.pbpVideoFixture`（md-video.js `prepareVideoSession` 的 QA 夹具入口，跳过授权与抓取）离线挂载后度量。任何「交互后才出现」的新界面都要在 `READER_SURFACES` 或 popup 状态腿里登记开启方式，否则它的控件不在门内（explain 底栏 36px 按钮就是这样漏掉的）。含 `×`（U+00D7）为唯一文字的按钮按图标键度量（命中区 ≥24）。
 - 新增原语的流程：注册表登记 → 本节补一行契约 → CSS 写关系规则 → 门自然放行。顺序反过来（先写 CSS 再想名字）就是本节要消灭的路径。
 
 ## 附录 A：人审清单（不可自动化的判断）

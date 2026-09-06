@@ -3705,7 +3705,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    playing row; hidden whenever follow is on or the row is on screen. */
 .pbv-back-current {
   position: sticky; bottom: 12px; align-self: center; z-index: 2;
-  margin: var(--sp-2) auto 0; padding: 6px var(--sp-3); font: inherit; font-size: 0.85em; cursor: pointer;
+  margin: var(--sp-2) auto 0; box-sizing: border-box; min-height: 26px; display: inline-flex; align-items: center; padding: 0 var(--sp-3); font: inherit; font-size: 12px; cursor: pointer; /* md rung in px */
   border: 1px solid var(--link); border-radius: var(--radius-full); background: var(--surface); color: var(--link);
   box-shadow: 0 4px 14px rgba(0,0,0,.12);
 }
@@ -3930,6 +3930,12 @@ body.video-mode .doc-body { max-width: min(2160px, 100%); container-type: inline
    #source-badge in md-preview.html/.js) for the whole look; this only adds
    the study-column spacing below it, above #rendered-view/.pbv-list. */
 .pbv-view-toggle { margin: 0 0 var(--sp-4); }
+/* The view toggle reuses the rail's source badge (.source-badge / .src-seg), a
+   sm-rung control with an 11px face built for the 256px rail. It sits in the
+   main column beside 26px bar controls and prose-scaled cue rows, where the
+   sm face read as too small ("阅读稿 / 时间轴 / 按段落显示"): md-rung variant --
+   13px face, 1 + 22 + 1 = 24 inner, 26 with the shell's border. */
+.pbv-view-toggle .src-seg { font-size: 13px; line-height: 22px; padding: 1px var(--sp-3); }
 
 /* Page scroll owns the timeline list in video-mode -- the 40vh inner-scroll
    box on .pbv-list above only made sense while the list sat inside the
