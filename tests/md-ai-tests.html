@@ -75,6 +75,23 @@ function assertEq(actual, expected, label) {
       JSON.stringify(expected) + " got " + JSON.stringify(actual));
   }
 }
+// The blocks that swap the network layer -- window.fetch, window.callAIStream
+// -- run their async cases ONE AT A TIME through this queue. Each block's own
+// atest() used to run its cases concurrently with every other block's, and
+// a stub installed by one test was live while another awaited its own call:
+// on CI (a slower machine, another interleaving) "failed retranslate keeps
+// the old entry" saw a different block's succeeding callAIStream stub and
+// watched its entry get replaced, while the same file was green locally on
+// every run. Only the stub-swapping blocks join the queue: serialising every
+// async case in the file changed the semantics of a dozen early-running ones.
+// `report` is the calling block's reporter so results land in its own host.
+let __netStubQueue = Promise.resolve();
+function atestNetSerial(name, fn, report) {
+  const run = async () => { try { await fn(); report(name); } catch (e) { report(name, e); } };
+  const turn = __netStubQueue.then(run, run);
+  __netStubQueue = turn;
+  return turn;
+}
 
 function suite(name, fn) {
   const div = document.createElement("div");
@@ -430,7 +447,7 @@ suite("_pbpChainAbort", () => {
     else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
     host.appendChild(div);
   }
-  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  async function atest(name, fn) { return atestNetSerial(name, fn, report); } // shares the network-stub queue (see atestNetSerial)
   function ok(cond, msg) { if (!cond) throw new Error(msg || "assert"); }
   if (typeof callAI !== "function" || typeof OPENAI_COMPAT_PROVIDERS !== "object") { report("SKIP callAI suite (ai.js not loaded)"); return; }
   const realFetch = window.fetch;
@@ -1776,7 +1793,7 @@ suiteIf("_pbpTrIs429 / _pbpTrMissingIds", "_pbpTrIs429", () => {
     else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
     host.appendChild(div);
   }
-  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  async function atest(name, fn) { return atestNetSerial(name, fn, report); } // shares the network-stub queue (see atestNetSerial)
   function ok(cond, msg) { if (!cond) throw new Error(msg || "assert"); }
   if (typeof _pbpStreamRead !== "function") {
     const div = document.createElement("div");
@@ -2080,7 +2097,7 @@ suiteIf("_pbpTrIs429 / _pbpTrMissingIds", "_pbpTrIs429", () => {
     else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
     host.appendChild(div);
   }
-  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  async function atest(name, fn) { return atestNetSerial(name, fn, report); } // shares the network-stub queue (see atestNetSerial)
   if (typeof _pbpTrTranslateBlock !== "function" || typeof _pbpTrRetryBlock !== "function") {
     const div = document.createElement("div");
     div.className = "case skip";
@@ -4081,7 +4098,7 @@ suite("renderMarkdown: #fragment links stay same-tab, external links keep target
     else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
     host.appendChild(div);
   }
-  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  async function atest(name, fn) { return atestNetSerial(name, fn, report); } // shares the network-stub queue (see atestNetSerial)
   if (typeof _pbpTrExtractGlossary !== "function") {
     const div = document.createElement("div");
     div.className = "case skip";
@@ -6479,7 +6496,7 @@ suite("skim status line", () => {
     else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
     host.appendChild(div);
   }
-  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  async function atest(name, fn) { return atestNetSerial(name, fn, report); } // shares the network-stub queue (see atestNetSerial)
   const task = () => new Promise((resolve) => setTimeout(resolve, 0));
   const pop = _pbpExplainEnsurePop();
   // Production md-preview.css overrides the UA popover centering. Keep this
@@ -7017,7 +7034,7 @@ suite("skim status line", () => {
     else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
     host.appendChild(div);
   }
-  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  async function atest(name, fn) { return atestNetSerial(name, fn, report); } // shares the network-stub queue (see atestNetSerial)
   const realRequest = window.requestAIHostPermissions;
   const permissionError = new Error("permission needed");
   permissionError.code = "host_permission";
@@ -7731,7 +7748,7 @@ suiteIf("tr_ independent cache pool (ZH-6)", "_pbpAiTrRange", () => {
     else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
     host.appendChild(div);
   }
-  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  async function atest(name, fn) { return atestNetSerial(name, fn, report); } // shares the network-stub queue (see atestNetSerial)
 
   await atest("pbpTrRunQueue routes hard failures through describeError", async () => {
     const failedMsgs = [];
@@ -9132,7 +9149,7 @@ window._t4AsyncDone = (async function () {
     else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
     host.appendChild(div);
   }
-  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  async function atest(name, fn) { return atestNetSerial(name, fn, report); } // shares the network-stub queue (see atestNetSerial)
   if (typeof _pbpAskRun !== "function" || typeof _pbpAskOnArticleWillReplace !== "function"
       || typeof _pbpTrOnArticleWillReplace !== "function") {
     const div = document.createElement("div");
@@ -9590,7 +9607,7 @@ window._t5AsyncDone = (async function () {
     else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
     host.appendChild(div);
   }
-  async function atest(name, fn) { try { await fn(); report(name); } catch (e) { report(name, e); } }
+  async function atest(name, fn) { return atestNetSerial(name, fn, report); } // shares the network-stub queue (see atestNetSerial)
   if (typeof _pbpSkimRegen !== "function" || typeof _pbpSkimOnArticleWillReplace !== "function"
       || typeof _pbpHlOnArticleWillReplace !== "function") {
     const div = document.createElement("div");
