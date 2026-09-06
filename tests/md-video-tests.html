@@ -207,6 +207,24 @@ section("pbpYtPickCaptureTab");
   assertEq(pbpYtPickCaptureTab([{ id: 35, url: YT + "BBB", status: "unloaded" }, { id: 36, url: YT + "BBB", status: "complete" }], 35, "BBB"), 36, "a discarded (unloaded) tab counts as not ready");
 })();
 
+section("pbpVideoTargetGone");
+(() => {
+  [
+    "No tab with id: 123",
+    "Frame with ID 0 was removed.",
+    "The tab was closed.",
+    "No frame with id 0 in tab 123.",
+  ].forEach((m) => assertEq(pbpVideoTargetGone(m), true, "gone: " + m));
+  [
+    "Cannot access contents of the page. Extension manifest must request permission to access the respective host.",
+    "Missing host permission for the tab",
+    "The extensions gallery cannot be scripted.",
+    "Error: boom",
+    "",
+    null,
+  ].forEach((m) => assertEq(pbpVideoTargetGone(m), false, "not gone: " + String(m)));
+})();
+
 section("pbpYtDomTranscriptInPage (DOM rescue tier, run against this page's own DOM)");
 await (async () => {
   // The injected scraper is a top-level, closure-free function, so it runs

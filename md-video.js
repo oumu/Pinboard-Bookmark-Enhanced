@@ -33,6 +33,22 @@ function pbpYtTabEligible(tabUrl) {
   } catch (_) { return false; }
 }
 
+// scripting.executeScript throws one of these when the target vanished
+// between the tabs.query that picked it and the injection: closed, discarded,
+// reloaded or navigated (its main frame torn down). Expected mid-run outcomes,
+// not defects -- the caller stands down and the next tier runs -- so they
+// report at info; anything else (host access, CSP, a throw inside the
+// injected function) stays a warn, because a warn lands in the extension's
+// error panel and reads as a fault. Shapes seen on devices / in Chromium:
+//   "No tab with id: 123"            tab closed (2026-08-25)
+//   "Frame with ID 0 was removed."   main frame torn down mid-run (2026-09-06)
+//   "The tab was closed."
+//   "No frame with id 0 in tab 123."
+function pbpVideoTargetGone(message) {
+  return /No tab with id|Frame with ID \d+ was removed|The tab was closed|No frame with id \d+ in tab/i
+    .test(String(message || ""));
+}
+
 // The exact origins a provider's caption flow asks for, in ONE prompt.
 // bilibili pairs its API origin with the embed's own origin so the player
 // bridge (bili-player-bridge.js) can report the position; YouTube's relay
@@ -2548,8 +2564,8 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
       });
     } catch (e) {
       const msg = (e && e.message) || String(e);
-      // Closed between the query and the injection: expected, not an error.
-      if (/No tab with id/i.test(msg)) console.info("[pbp-video] panel rescue: the tab closed mid-run");
+      // Gone between the query and the injection: expected, not an error.
+      if (pbpVideoTargetGone(msg)) console.info("[pbp-video] panel rescue: the tab closed or navigated mid-run");
       else console.warn("[pbp-video] rescue injection failed:", msg);
       return null;
     }
@@ -2598,8 +2614,8 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
       });
     } catch (e) {
       const msg = (e && e.message) || String(e);
-      // Closed between the query and the injection: expected, not an error.
-      if (/No tab with id/i.test(msg)) console.info("[pbp-video] dom transcript: the tab closed mid-run");
+      // Gone between the query and the injection: expected, not an error.
+      if (pbpVideoTargetGone(msg)) console.info("[pbp-video] dom transcript: the tab closed or navigated mid-run");
       else console.warn("[pbp-video] dom transcript injection failed:", msg);
       return null;
     }
@@ -2826,8 +2842,8 @@ async function pbpYtDomTranscriptInPage(vid, opts) {
       });
     } catch (e) {
       const msg = (e && e.message) || String(e);
-      // Closed between the query and the injection: expected, not an error.
-      if (/No tab with id/i.test(msg)) console.info("[pbp-video] player capture: the tab closed mid-run");
+      // Gone between the query and the injection: expected, not an error.
+      if (pbpVideoTargetGone(msg)) console.info("[pbp-video] player capture: the tab closed or navigated mid-run");
       else console.warn("[pbp-video] player capture injection failed:", msg);
       return null;
     }
