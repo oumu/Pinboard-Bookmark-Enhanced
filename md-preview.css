@@ -2796,14 +2796,14 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 #ask-panel .ask-retry, #ask-panel .ask-clear-btn { font-size: 0.8em; }
 .ask-ic {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; padding: 0;
+  width: 26px; height: 26px; padding: 0; /* md rung (was 28): the reader's icon buttons share .action-btn's height */
   border: 1px solid transparent; border-radius: var(--radius-md);
   background: none; color: var(--fg-muted); cursor: pointer;
 }
 .ask-ic:hover { background: var(--btn-hover); color: var(--fg); }
 .ask-ic:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .ask-ic svg { width: 15px; height: 15px; }
-/* Shared hover fade for the 28px icon-button family: these reuse .ask-ic's
+/* Shared hover fade for the 26px icon-button family: these reuse .ask-ic's
    look (see .skim-ic note) but half the family lacked .action-btn's 150ms
    fade -- one declaration keeps the whole family in step. */
 .ask-ic, .skim-ic, .srch-nav, .srch-regex, .typo-step, .typo-seg-btn,
@@ -3066,7 +3066,7 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
   /* Icon-only cells sharing the explain-pop trio; equal thirds of the 292px
      row, height fixed so no locale can reflow the card. */
   flex: 1 1 0;
-  height: 28px;
+  height: 26px; /* md rung (was 28) */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3110,10 +3110,10 @@ body.ask-open main { margin-right: calc(380px + var(--sp-4)); }
 .hl-card-save:hover, .hl-card-delete:hover { background: var(--btn-hover); }
 /* Icon-only override AFTER the shared text-button rule -- same specificity,
    so source order is what keeps padding at 0 (a 4px 10px pad inside the fixed
-   28px cell left the 13px cross 6px of content box; Codex catch). */
+   cell would leave the 13px cross a sliver of content box; Codex catch). */
 .hl-card-delete {
   color: var(--danger);
-  width: 28px;
+  width: 26px; /* square on the md rung (was 28) */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3554,7 +3554,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
 .skim-head { display: flex; align-items: center; gap: var(--sp-2); }
 .skim-head h2 { flex: 1; font-size: 1.05em; font-weight: 600; margin: 0; }
 #skim-stop[hidden] { display: none; }
-/* Icon-only header buttons -- same 28x28/border/hover/focus-visible
+/* Icon-only header buttons -- same 26x26/border/hover/focus-visible
    token family as .ask-ic (md-preview.css ~:1442-1450), given its own
    class rather than reusing .ask-ic's name (this codebase's existing
    convention: each feature's near-identical icon-button styles get
@@ -3562,7 +3562,7 @@ html.motion-ready :is(#search-pop, #kbd-help-pop, #pb-hl-card):popover-open {
    .srch-regex, rather than sharing one class across files). */
 .skim-ic {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; padding: 0;
+  width: 26px; height: 26px; padding: 0; /* md rung (was 28): the reader's icon buttons share .action-btn's height */
   border: 1px solid transparent; border-radius: var(--radius-md);
   background: none; color: var(--fg-muted); cursor: pointer;
 }
@@ -3665,9 +3665,10 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
    per-class rules that follow (icon-only width, chip tone, caret, pressed,
    copied, narrow) win by order alone, and the global [hidden] rule still
    hides. The <select> keeps its native arrow; box-sizing pins it to the
-   buttons' 28px instead of letting padding + 16px text grow it to 32. */
+   buttons' height instead of letting padding + 16px text grow it to 32; that
+   height is the md rung, 26px, since 2026-09-06 (it was the old 28px icon size). */
 .pbv-bar > :where(select, button, a, .pbv-ai-note), .pbv-copy-group > :where(button) {
-  box-sizing: border-box; height: 28px; min-height: 28px; padding: 0 var(--sp-3);
+  box-sizing: border-box; height: 26px; min-height: 26px; padding: 0 var(--sp-3);
   font: inherit; font-size: 13px; font-weight: 500; line-height: 1; white-space: nowrap;
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--btn-border); border-radius: var(--radius-md);
@@ -3685,7 +3686,7 @@ html.motion-ready #skim-collapse.motion-toggle svg { transition: transform 150ms
 /* Icon-only members: square, glyph centred. Enumerated by CLASS (not
    `button`) because .pbv-open-ext is an <a> and .pbv-bridge-enable is a
    labelled button that must keep the text padding. */
-.pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry, .pbv-ai-cancel, .pbv-loop, .pbv-autopause, .pbv-estimate, .pbv-open-ext { width: 28px; min-width: 28px; padding: 0; }
+.pbv-copy, .pbv-ai-punct, .pbv-follow, .pbv-retry, .pbv-ai-cancel, .pbv-loop, .pbv-autopause, .pbv-estimate, .pbv-open-ext { width: 26px; min-width: 26px; padding: 0; }
 .pbv-copy svg, .pbv-ai-punct svg, .pbv-follow svg, .pbv-retry svg, .pbv-ai-cancel svg, .pbv-open-ext svg, .pbv-loop svg, .pbv-autopause svg, .pbv-estimate svg { width: 16px; height: 16px; }
 /* Coarse pointers (T7.8): every interactive member reaches the 44px target
    (min-width beats the icon rule's explicit width); the chip is not a
