@@ -26,7 +26,7 @@ const DPR_VALUES = Object.freeze([1, 1.25, 1.5, 2]);
 const MAX_CENTER_DELTA_PHYSICAL_PX = 2;
 // PBP_HELP_RASTER_RANGES=1 prints the per-(locale, DPR 2, script, role) delta ranges on
 // a passing run too -- the calibration view: run it under the local fonts and under
-// FONTCONFIG_FILE=scripts/ci-fonts.conf and pick offsets that keep BOTH within tolerance.
+// FONTCONFIG_FILE="$PWD/scripts/ci-fonts.conf" and pick offsets that keep BOTH within tolerance.
 const PRINT_RANGES = process.env.PBP_HELP_RASTER_RANGES === "1";
 const HELP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>';
 

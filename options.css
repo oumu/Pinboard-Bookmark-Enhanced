@@ -444,11 +444,14 @@ h1 { font-size: 18px; color: var(--opt-fg); margin-bottom: var(--opt-sp-7); bord
    itself never moves, so focus and pointer geometry stay stable. */
 [data-help-role] { --context-help-optical-y: 0px; }
 /* Centre-anchored roles (the copy is a flex label with a checkbox, or the
-   action row): one constant per script, sitting between the two font
-   families the raster audit is run under (Segoe UI locally, DejaVu via
-   scripts/ci-fonts.conf) so both stay within its tolerance. */
+   action row): one constant per script, sitting at the midpoint of the two
+   font stacks the raster audit runs under (Segoe UI / Microsoft YaHei on the
+   Windows host, DejaVu / WenQuanYi Zen Hei on CI via scripts/ci-fonts.conf).
+   CJK choice copy sits ~1.25 CSS px lower under YaHei than under WenQuanYi,
+   so its midpoint leaves only ~0.25 physical px of headroom on either side
+   at DPR 2; re-measure with PBP_HELP_RASTER_RANGES=1 before touching it. */
 [data-help-script="alphabetic"][data-help-role="choice"] { --context-help-optical-y: 0.25px; }
-[data-help-script="cjk"][data-help-role="choice"] { --context-help-optical-y: 0.75px; }
+[data-help-script="cjk"][data-help-role="choice"] { --context-help-optical-y: -0.375px; }
 [data-help-script="alphabetic"][data-help-role="action"] { --context-help-optical-y: -1.5px; }
 [data-help-script="cjk"][data-help-role="action"] { --context-help-optical-y: -1px; }
 /* Text-only hosts (section / field / group) anchor the toggle to the copy's
