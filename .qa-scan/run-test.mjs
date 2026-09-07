@@ -21,6 +21,13 @@ const abs = resolve(file);
 const rel = relative(ROOT, abs).split("\\").join("/");
 const TEST_TIMEOUT_MS = rel === "tests/md-convert-tests.html" ? 45000 : 30000;
 const CLEANUP_TIMEOUT_MS = 5000;
+// A real deadline for the result-row wait, instead of the old timeout: 0
+// (infinite — only the outer `bounded("test", TEST_TIMEOUT_MS)` ever cut it
+// off). Leaving CLEANUP_TIMEOUT_MS of headroom lets a stalled suite still be
+// sampled (see the "diagnostic sample" bounded() below) before the outer
+// deadline fires; the *0.85 floor keeps that headroom from swallowing most
+// of the budget if TEST_TIMEOUT_MS is ever set low.
+const WAIT_TIMEOUT_MS = Math.max(TEST_TIMEOUT_MS - CLEANUP_TIMEOUT_MS, Math.floor(TEST_TIMEOUT_MS * 0.85));
 
 // Completion is explicit: each suite must emit exactly this many DOM result
 // ROWS carrying a pass/fail/skip class. NOTE: the row unit varies per page --
@@ -169,28 +176,62 @@ try {
 
     const response = await page.goto(url, { waitUntil: "load", timeout: 0 });
     if (!response || !response.ok()) throw new Error(`test page failed to load: HTTP ${response && response.status()}`);
-    await page.waitForFunction((resultCount) => {
-      let total = 0;
-      for (const el of document.querySelectorAll(".pass, .fail, .skip")) {
-        if (el.classList.contains("pass") || el.classList.contains("fail") || el.classList.contains("skip")) total++;
-      }
-      return total >= resultCount;
-    }, expected, { polling: 50, timeout: 0 });
 
-    return page.evaluate(() => {
-      let pass = 0, fail = 0, skip = 0;
-      const failures = [];
-      for (const el of document.querySelectorAll(".pass, .fail, .skip")) {
-        if (el.classList.contains("fail")) { fail++; failures.push(el.textContent || "FAIL"); }
-        else if (el.classList.contains("pass")) pass++;
-        else if (el.classList.contains("skip")) skip++;
-      }
-      return { pass, fail, skip, failures: failures.slice(0, 20), title: document.title || "" };
-    });
+    // Real deadline (not the old timeout: 0 — infinite, leaving only the
+    // outer bounded("test", TEST_TIMEOUT_MS) to ever cut this off). A suite
+    // that stalls (EXPECTED_RESULTS miscounted, an awaited mock that never
+    // settles, a case that dies mid-block) needs to fall through to the
+    // sampling below instead of vanishing into one opaque "test timed out"
+    // line once the outer deadline eventually fires.
+    let stalled = false;
+    try {
+      await page.waitForFunction((resultCount) => {
+        let total = 0;
+        for (const el of document.querySelectorAll(".pass, .fail, .skip")) {
+          if (el.classList.contains("pass") || el.classList.contains("fail") || el.classList.contains("skip")) total++;
+        }
+        return total >= resultCount;
+      }, expected, { polling: 50, timeout: WAIT_TIMEOUT_MS });
+    } catch (error) {
+      if (error && error.name === "TimeoutError") stalled = true;
+      else throw error; // not a stall (e.g. navigation/context destroyed) — keep its own signal
+    }
+
+    // Sample current DOM state either way — the page is still alive here
+    // (only `finally` closes it). Bounded separately: page.evaluate() has no
+    // built-in timeout, so a suite stuck in a synchronous infinite loop
+    // would otherwise hang this call forever instead of letting the outer
+    // "test timed out" message (and whatever this sample already gathered)
+    // surface. A failed sample must not swallow the stall signal itself.
+    let dom;
+    try {
+      dom = await bounded("diagnostic sample", CLEANUP_TIMEOUT_MS, () => page.evaluate(() => {
+        let pass = 0, fail = 0, skip = 0;
+        const failures = [];
+        const rows = document.querySelectorAll(".pass, .fail, .skip");
+        for (const el of rows) {
+          if (el.classList.contains("fail")) { fail++; failures.push(el.textContent || "FAIL"); }
+          else if (el.classList.contains("pass")) pass++;
+          else if (el.classList.contains("skip")) skip++;
+        }
+        const lastRows = [...rows].slice(-3).map((el) => (el.textContent || "").trim());
+        return { pass, fail, skip, failures: failures.slice(0, 20), title: document.title || "", lastRows };
+      }));
+    } catch (sampleError) {
+      dom = {
+        pass: 0, fail: 0, skip: 0, failures: [], title: "", lastRows: [],
+        sampleError: sampleError && sampleError.message ? sampleError.message : String(sampleError),
+      };
+    }
+    return { ...dom, stalled };
   });
 
   const total = dom.pass + dom.fail + dom.skip;
-  console.log(`pass=${dom.pass} fail=${dom.fail} skip=${dom.skip} expected=${expected} title="${dom.title}"`);
+  const stalledNote = dom.stalled
+    ? ` STALLED(rendered=${total}, last row: "${(dom.lastRows && dom.lastRows[dom.lastRows.length - 1]) || ""}")`
+    : "";
+  console.log(`pass=${dom.pass} fail=${dom.fail} skip=${dom.skip} expected=${expected} title="${dom.title}"${stalledNote}`);
+  if (dom.sampleError) console.error(`ERROR: diagnostic sample failed after the suite stalled: ${dom.sampleError}`);
   if (dom.failures?.length) console.error("failures:\n  " + dom.failures.join("\n  "));
   if (total !== expected) console.error(`ERROR: expected ${expected} result rows, found ${total}`);
   if (runtimeErrors.length) console.error("errors:\n  " + runtimeErrors.slice(0, 25).join("\n  "));
@@ -203,7 +244,7 @@ try {
     const unique = [...new Set(blockedProgrammatic)];
     console.error(`ERROR: closed network blocked ${blockedProgrammatic.length} PROGRAMMATIC external request(s) — a mock is missing:\n  ` + unique.slice(0, 10).join("\n  "));
   }
-  if (dom.fail > 0 || total !== expected || runtimeErrors.length > 0 || browserDisconnected || blockedProgrammatic.length > 0) process.exitCode = 1;
+  if (dom.fail > 0 || total !== expected || runtimeErrors.length > 0 || browserDisconnected || blockedProgrammatic.length > 0 || dom.stalled) process.exitCode = 1;
 } catch (error) {
   console.error(`ERROR: ${error && error.message ? error.message : error}`);
   if (runtimeErrors.length) console.error("errors:\n  " + runtimeErrors.slice(0, 25).join("\n  "));
