@@ -271,14 +271,30 @@ suite("lang instruction helpers", () => {
     assertEq(aiTagLangInstruction({ aiTagLang: "en" }), "Tags must be in English.", "en");
     assertEq(aiTagLangInstruction({ aiTagLang: "zh" }), "Tags must be in Chinese (简体中文).", "zh");
     assertEq(aiTagLangInstruction({ aiTagLang: "auto" }), "Use the same language as the content for tags.", "auto");
-    assertEq(aiTagLangInstruction({ aiTagLang: "fr" }), "Tags must be in fr.", "fallback");
+    // de/fr/es/ru are real options in options.html's AI Tag Language <select>
+    // (not unknown codes) - each must resolve to a proper language name, not
+    // the bare ISO code the fallback branch below produces (K98).
+    assertEq(aiTagLangInstruction({ aiTagLang: "de" }), "Tags must be in German (Deutsch).", "de");
+    assertEq(aiTagLangInstruction({ aiTagLang: "fr" }), "Tags must be in French (Français).", "fr");
+    assertEq(aiTagLangInstruction({ aiTagLang: "es" }), "Tags must be in Spanish (Español).", "es");
+    assertEq(aiTagLangInstruction({ aiTagLang: "ru" }), "Tags must be in Russian (Русский).", "ru");
+    // "xx" is not a dropdown option - this is the real fallback case, unlike
+    // the old sample here which used "fr" (a real option) and thereby pinned
+    // the degraded output as a contract instead of catching it as a bug.
+    assertEq(aiTagLangInstruction({ aiTagLang: "xx" }), "Tags must be in xx.", "fallback");
     assertEq(aiTagLangInstruction({}), "Tags must be in English.", "default en");
   });
   test("summary lang: explicit, auto default, fallback", () => {
     assertEq(aiSummaryLangInstruction({ aiSummaryLang: "ja" }), "Write in Japanese.", "ja");
     assertEq(aiSummaryLangInstruction({ aiSummaryLang: "auto" }), "Write in the same language as the content.", "auto");
     assertEq(aiSummaryLangInstruction({}), "Write in the same language as the content.", "default auto");
-    assertEq(aiSummaryLangInstruction({ aiSummaryLang: "fr" }), "Write in fr.", "fallback");
+    assertEq(aiSummaryLangInstruction({ aiSummaryLang: "de" }), "Write in German (Deutsch).", "de");
+    assertEq(aiSummaryLangInstruction({ aiSummaryLang: "fr" }), "Write in French (Français).", "fr");
+    assertEq(aiSummaryLangInstruction({ aiSummaryLang: "es" }), "Write in Spanish (Español).", "es");
+    assertEq(aiSummaryLangInstruction({ aiSummaryLang: "ru" }), "Write in Russian (Русский).", "ru");
+    // Same "xx" swap as the tag-lang test above - "fr" is a real dropdown
+    // option, not an unknown code.
+    assertEq(aiSummaryLangInstruction({ aiSummaryLang: "xx" }), "Write in xx.", "fallback");
   });
 });
 

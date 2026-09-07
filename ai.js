@@ -1050,28 +1050,47 @@ const TAG_SEP_MAP = {
   " ": "use spaces for multi-word tags",
 };
 
+// Language names for the {{lang_instruction}} prompt fragment, shared by the
+// tag/summary/combined builders below and reused verbatim by md-skim.js
+// (aiSummaryLangInstruction). Single source of truth for the 10 non-auto
+// codes options.html's AI Tag/Summary Language <select>s list (K98) - a code
+// missing here falls through to the original bare-code instruction, which is
+// also the correct behavior for an unlisted/custom code (e.g. from an
+// imported backup - options-backup.js does not allowlist this field).
+//
+// zh/zh-TW/zh-HK/en/ja/ko MUST stay byte-identical to their prior hardcoded
+// strings: md-skim.js:119 uses aiSummaryLangInstruction's RETURN STRING
+// itself as the skim cache's langKey (exact-match compared in
+// _pbpSkimCacheMatches), so any wording change here silently invalidates
+// every cached skim result for that language. That is also why ja/ko keep
+// their asymmetry below (tag side has always carried the native-script
+// parenthetical, summary side never did) instead of being unified.
+const AI_OUTPUT_LANG_NAMES = {
+  zh: "Chinese (简体中文)",
+  "zh-TW": "Traditional Chinese (繁體中文/台灣)",
+  "zh-HK": "Traditional Chinese (繁體中文/香港)",
+  en: "English",
+  ja: "Japanese (日本語)",
+  ko: "Korean (한국어)",
+  de: "German (Deutsch)",
+  fr: "French (Français)",
+  es: "Spanish (Español)",
+  ru: "Russian (Русский)",
+};
+const AI_SUMMARY_LANG_NAMES = { ...AI_OUTPUT_LANG_NAMES, ja: "Japanese", ko: "Korean" };
+
 function aiTagLangInstruction(s) {
   const lang = (s && s.aiTagLang) || "en";
   if (lang === "auto") return "Use the same language as the content for tags.";
-  if (lang === "zh") return "Tags must be in Chinese (简体中文).";
-  if (lang === "zh-TW") return "Tags must be in Traditional Chinese (繁體中文/台灣).";
-  if (lang === "zh-HK") return "Tags must be in Traditional Chinese (繁體中文/香港).";
-  if (lang === "en") return "Tags must be in English.";
-  if (lang === "ja") return "Tags must be in Japanese (日本語).";
-  if (lang === "ko") return "Tags must be in Korean (한국어).";
-  return `Tags must be in ${lang}.`;
+  const name = AI_OUTPUT_LANG_NAMES[lang];
+  return name ? `Tags must be in ${name}.` : `Tags must be in ${lang}.`;
 }
 
 function aiSummaryLangInstruction(s) {
   const lang = (s && s.aiSummaryLang) || "auto";
-  if (lang === "zh") return "Write in Chinese (简体中文).";
-  if (lang === "zh-TW") return "Write in Traditional Chinese (繁體中文/台灣).";
-  if (lang === "zh-HK") return "Write in Traditional Chinese (繁體中文/香港).";
-  if (lang === "en") return "Write in English.";
-  if (lang === "ja") return "Write in Japanese.";
-  if (lang === "ko") return "Write in Korean.";
-  if (lang !== "auto") return `Write in ${lang}.`;
-  return "Write in the same language as the content.";
+  if (lang === "auto") return "Write in the same language as the content.";
+  const name = AI_SUMMARY_LANG_NAMES[lang];
+  return name ? `Write in ${name}.` : `Write in ${lang}.`;
 }
 
 // ---- Prompt builders (no DOM dependency) ----
