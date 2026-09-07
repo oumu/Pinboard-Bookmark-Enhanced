@@ -143,8 +143,10 @@ let _notesBatchBusy = false;
 
 // Account scoping (roadmap #19): memoized owner scope for the scan below. The
 // library page is long-lived and the account can change under it, so the
-// cache invalidates on any pinboardToken/optSyncEnabled change (either area —
-// credential routing decides which one holds the token). Rule mirrors
+// cache invalidates on any pinboardToken/optSyncEnabled/syncApiKeys change
+// (either area — credential routing decides which one holds the token; a
+// change that flips only syncApiKeys moves the live token between areas,
+// shared.js:578, without ever touching pinboardToken). Rule mirrors
 // md-highlight's pbpHlItemVisibleFor: ownerless items are visible to
 // everyone, owned items only to their owner; resolve failure -> "" = only
 // ownerless items show (fail-closed for owned ones).
@@ -160,8 +162,9 @@ async function _pbpNotesOwner() {
   return scope;
 }
 if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
-  chrome.storage.onChanged.addListener((changes) => {
-    if (changes.pinboardToken || changes.optSyncEnabled) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" && area !== "sync") return;
+    if (changes.pinboardToken || changes.optSyncEnabled || changes.syncApiKeys) {
       _notesOwnerCache = null;
       // Fail-closed NOW, not at the next view activation: an account switch
       // carries no pbp_hl_ write, so without this the old account's notes

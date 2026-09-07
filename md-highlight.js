@@ -2609,8 +2609,13 @@ if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged)
     // account-isolation rule: owner is re-validated on reads and commits, not
     // frozen at boot). Token routing decides the area, so listen on both;
     // re-resolve, then re-filter the display set from the raw mirror.
+    // syncApiKeys (K30): credential routing decides which area the live
+    // token lives in (shared.js:578, tokenArea = syncApiKeys ? "sync" :
+    // "local"), so a sync change that flips ONLY this key moves the token
+    // without ever touching pinboardToken -- a two-key condition goes silent
+    // on exactly that change and lets a stale cached owner survive.
     if ((area === "local" || area === "sync") &&
-        (changes.pinboardToken || changes.optSyncEnabled)) {
+        (changes.pinboardToken || changes.optSyncEnabled || changes.syncApiKeys)) {
       (async () => {
         let scope = "";
         try {

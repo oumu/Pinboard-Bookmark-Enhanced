@@ -991,6 +991,33 @@ function selectionRange(n, start, end) {
   check("the previous account's record is left byte-identical by the switch",
     JSON.stringify(record().items) === JSON.stringify(ownedRecord().items), JSON.stringify(record()));
 
+  // K30: a sync-to-sync token rotation can flip ONLY syncApiKeys (credential
+  // routing moves the live token from local to sync, or back -- shared.js:578
+  // tokenArea = syncApiKeys ? "sync" : "local"), and the sync change payload
+  // that reaches another device's listener can carry no pinboardToken at all.
+  // A two-key condition goes silent on exactly this change; the switch must
+  // land the same as the pinboardToken-only case above.
+  async function switchAccountToViaSyncApiKeys(owner) {
+    OWNER_NOW = owner;
+    CHANGE_LISTENERS.forEach((fn) => fn({ syncApiKeys: { oldValue: false, newValue: true } }, "sync"));
+    await flush();
+  }
+
+  await bootAs(ALICE);
+  _pbpHlCardItemId = "h-hers";
+  cardNote.value = "half a sentence";
+  _pbpHlCardBaseNote = "";
+  _pbpHlNoteDirty = true;
+  _pbpHlBarRange = selectionRange(1, 0, 5);
+  CARD_HIDDEN = 0;
+  await switchAccountToViaSyncApiKeys(BOB);
+  check("a syncApiKeys-only change also hides the card describing the previous account's item",
+    CARD_HIDDEN === 1, CARD_HIDDEN);
+  check("a syncApiKeys-only change also unbinds the card, so nothing can still commit through it",
+    _pbpHlCardItemId === null, String(_pbpHlCardItemId));
+  check("a syncApiKeys-only change also drops the selection the old account's bar was holding",
+    _pbpHlBarRange === null, String(_pbpHlBarRange));
+
   // Taking the card down is the first line of defence; the gate on the WRITE is
   // what holds when this page never hears about the switch at all (its own
   // re-read can fail, and silence is not a guarantee of no change). Each edit
