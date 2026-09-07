@@ -888,7 +888,7 @@ const PBP_RECLAIM_CATEGORIES = {
   jina: { keys: [], prefixes: ["jina_md_"] },                       // Jina page extract cache (usually the largest)
   urls: { keys: ["cached_existing_urls"], prefixes: [] },           // legacy bookmark URL set residue
   tags: { keys: ["cached_user_tags"], prefixes: ["cached_suggest_"] }, // tag autocomplete caches
-  misc: { keys: ["_waybackLog", "_waybackAttempts", "pbp_ai_usage", "pbpThinkReject"], prefixes: [] }, // archive log + AI usage + think-reject memo
+  misc: { keys: ["_waybackLog", "_waybackAttempts", "pbp_ai_usage", "pbpThinkReject", "pbpAiParamFix"], prefixes: [] }, // archive log + AI usage + think-reject + param-fix dialect memos
 };
 
 // Second line of defense (belt-and-suspenders): even if a caller passes a bogus

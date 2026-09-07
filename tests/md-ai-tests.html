@@ -4315,7 +4315,7 @@ suite("htmlToMarkdown table rule: nested table promotes outer table to HTML pass
   const RECLAIMABLE = [
     "jina_md_https://ex.com/a", "jina_md_https://ex.com/b", "cached_existing_urls",
     "cached_user_tags", "cached_suggest_https://ex.com/a", "_waybackLog",
-    "_waybackAttempts", "pbp_ai_usage", "pbpThinkReject",
+    "_waybackAttempts", "pbp_ai_usage", "pbpThinkReject", "pbpAiParamFix",
   ];
   function freshStore() {
     const s = {};
@@ -4380,7 +4380,7 @@ suite("htmlToMarkdown table rule: nested table promotes outer table to HTML pass
     assertEq(m.jina.keys.length, 2, "two jina keys");
     assertEq(m.urls.keys.length, 1, "one url key");
     assertEq(m.tags.keys.length, 2, "cached_user_tags + one suggest");
-    assertEq(m.misc.keys.length, 4, "wayback log+attempts + ai usage + think reject");
+    assertEq(m.misc.keys.length, 5, "wayback log+attempts + ai usage + think reject + param fix");
     ["jina", "urls", "tags", "misc"].forEach((c) => assert(m[c].bytes > 0, c + " bytes > 0"));
     // never-clear keys never appear in any category
     const allMeasured = [].concat(m.jina.keys, m.urls.keys, m.tags.keys, m.misc.keys);
