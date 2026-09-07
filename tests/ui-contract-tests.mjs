@@ -1572,6 +1572,173 @@ for (const [id, label, heading] of [["opt-lang", "secLanguage", "sec-language"],
     "options.js: mdVideoDarkScheme is not wired through load, collect and the Reader reset map");
 }
 
+// Default-value equality gate (K79, follow-up to the reset-map coverage gate
+// above): a setting's default is hand-copied in four places -- shared.js's
+// SETTINGS_DEFAULTS (authoritative), options.html's static checked/value=,
+// options.js's PANEL_DEFAULTS ("reset this panel"), and the collector's
+// `|| "fallback"` literals (collectSettingsFromForm, options.js ~2592-2733).
+// The reset-map gate above only asserts presence ("is this control listed
+// somewhere"); it never compares values. Six checkboxes silently drifted to
+// the wrong static default before this gate existed (SETTINGS_DEFAULTS said
+// true, options.html shipped without `checked`) -- two of them privacy-
+// facing (incognito-is-private, never-archive-private) -- and nothing caught
+// it because "in PANEL_DEFAULTS" said nothing about "equal to it".
+//
+// Scope: this gate covers three of the four copies (SETTINGS_DEFAULTS,
+// options.html, PANEL_DEFAULTS). The fourth -- collectSettingsFromForm's
+// `|| "fallback"` -- is a different shape (id -> key, the save direction,
+// not key -> id) serving a different purpose (a defensive fallback for an
+// empty field at save time, not a declared default); folding it into this
+// walk would force allowlist entries for shape mismatches rather than catch
+// real drift, so it stays unwatched here (see task-7-report.md).
+//
+// loadSettings's checkMap/fieldMap (~1925/~1848) supply the id<->key
+// registry: each entry says "this HTML id displays this SETTINGS_DEFAULTS
+// key, in this shape". Three shapes cover every entry today -- bare `s.x`,
+// `s.x !== false`, `s.x === true` (checkMap) and bare `s.x`, `s.x ||
+// "literal"` (fieldMap). Anything else is an unrecognized shape and MUST be
+// allowlisted with a reason or the gate fails loud -- never silently
+// skipped: a future `s.foo ?? true` or ternary must not quietly drop out of
+// the walk and leave the gate green over an unchecked control (CLAUDE.md:
+// "断言要泛化到类别，别只问现在能不能过").
+{
+  const DEFAULT_EQ_ALLOWLIST = {
+    // customOverlayCSS is not a SETTINGS_DEFAULTS key at all -- it is a
+    // schema-v2 large-value field synced outside the settings.get() default
+    // merge (shared.js:1187-1199, options.js ~1814), so there is nothing in
+    // SETTINGS_DEFAULTS to compare opt-custom-css's textarea content to.
+    "opt-custom-css": "customOverlayCSS is not a SETTINGS_DEFAULTS key (large-value codec field)",
+    // opt-preview-ai-model is a computed per-provider lookup
+    // (_previewModelMap[s.aiProvider] ?? ""), not a declared default -- its
+    // effective value depends on aiProvider and previewAiModelByProvider,
+    // which a single static default cannot express.
+    "opt-preview-ai-model": "computed per-provider override (previewAiModelByProvider lookup), not a literal default",
+    // dict-anki-deck / dict-anki-port intentionally show placeholder= text
+    // instead of value= (options.html ~884/~886): an empty field with a
+    // grey hint never asserts a wrong state the way a checkbox's `checked`
+    // or a select's `selected` does, so it is a different (and accepted)
+    // pattern, not the K79 bug class this gate exists to catch.
+    "dict-anki-deck": "placeholder-only field by design, not a value= default",
+    "dict-anki-port": "placeholder-only field by design, not a value= default"
+  };
+
+  const sdStart = sharedJs.indexOf("const SETTINGS_DEFAULTS = {");
+  const sdEnd = sharedJs.indexOf("\n};", sdStart);
+  let settingsDefaults = null;
+  try { settingsDefaults = runInNewContext("(" + sharedJs.slice(sdStart + "const SETTINGS_DEFAULTS = ".length, sdEnd + 2) + ")", {}); } catch (_) {}
+  check(settingsDefaults && typeof settingsDefaults === "object",
+    "shared.js: SETTINGS_DEFAULTS is not a plain literal the default-equality gate can evaluate");
+
+  // Re-parsed independently of the coverage gate's local `panelDefaults`
+  // above (that one lives in its own block scope) -- same technique, same
+  // failure handling: a parse failure is a `check()` failure here too, not a
+  // silently-empty map.
+  const pdStart2 = optionsJs.indexOf("const PANEL_DEFAULTS = {");
+  const pdEnd2 = optionsJs.indexOf("\n  };", pdStart2) + 4;
+  let panelDefaults2 = null;
+  try { panelDefaults2 = runInNewContext("(" + optionsJs.slice(pdStart2 + "const PANEL_DEFAULTS = ".length, pdEnd2) + ")", {}); } catch (_) {}
+  check(panelDefaults2 && typeof panelDefaults2 === "object",
+    "options.js: PANEL_DEFAULTS is not a plain literal the default-equality gate can evaluate");
+  const flatPanelDefaults = {};
+  if (panelDefaults2) {
+    for (const panel of Object.values(panelDefaults2)) {
+      Object.assign(flatPanelDefaults, panel.fields || {});
+      for (const group of Object.values(panel.nested || {})) Object.assign(flatPanelDefaults, group);
+    }
+  }
+
+  // Pull the `"id": expr,` entries out of a `const NAME = { ... };` block
+  // (2-space indented, the same closing shape PANEL_DEFAULTS uses above)
+  // WITHOUT evaluating them -- the right-hand sides reference the
+  // closure-local `s`, so runInNewContext (fine for a plain object literal)
+  // cannot run them.
+  const extractIdExprBlock = (name) => {
+    const s = optionsJs.indexOf(`const ${name} = {`);
+    const e = optionsJs.indexOf("\n  };", s);
+    return optionsJs.slice(s + `const ${name} = {`.length, e);
+  };
+  const parseIdExprMap = (block) => {
+    const keyRe = /"([a-zA-Z0-9_-]+)":\s*/g;
+    const matches = [...block.matchAll(keyRe)];
+    const out = {};
+    for (let i = 0; i < matches.length; i++) {
+      const id = matches[i][1];
+      const exprStart = matches[i].index + matches[i][0].length;
+      const exprEnd = i + 1 < matches.length ? matches[i + 1].index : block.length;
+      out[id] = block.slice(exprStart, exprEnd).replace(/\/\/.*$/m, "").replace(/,\s*$/, "").trim();
+    }
+    return out;
+  };
+  const checkMapIds = parseIdExprMap(extractIdExprBlock("checkMap"));
+  const fieldMapIds = parseIdExprMap(extractIdExprBlock("fieldMap"));
+
+  const classify = (expr) => {
+    let m;
+    if ((m = expr.match(/^s\.([A-Za-z0-9_]+)$/))) return { form: "bare", key: m[1] };
+    if ((m = expr.match(/^s\.([A-Za-z0-9_]+) !== false$/))) return { form: "!==false", key: m[1] };
+    if ((m = expr.match(/^s\.([A-Za-z0-9_]+) === true$/))) return { form: "===true", key: m[1] };
+    if ((m = expr.match(/^s\.([A-Za-z0-9_]+) \|\| ("(?:[^"\\]|\\.)*")$/))) return { form: "||literal", key: m[1], literal: JSON.parse(m[2]) };
+    return { form: "unrecognized", key: null };
+  };
+  const expectedFor = (cls, defaultValue) => {
+    if (cls.form === "bare") return defaultValue;
+    if (cls.form === "!==false") return defaultValue !== false;
+    if (cls.form === "===true") return defaultValue === true;
+    if (cls.form === "||literal") return defaultValue || cls.literal;
+    return undefined;
+  };
+
+  const htmlCheckedDefault = (id) => {
+    const m = optionsHtml.match(new RegExp(`<input[^>]*\\bid="${id}"[^>]*>`));
+    return m ? /\bchecked\b/.test(m[0]) : null;
+  };
+  const htmlValueDefault = (id) => {
+    const selM = optionsHtml.match(new RegExp(`<select[^>]*\\bid="${id}"[^>]*>([\\s\\S]*?)</select>`));
+    if (selM) {
+      let selected = null, first = null;
+      for (const om of selM[1].matchAll(/<option\b([^>]*)>/g)) {
+        const val = (om[1].match(/\bvalue="([^"]*)"/) || [])[1] ?? "";
+        if (first === null) first = val;
+        if (/\bselected\b/.test(om[1])) selected = val;
+      }
+      return selected !== null ? selected : first;
+    }
+    const inM = optionsHtml.match(new RegExp(`<input[^>]*\\bid="${id}"[^>]*>`));
+    if (inM) return (inM[0].match(/\bvalue="([^"]*)"/) || [])[1] ?? "";
+    const taM = optionsHtml.match(new RegExp(`<textarea[^>]*\\bid="${id}"[^>]*>([\\s\\S]*?)</textarea>`));
+    return taM ? taM[1] : null;
+  };
+
+  const eqOffenders = [];
+  const walkDefaults = (map, kind, htmlDefaultFn, coerce) => {
+    for (const [id, expr] of Object.entries(map)) {
+      const cls = classify(expr);
+      const allowReason = DEFAULT_EQ_ALLOWLIST[id];
+      const resolvable = cls.form !== "unrecognized" && settingsDefaults &&
+        Object.prototype.hasOwnProperty.call(settingsDefaults, cls.key);
+      if (!resolvable) {
+        if (!allowReason) eqOffenders.push(`${id}: unrecognized ${kind} shape "${expr}" -- add to DEFAULT_EQ_ALLOWLIST with a reason or fix the shape`);
+        continue;
+      }
+      if (allowReason) continue; // recognized shape, but documented as a different pattern -- trust the reason, don't also assert
+      const expected = expectedFor(cls, settingsDefaults[cls.key]);
+      const htmlVal = htmlDefaultFn(id);
+      if (htmlVal === null) { eqOffenders.push(`${id}: no matching HTML element found for the default-equality gate`); continue; }
+      if (coerce(htmlVal) !== coerce(expected)) {
+        eqOffenders.push(`${id}: options.html default is ${JSON.stringify(htmlVal)}, SETTINGS_DEFAULTS.${cls.key} implies ${JSON.stringify(expected)}`);
+      }
+      if (Object.prototype.hasOwnProperty.call(flatPanelDefaults, id) && coerce(flatPanelDefaults[id]) !== coerce(expected)) {
+        eqOffenders.push(`${id}: PANEL_DEFAULTS is ${JSON.stringify(flatPanelDefaults[id])}, SETTINGS_DEFAULTS.${cls.key} implies ${JSON.stringify(expected)}`);
+      }
+    }
+  };
+  walkDefaults(checkMapIds, "checkMap", htmlCheckedDefault, (v) => !!v);
+  walkDefaults(fieldMapIds, "fieldMap", htmlValueDefault, (v) => String(v ?? ""));
+
+  check(eqOffenders.length === 0,
+    "default value drifted between SETTINGS_DEFAULTS / options.html / PANEL_DEFAULTS -> " + eqOffenders.join("; "));
+}
+
 // Embedded-frame extraction (2026-08-25/26): the candidate rule lives as a
 // pure, unit-tested function in shared.js (pbpPickDominantFrame), but the two
 // page-context detectors are injected as standalone functions and inline the
