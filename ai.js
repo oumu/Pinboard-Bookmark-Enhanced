@@ -193,14 +193,24 @@ function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
 // (rules/ai-providers.md: the model field is free text), and consumed by the
 // body-dialect self-heal below.
 const _AI_HEALABLE_PARAMS = ["max_tokens", "max_completion_tokens", "temperature"];
+// "The server does not accept this parameter AT ALL", as opposed to "the value
+// you sent is out of range" — the distinction the whole self-heal turns on.
+const _AI_PARAM_REFUSED_RE = /unsupported|unrecognized|not\s+supported|does\s+not\s+support|unknown\s+(?:parameter|argument|field)|extra\s+inputs/;
 function _aiRejectedParam(body, detail) {
+  // The wording gate guards BOTH routes below, error.param included. That field
+  // is filled for ANY parameter-level validation error, range errors among them
+  // ("max_tokens is too large: this model supports at most 4096 completion
+  // tokens"), and a rename is the wrong answer to those: the retry would send an
+  // equally-too-large budget under a new name, the memo would persist the wrong
+  // spelling with no expiry, and the real error would surface only after the
+  // whole retry ladder. Same reason the message route needs it: an incidental
+  // mention ("128000 in the max_tokens" inside a context-length error) must
+  // never rewrite the request body.
+  if (!_AI_PARAM_REFUSED_RE.test(detail)) return null;
   const param = String((body && body.error && body.error.param) || "").trim();
   if (_AI_HEALABLE_PARAMS.indexOf(param) !== -1) return param;
-  // Message-only servers: demand refusal wording, so an incidental mention
-  // ("128000 in the max_tokens" inside a context-length error) never rewrites
-  // the request body.
-  if (!/unsupported|unrecognized|not\s+supported|does\s+not\s+support|unknown\s+(?:parameter|argument|field)|extra\s+inputs/.test(detail)) return null;
-  // The refused field is named BEFORE the suggested replacement ("...'max_tokens'
+  // Message-only servers (some compat proxies leave error.param null): the
+  // refused field is named BEFORE the suggested replacement ("...'max_tokens'
   // is not supported... Use 'max_completion_tokens' instead."), so first mention wins.
   let best = null, bestAt = Infinity;
   for (const p of _AI_HEALABLE_PARAMS) {

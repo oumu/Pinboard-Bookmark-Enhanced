@@ -9920,6 +9920,10 @@ suite("_aiBodyDialect / _aiParamRepair (K133)", () => {
   const COMPAT_400_MESSAGE_ONLY = { error: { message: "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.", type: "invalid_request_error" } };
   const PROXY_400_OLD_FIELD = { error: { message: "Unrecognized request argument supplied: max_completion_tokens", type: "invalid_request_error", param: null, code: null } };
   const OPENAI_400_CONTEXT = { error: { message: "This model's maximum context length is 128000 tokens, however you requested 130000 tokens (2000 in the messages, 128000 in the max_tokens). Please reduce the length of the messages or completion.", type: "invalid_request_error", param: "messages", code: "context_length_exceeded" } };
+  // error.param names max_tokens, but the complaint is about the VALUE, not the
+  // field: translate asks for min(8192, ...) and ask/summary for 4096, and
+  // several compat providers cap below that. A rename is the wrong answer.
+  const OPENAI_400_BUDGET_TOO_LARGE = { error: { message: "max_tokens is too large: 8192. This model supports at most 4096 completion tokens, whereas you provided 8192.", type: "invalid_request_error", param: "max_tokens", code: null } };
   const OPENAI_401_BAD_KEY = { error: { message: "Incorrect API key provided: sk-***. You can find your API key at https://platform.openai.com/account/api-keys.", type: "invalid_request_error", param: null, code: "invalid_api_key" } };
 
   async function hintOf(status, body) {
@@ -10011,6 +10015,10 @@ suite("_aiBodyDialect / _aiParamRepair (K133)", () => {
       const e = await hintOf(401, OPENAI_401_BAD_KEY);
       ok(!e.paramHint, "got " + e.paramHint);
     }],
+    ["error.param alone is not a refusal: a too-large budget is a VALUE error, not a rename request", async () => {
+      const e = await hintOf(400, OPENAI_400_BUDGET_TOO_LARGE);
+      ok(!e.paramHint, "the server named the field but refused the value, got paramHint=" + e.paramHint);
+    }],
     ["non-stream: a max_tokens 400 retries once with max_completion_tokens", async () => {
       reset({ kind: "err", status: 400, body: OPENAI_400_MAX_TOKENS }, { kind: "ok" });
       const out = await callAI(compat("gpt-5.4-nano"), "hi");
@@ -10044,6 +10052,30 @@ suite("_aiBodyDialect / _aiParamRepair (K133)", () => {
       ok(sent.length === 1, "must not retry, saw " + sent.length + " requests");
       ok(/maximum context length/.test(caught.message), "original message survives: " + caught.message);
       ok(caught.status === 400, "status preserved: " + caught.status);
+    }],
+    ["a too-large budget surfaces immediately and never pollutes the memo with a rename", async () => {
+      // custom declares no thinkingOff, so this half isolates the rename ladder:
+      // one request, one error, no self-heal of any kind.
+      reset({ kind: "err", status: 400, body: OPENAI_400_BUDGET_TOO_LARGE });
+      let caught = null;
+      try { await callAI(compat("budget-capped"), "hi", { maxTokens: 8192 }); } catch (e) { caught = e; }
+      ok(caught, "expected a rejection");
+      ok(sent.length === 1, "must not retry a value error, saw " + sent.length + " requests");
+      ok(/too large/.test(caught.message), "the real error surfaces at once: " + caught.message);
+      ok(sent[0].body.max_tokens === 8192, "budget sent under the name we chose: " + JSON.stringify(sent[0].body));
+      // openai: the declared max_completion_tokens must not be flipped -- and must
+      // not be remembered as flipped, which no expiry would ever undo. (Its two
+      // requests are the pre-existing thinkingOff strip-and-retry, not a rename.)
+      const s = { aiProvider: "openai", openaiApiKey: "k", openaiModel: "gpt-5.4-mini" };
+      reset({ kind: "err", status: 400, body: OPENAI_400_BUDGET_TOO_LARGE }, { kind: "err", status: 400, body: OPENAI_400_BUDGET_TOO_LARGE });
+      caught = null;
+      try { await callAI(s, "hi", { maxTokens: 8192 }); } catch (e) { caught = e; }
+      ok(caught, "expected a rejection from openai too");
+      for (const r of sent) ok(r.body.max_completion_tokens === 8192 && !("max_tokens" in r.body), "no rename: " + JSON.stringify(r.body));
+      reset({ kind: "ok" });
+      await callAI(s, "hi");
+      ok(sent.length === 1 && sent[0].body.max_completion_tokens === 1024 && !("max_tokens" in sent[0].body),
+        "the declared field must survive: " + JSON.stringify(sent));
     }],
     ["a temperature refusal drops the field and is memoized", async () => {
       reset({ kind: "err", status: 400, body: OPENAI_400_TEMPERATURE }, { kind: "ok" });
