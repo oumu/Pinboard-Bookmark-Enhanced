@@ -428,6 +428,21 @@ await suite("unified save pipeline", async () => {
     equal(promoted.fields.toread, true, "incoming true promotes read-later");
   });
 
+  await test("resolver merge promotes private one-way, mirroring the toread promotion", () => {
+    const toPrivate = pbpResolveSavePlan(intent({ mode: "merge", private: true }), {
+      exists: true, post: { description: "", extended: "", tags: "", shared: "yes", toread: "no", time: "known-time" },
+    });
+    equal(toPrivate.fields.private, true, "incoming private=true must re-privatize an existing public bookmark");
+    const staysPrivate = pbpResolveSavePlan(intent({ mode: "merge", private: false }), {
+      exists: true, post: { description: "", extended: "", tags: "", shared: "no", toread: "no", time: "known-time" },
+    });
+    equal(staysPrivate.fields.private, true, "incoming private=false must never clear an existing private bookmark");
+    const staysPublic = pbpResolveSavePlan(intent({ mode: "merge", private: false }), {
+      exists: true, post: { description: "", extended: "", tags: "", shared: "yes", toread: "no", time: "known-time" },
+    });
+    equal(staysPublic.fields.private, false, "incoming private=false must not force an existing public bookmark private");
+  });
+
   await test("resolver skip avoids writes and merge-missing discards untrusted time", () => {
     const skipped = pbpResolveSavePlan(intent({ mode: "skip" }), {
       exists: true, post: { description: "Old", shared: "yes", toread: "no", time: "old-time" },
@@ -499,6 +514,21 @@ await suite("unified save pipeline", async () => {
     equal(promoted.fields.toread, true, "an explicit Read Later save must still promote");
     const kept = pbpResolveSavePlan(intent({ mode: "overwrite", toread: false }), { exists: true, post: existingPost() });
     equal(kept.fields.toread, true, "quick save must not clear the server's read-later flag");
+  });
+
+  await test("resolver overwrite promotes private one-way, mirroring the toread promotion", () => {
+    const toPrivate = pbpResolveSavePlan(
+      intent({ mode: "overwrite", private: true }),
+      { exists: true, post: { ...existingPost(), shared: "yes" } }
+    );
+    equal(toPrivate.fields.private, true, "incoming private=true must re-privatize an existing public bookmark");
+    const staysPrivate = pbpResolveSavePlan(intent({ mode: "overwrite", private: false }), { exists: true, post: existingPost() });
+    equal(staysPrivate.fields.private, true, "incoming private=false must never clear an existing private bookmark");
+    const staysPublic = pbpResolveSavePlan(
+      intent({ mode: "overwrite", private: false }),
+      { exists: true, post: { ...existingPost(), shared: "yes" } }
+    );
+    equal(staysPublic.fields.private, false, "incoming private=false must not force an existing public bookmark private");
   });
 
   await test("resolver overwrite fails closed instead of blind-replacing", () => {

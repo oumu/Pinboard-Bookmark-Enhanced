@@ -856,10 +856,12 @@ function pbpResolveSavePlan(intent, lookup) {
   };
 
   // overwrite drops the server's tags; merge unions them. Everything else stays
-  // as the server has it — including toread, which is only ever promoted (an
-  // explicit Read Later save must still work, but a quick save never clears it).
+  // as the server has it — including toread and private, which are only ever
+  // promoted (an explicit Read Later or private save must still work, but a
+  // quick save never clears either flag the server already has set).
   existing.tags = intent.mode === "overwrite" ? incoming.tags : unionTags(existing.tags, incoming.tags);
   if (incoming.toread) existing.toread = true;
+  if (incoming.private) existing.private = true;
   return send(existing, true, "updated");
 }
 
