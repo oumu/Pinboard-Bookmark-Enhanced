@@ -108,11 +108,12 @@ test("posts/add default remains replace=yes for existing callers", () => {
 
 (async () => {
   try {
-    const [source, backgroundSource, popupAiSource, popupHtml] = await Promise.all([
+    const [source, backgroundSource, popupAiSource, popupHtml, popupCss] = await Promise.all([
       fetch("../popup.js").then((response) => response.text()),
       fetch("../background.js").then((response) => response.text()),
       fetch("../popup-ai.js").then((response) => response.text()),
-      fetch("../popup.html").then((response) => response.text())
+      fetch("../popup.html").then((response) => response.text()),
+      fetch("../popup.css").then((response) => response.text())
     ]);
     const start = source.indexOf("function setupSubmit(token)");
     const handlerEnd = source.indexOf('  document.addEventListener("keydown"', start);
@@ -503,6 +504,114 @@ test("posts/add default remains replace=yes for existing callers", () => {
       const waitStart = source.indexOf("await _pageInfoPromise", showMainStart);
       assert(waitStart > showMainStart && !/disabled\s*=\s*false/.test(source.slice(waitStart, bindIndex)),
         "something re-enables submit between the page-info wait and the handler binding");
+    });
+
+    // K69: first-paint focus is now the tags-input's HTML `autofocus` attribute
+    // (fires at parse time, before showMain() even starts -- earlier than any
+    // JS path could) instead of the old 100ms setTimeout raced against
+    // existingBookmark. The three-reviewer verdict rejected any guarded
+    // re-focus toward notes: the guard is unimplementable (fieldDirtyFlags
+    // never covered tags, value === "" is punched through by popup-tags.js's
+    // own clears, currentTags is written by checkExistingBookmark and AI
+    // auto-tags alike) -- so the fix is deletion, not a new mechanism, and
+    // the focus landing spot is unconditional regardless of SW bookmark
+    // cache hit/miss (cold vs warm cache are now the same code path).
+
+    test("K69: popup.html marks #tags-input as the sole autofocus target", () => {
+      const tagsLine = popupHtml.split("\n").find((line) => line.includes('id="tags-input"'));
+      assert(tagsLine && /\bautofocus\b/.test(tagsLine), "#tags-input is missing the autofocus attribute");
+      const autofocusCount = (popupHtml.match(/\bautofocus\b/g) || []).length;
+      assert(autofocusCount === 1, "popup.html must autofocus exactly one control (invalid HTML otherwise), found " + autofocusCount);
+    });
+
+    test("K69: showMain no longer races a 100ms conditional focus against existingBookmark", () => {
+      const mainStart = source.indexOf("async function showMain(token)");
+      const mainEnd = source.indexOf("\n// ===================== Existing Bookmark", mainStart);
+      assert(mainStart >= 0 && mainEnd > mainStart, "showMain source not found");
+      const mainBody = source.slice(mainStart, mainEnd);
+      assert(!mainBody.includes('$id("description-input").focus()'), "showMain still focuses notes on an existing bookmark");
+      assert(!/setTimeout\(\s*\(\)\s*=>\s*\{\s*\n\s*if\s*\(existingBookmark\)/.test(mainBody),
+        "a conditional post-await focus timer keyed on existingBookmark still exists");
+      assert(!mainBody.includes(", 100)"), "a 100ms focus-race timer literal is still present in showMain");
+    });
+
+    test("K69: checkExistingBookmark never moves focus while filling an existing bookmark's form", () => {
+      assert(lookupSource.length > 0, "checkExistingBookmark source slice is empty");
+      assert(!lookupSource.includes(".focus("), "checkExistingBookmark must not call .focus() -- a guarded re-focus was reviewed and rejected as unimplementable");
+    });
+
+    test("K69: shouldUpdateField's stale auto-focus comment is corrected", () => {
+      assert(!source.includes("popup.js:906 auto-focuses title-input"), "shouldUpdateField still cites the retired title-input auto-focus line");
+    });
+
+    // Real-DOM fixture: reproduces the exact production cascade that makes HTML
+    // autofocus viable here -- popup-theme-early.js sets html[data-section] from
+    // a synchronous localStorage read BEFORE <body> parses, and popup.css's
+    // attribute-selector override beats the default .hidden class. Built from
+    // the ACTUAL fetched popup.css rule text and the ACTUAL fetched popup.html
+    // input markup (not hand-retyped copies), against a real appended DOM node
+    // and the browser's real autofocus algorithm -- not a mocked .focus().
+    function buildAutofocusFixture(section) {
+      const cssLines = popupCss.split("\n");
+      const hiddenRule = cssLines.find((line) => line.trim() === ".hidden { display: none !important; }");
+      const sectionRule = cssLines.find((line) => line.includes('html[data-section="main"] #main-section'));
+      assert(hiddenRule, "popup.css .hidden rule not found (fixture out of sync with production CSS)");
+      assert(sectionRule, "popup.css main-section visibility rule not found (fixture out of sync with production CSS)");
+      const tagsInputMatch = popupHtml.match(/<input[^>]*id="tags-input"[^>]*\/>/);
+      assert(tagsInputMatch, "tags-input markup not found in popup.html");
+
+      const style = document.createElement("style");
+      style.textContent = hiddenRule + "\n" + sectionRule;
+      document.head.appendChild(style);
+
+      const hadSection = "section" in document.documentElement.dataset;
+      const previousSection = document.documentElement.dataset.section;
+      if (section) document.documentElement.dataset.section = section;
+      else delete document.documentElement.dataset.section;
+
+      const mainSection = document.createElement("div");
+      mainSection.id = "main-section";
+      mainSection.className = "hidden";
+      mainSection.innerHTML = tagsInputMatch[0];
+      const tagsInput = mainSection.querySelector("#tags-input");
+      document.body.appendChild(mainSection);
+
+      return {
+        tagsInput,
+        cleanup() {
+          mainSection.remove();
+          style.remove();
+          if (hadSection) document.documentElement.dataset.section = previousSection;
+          else delete document.documentElement.dataset.section;
+          if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) {
+            document.activeElement.blur();
+          }
+        },
+      };
+    }
+
+    await testAsync("K69: a real DOM insertion, data-section=main (logged-in steady state), autofocuses #tags-input", async () => {
+      const fixture = buildAutofocusFixture("main");
+      try {
+        await new Promise(requestAnimationFrame);
+        await new Promise(requestAnimationFrame);
+        assert(document.activeElement === fixture.tagsInput,
+          "the real DOM/CSS/autofocus algorithm did not land focus on #tags-input; activeElement is " + (document.activeElement && document.activeElement.tagName));
+      } finally {
+        fixture.cleanup();
+      }
+    });
+
+    await testAsync("K69: a real DOM insertion, data-section unset (pre-login), leaves #main-section hidden and never focuses #tags-input", async () => {
+      const fixture = buildAutofocusFixture(null);
+      try {
+        await new Promise(requestAnimationFrame);
+        await new Promise(requestAnimationFrame);
+        assert(document.activeElement !== fixture.tagsInput,
+          "autofocus fired on a hidden #main-section -- should have failed silently, as the brief requires");
+      } finally {
+        fixture.cleanup();
+      }
     });
 
     test("update forwards only the exact loaded server time", () => {

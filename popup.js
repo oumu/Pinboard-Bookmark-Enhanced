@@ -109,8 +109,9 @@ function recomputeArchiveCheck() {
 function shouldUpdateField(fieldId) {
   // Don't overwrite a field the user has already typed into / toggled.
   // (Dirty flag is the precise signal; we deliberately do NOT also guard on
-  // activeElement — popup.js:906 auto-focuses title-input, and a focused-but-
-  // unedited field should still receive the saved value.)
+  // activeElement — a field can be focused without the user having typed
+  // into it yet, and a focused-but-unedited field should still receive the
+  // saved value.)
   return !fieldDirtyFlags[fieldId];
 }
 
@@ -1145,12 +1146,6 @@ async function htmlToMarkdownAsync(html, opts) {
   if (settings.optShowRecent) fetchRecentBookmarks(token);
 
   document.querySelector(".tags-input-wrap")?.addEventListener("click", () => $id("tags-input").focus());
-
-  // Focus optimization: tags input for new bookmarks, description for existing
-  setTimeout(() => {
-    if (existingBookmark) $id("description-input").focus();
-    else $id("tags-input").focus();
-  }, 100);
 }
 
 // ===================== Existing Bookmark =====================
