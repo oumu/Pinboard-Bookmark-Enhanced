@@ -51,6 +51,35 @@
   <h2>AI Provider</h2>
   <div class="fg"><label for="model-name">Model name</label><input id="model-name" value="private-model" /></div>
 </div>
+<!-- The AI panel's real shape: one selector governs which .pf block is
+     rendered and every block it did not pick carries [hidden], so the labels
+     inside them repeat verbatim ("Model", "Test Connection") while naming
+     controls that have no layout box. Three blocks, two of them hidden, each
+     with a heading and one field only it carries. The panel's first control is
+     deliberately hidden as well, so a fallback target that does not skip
+     [hidden] would hand the jump another box-less element. -->
+<button class="tab-btn" data-panel="providers">Providers</button>
+<div id="panel-providers" class="panel">
+  <button type="button" id="pf-hidden-first" hidden>Hidden first action</button>
+  <div class="fg"><label for="pf-select">Wqzz provider</label>
+    <select id="pf-select"><option>Wqzz Alpha</option></select></div>
+  <div class="pf" id="fields-alpha">
+    <h3>Wqzz Alpha</h3>
+    <div class="fg"><label for="pf-alpha-model">Model</label><input id="pf-alpha-model" /></div>
+    <div class="fg-actions"><button type="button" id="pf-alpha-test" data-i18n="testConnection">Test Connection</button></div>
+  </div>
+  <div class="pf" hidden id="fields-beta">
+    <h3>Wqzz Beta</h3>
+    <div class="fg"><label for="pf-beta-model">Model</label><input id="pf-beta-model" /></div>
+    <div class="fg"><label for="pf-beta-region">Wqzz Beta region</label><input id="pf-beta-region" /></div>
+    <div class="fg-actions"><button type="button" id="pf-beta-test" data-i18n="testConnection">Test Connection</button></div>
+  </div>
+  <div class="pf" hidden id="fields-gamma">
+    <h3>Wqzz Gamma</h3>
+    <div class="fg"><label for="pf-gamma-model">Model</label><input id="pf-gamma-model" /></div>
+    <div class="fg-actions"><button type="button" id="pf-gamma-test" data-i18n="testConnection">Test Connection</button></div>
+  </div>
+</div>
 
 <select id="opt-ai-provider"><option value="openai" selected>OpenAI</option></select>
 <input id="opt-openai-key" value="sk-LEAK-ME" />
@@ -166,6 +195,75 @@ function assert(value, message) { if (!value) throw new Error(message || "assert
     const matches = pbpSearchSettings(index, "model name");
     assert(matches.length === 1 && matches[0].panel === "ai" && matches[0].targetId === "model-name", "wrong match");
     assert(pbpSearchSettings(index, "   ").length === 0, "empty query returned everything");
+  });
+
+  await test("no search result names a target the page keeps hidden", async () => {
+    // Category-level, over the WHOLE index: not "the provider blocks behave",
+    // but "no row anywhere names a box-less control". focus() on a display:none
+    // element is a silent no-op and scrollIntoView has nothing to scroll to, so
+    // pbpOpenOptionsTarget climbs to the nearest rendered ancestor -- for a
+    // target buried in a hidden block that climb ends at the panel root, i.e.
+    // the click lands nowhere near the setting the row named.
+    const index = pbpBuildSettingsSearchIndex(document);
+    const dead = index.filter((entry) => entry.targetId && document.getElementById(entry.targetId)?.closest("[hidden]"));
+    assert(dead.length === 0, dead.length + " rows target a hidden control, e.g. " +
+      JSON.stringify(dead.slice(0, 3).map((entry) => entry.text + " -> " + entry.targetId)));
+    const missing = index.filter((entry) => entry.targetId && !document.getElementById(entry.targetId));
+    assert(missing.length === 0, missing.length + " rows target an id that does not exist");
+  });
+
+  await test("one label repeated across hidden blocks never fills the results with identical rows", async () => {
+    // Also category-level: any panel, any text. The dedupe key carries the
+    // targetId, so before the hidden targets were degraded the 15 provider
+    // blocks each kept their own row and the ten-result list read as ten
+    // identical lines.
+    const index = pbpBuildSettingsSearchIndex(document);
+    const counts = new Map();
+    for (const entry of index) {
+      const key = entry.panel + "\n" + entry.text;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    const repeated = [...counts].filter(([, count]) => count > 1);
+    assert(repeated.length === 0, "identical rows in one panel: " + JSON.stringify(repeated));
+    // The surviving row keeps the target the reader can actually see, not the
+    // panel-wide fallback: the visible block's own control.
+    const model = index.filter((entry) => entry.panel === "providers" && entry.text === "Model");
+    assert(model.length === 1 && model[0].targetId === "pf-alpha-model",
+      "the surviving Model row targeted " + JSON.stringify(model.map((entry) => entry.targetId)));
+    const connect = index.filter((entry) => entry.panel === "providers" && entry.text === "Test Connection");
+    assert(connect.length === 1 && connect[0].targetId === "pf-alpha-test",
+      "the surviving Test Connection row targeted " + JSON.stringify(connect.map((entry) => entry.targetId)));
+  });
+
+  await test("a setting only a hidden block names stays searchable and lands on a rendered control", async () => {
+    // The regression gate against "just skip [hidden] nodes": a field only the
+    // non-selected block carries (and every provider NAME, which lives inside
+    // its own block) would become unsearchable, and the search box is the
+    // page's only cross-panel navigation. Keep the row, degrade the target.
+    const index = pbpBuildSettingsSearchIndex(document);
+    const region = pbpSearchSettings(index, "wqzz beta region");
+    assert(region.length === 1, "a hidden block's only field produced " + region.length + " results");
+    const target = document.getElementById(region[0].targetId);
+    assert(target && target.getClientRects().length > 0,
+      "the degraded target " + JSON.stringify(region[0].targetId) + " has no layout box either");
+    assert(pbpSearchSettings(index, "wqzz gamma").length === 1, "a hidden block's heading is unsearchable");
+
+    // Jumping has to reach that control directly -- no climb to the panel root,
+    // and no switching the provider for the reader (selecting one autosaves,
+    // and a search result may not change a setting).
+    const before = document.getElementById("pf-select").value;
+    const scrolled = [];
+    const origScroll = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (...args) { scrolled.push(this); return origScroll.apply(this, args); };
+    try {
+      pbpOpenOptionsTarget("providers", region[0].targetId);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    } finally { Element.prototype.scrollIntoView = origScroll; }
+    assert(scrolled.length === 1 && scrolled[0] === target,
+      "the jump landed on " + (scrolled[0] && (scrolled[0].id || scrolled[0].tagName)));
+    assert(scrolled[0] !== document.getElementById("panel-providers"), "the jump climbed all the way to the panel root");
+    assert(document.activeElement === target, "focus stayed on " + (document.activeElement && document.activeElement.tagName));
+    assert(document.getElementById("pf-select").value === before, "the jump changed the selected provider");
   });
 
   await test("search Enter opens the first result and moves focus to its control", async () => {

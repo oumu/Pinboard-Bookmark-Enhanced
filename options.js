@@ -316,8 +316,16 @@ function pbpBuildSettingsSearchIndex(root = document) {
       if (!clean) return;
       const textKey = `${panel}\n${clean}`;
       const prior = seenText.get(textKey);
-      if (sectionName && prior) {
-        if (targetId && prior.weak) { prior.entry.targetId = targetId; prior.weak = false; }
+      // A weak row is one whose target nothing in the text named -- the panel's
+      // own fallback -- so it says no more than a row already listing that text
+      // does: fold it in either direction rather than printing the line twice.
+      // That is what collapses the AI panel's fifteen identical "Model" rows,
+      // whose targets the [hidden] guard below degrades to weak, and it keeps
+      // the survivor pointed at the one control the reader can see whichever
+      // provider is selected (the degraded rows come first in DOM order
+      // whenever the selected block is not the first one).
+      if (prior && (sectionName || weakTarget || prior.weak)) {
+        if (targetId && !weakTarget && prior.weak) { prior.entry.targetId = targetId; prior.weak = false; }
         return;
       }
       const key = `${panel}\n${targetId || ""}\n${clean}`;
@@ -327,7 +335,13 @@ function pbpBuildSettingsSearchIndex(root = document) {
       if (!prior) seenText.set(textKey, { entry, weak: !!weakTarget });
       entries.push(entry);
     };
-    add(panelLabel, panelEl.querySelector("input,select,textarea,button")?.id || "", false, true);
+    // The panel-wide fallback: its first control that the reader can actually
+    // reach. A [hidden] one is no target at all (see the degrade below), and
+    // one without an id resolves to nothing.
+    let panelFallback = null;
+    const panelFallbackId = () => (panelFallback ??= [...panelEl.querySelectorAll("input,select,textarea,button")]
+      .find((el) => el.id && !el.closest("[hidden]"))?.id || "");
+    add(panelLabel, panelFallbackId(), false, true);
     // <summary> carries the name of a whole collapsed section (the offline
     // dictionaries, Google Drive sync, the Send-to cards); without it the user
     // cannot search for the heading they are looking straight at. The
@@ -356,8 +370,25 @@ function pbpBuildSettingsSearchIndex(root = document) {
       else if (node.matches(".hint")) target = node.closest(".choice-row,.fg")?.querySelector("input,select,textarea,button")?.id || "";
       else {
         target = node.id || "";
-        if (!target) { target = panelEl.querySelector("input,select,textarea,button")?.id || ""; weak = true; }
+        if (!target) { target = panelFallbackId(); weak = true; }
       }
+      // Every OTHER branch above names a control the text points at, and that
+      // control may sit in a block the page keeps [hidden] -- fourteen of the
+      // fifteen provider forms do, at every moment. Such a target swallows both
+      // halves of the jump (focus() on a box-less element is a silent no-op,
+      // scrollIntoView has nothing to scroll to), so pbpOpenOptionsTarget climbs
+      // to the nearest rendered ancestor and the reader lands at the top of the
+      // panel, looking at a different provider's form. The <summary> branch
+      // already refuses those controls; this is the same rule for the rest.
+      // Degrade rather than drop the row: the text stays searchable (a provider
+      // name lives inside its own hidden block, and search is this page's only
+      // cross-panel navigation), the jump lands on the control that GOVERNS the
+      // block instead -- for the provider forms, the panel's first control is
+      // the provider select -- and the weak flag lets add() fold the repeats
+      // into the one row that names something visible. Never select the block
+      // for the reader: changing a setting autosaves it.
+      const named = target ? (typeof root.getElementById === "function" ? root.getElementById(target) : document.getElementById(target)) : null;
+      if (named?.closest("[hidden]")) { target = panelFallbackId(); weak = true; }
       add(node.textContent, target, isSectionName, weak);
     }
   }
