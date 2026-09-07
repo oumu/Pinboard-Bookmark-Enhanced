@@ -21,13 +21,16 @@ const abs = resolve(file);
 const rel = relative(ROOT, abs).split("\\").join("/");
 const TEST_TIMEOUT_MS = rel === "tests/md-convert-tests.html" ? 45000 : 30000;
 const CLEANUP_TIMEOUT_MS = 5000;
-// A real deadline for the result-row wait, instead of the old timeout: 0
-// (infinite — only the outer `bounded("test", TEST_TIMEOUT_MS)` ever cut it
-// off). Leaving CLEANUP_TIMEOUT_MS of headroom lets a stalled suite still be
-// sampled (see the "diagnostic sample" bounded() below) before the outer
-// deadline fires; the *0.85 floor keeps that headroom from swallowing most
-// of the budget if TEST_TIMEOUT_MS is ever set low.
-const WAIT_TIMEOUT_MS = Math.max(TEST_TIMEOUT_MS - CLEANUP_TIMEOUT_MS, Math.floor(TEST_TIMEOUT_MS * 0.85));
+// Cushion between "the wait-for-rows deadline + the diagnostic sample's own
+// bound" and the outer bounded("test", TEST_TIMEOUT_MS) deadline (started
+// before chromium.launch()). Without this, a fixed WAIT_TIMEOUT_MS computed
+// only from TEST_TIMEOUT_MS ignores launch/navigation time that already
+// elapsed before the wait even starts, and a worst-case diagnostic sample
+// (bounded by CLEANUP_TIMEOUT_MS) can push the total past TEST_TIMEOUT_MS —
+// the outer deadline then wins the race first and the whole diagnostic
+// payload (STALLED marker, sample) is discarded, right in the "suite's main
+// thread is genuinely wedged" scenario this fix exists for.
+const SAFETY_MARGIN_MS = 1000;
 
 // Completion is explicit: each suite must emit exactly this many DOM result
 // ROWS carrying a pass/fail/skip class. NOTE: the row unit varies per page --
@@ -141,6 +144,7 @@ try {
   const url = `http://127.0.0.1:${port}/${rel}`;
 
   const dom = await bounded("test", TEST_TIMEOUT_MS, async () => {
+    const taskStartedAt = Date.now();
     browser = await chromium.launch();
     browser.once("disconnected", () => { browserDisconnected = true; });
     const page = await browser.newPage();
@@ -182,19 +186,54 @@ try {
     // that stalls (EXPECTED_RESULTS miscounted, an awaited mock that never
     // settles, a case that dies mid-block) needs to fall through to the
     // sampling below instead of vanishing into one opaque "test timed out"
-    // line once the outer deadline eventually fires.
+    // line once the outer deadline eventually fires. Computed from actual
+    // elapsed time (not a fixed fraction of TEST_TIMEOUT_MS): launch + goto
+    // above already spent part of the budget, and the diagnostic sample
+    // below needs its own CLEANUP_TIMEOUT_MS reserved after this wait gives
+    // up — both must still land inside TEST_TIMEOUT_MS, with SAFETY_MARGIN_MS
+    // to spare, or the outer bounded() wins the race and discards everything
+    // this fix gathers.
+    const elapsedBeforeWait = Date.now() - taskStartedAt;
+    const waitTimeoutMs = Math.max(
+      1000,
+      TEST_TIMEOUT_MS - elapsedBeforeWait - CLEANUP_TIMEOUT_MS - SAFETY_MARGIN_MS,
+    );
+    // Deliberately NOT passed as waitForFunction's own `timeout` option:
+    // verified experimentally that Playwright's client-side deadline for
+    // waitForFunction/evaluate does not fire reliably when the *page's own
+    // main thread* is wedged (a synchronous busy loop, not just a pending
+    // promise) — its polling loop awaits each round-trip evaluate() call,
+    // and the deadline is only checked between round-trips, so a single
+    // evaluate() that never returns (because the renderer can't run it)
+    // leaves the "timeout" option honored 60s+ late in practice. Racing it
+    // against our own plain setTimeout here — the same independent-of-the-
+    // browser mechanism bounded() already uses below — is what actually
+    // enforces the deadline for that failure mode.
+    const STALL = Symbol("stall");
+    let stallTimer;
     let stalled = false;
+    // waitForRows is raced, not awaited directly: if the stall timer wins,
+    // this promise is abandoned (still pending against a possibly-wedged
+    // page) and will typically settle later on its own once the page or
+    // browser closes — attach a no-op catch so that later settlement can't
+    // surface as an unhandled rejection; it doesn't affect what Promise.race
+    // observes below.
+    const waitForRows = page.waitForFunction((resultCount) => {
+      let total = 0;
+      for (const el of document.querySelectorAll(".pass, .fail, .skip")) {
+        if (el.classList.contains("pass") || el.classList.contains("fail") || el.classList.contains("skip")) total++;
+      }
+      return total >= resultCount;
+    }, expected, { polling: 50, timeout: 0 });
+    waitForRows.catch(() => {});
     try {
-      await page.waitForFunction((resultCount) => {
-        let total = 0;
-        for (const el of document.querySelectorAll(".pass, .fail, .skip")) {
-          if (el.classList.contains("pass") || el.classList.contains("fail") || el.classList.contains("skip")) total++;
-        }
-        return total >= resultCount;
-      }, expected, { polling: 50, timeout: WAIT_TIMEOUT_MS });
-    } catch (error) {
-      if (error && error.name === "TimeoutError") stalled = true;
-      else throw error; // not a stall (e.g. navigation/context destroyed) — keep its own signal
+      const outcome = await Promise.race([
+        waitForRows,
+        new Promise((resolveStall) => { stallTimer = setTimeout(() => resolveStall(STALL), waitTimeoutMs); }),
+      ]);
+      if (outcome === STALL) stalled = true;
+    } finally {
+      clearTimeout(stallTimer);
     }
 
     // Sample current DOM state either way — the page is still alive here
