@@ -240,7 +240,7 @@
       <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-popup-behavior">
         <div class="choice-row"><label><input type="checkbox" id="opt-check-bookmark-status" checked /> <span data-i18n="optCheckBookmarkStatus">Show bookmark status via icon (check if current page is saved)</span></label></div>
         <div class="choice-row"><label><input type="checkbox" id="opt-auto-close" checked /> <span data-i18n="optAutoClose">Auto-close popup after save</span></label></div>
-        <div class="choice-row"><label><input type="checkbox" id="offline-queue-enabled" /> <span data-i18n="optOfflineQueue">Enable offline save queue</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="offline-queue-enabled" checked /> <span data-i18n="optOfflineQueue">Enable offline save queue</span></label></div>
       </div>
       <div class="fg fg-stack context-help-host" data-help-role="field" role="group" aria-labelledby="popup-width-label">
         <label class="bl" id="popup-width-label" data-i18n="optPopupWidthTitle">Popup width</label>
@@ -290,7 +290,7 @@
       <h2 class="section-title" id="sec-save-defaults" data-i18n="secSaveDefaults">Save Defaults</h2>
       <div class="fg fg-stack choice-stack" role="group" aria-labelledby="sec-save-defaults">
         <div class="choice-row"><label><input type="checkbox" id="opt-private-default" /> <span data-i18n="optPrivateDefault">Private by default</span></label></div>
-        <div class="choice-row"><label><input type="checkbox" id="opt-private-incognito" /> <span data-i18n="optPrivateIncognito">Private in Incognito</span></label></div>
+        <div class="choice-row"><label><input type="checkbox" id="opt-private-incognito" checked /> <span data-i18n="optPrivateIncognito">Private in Incognito</span></label></div>
         <div class="choice-row"><label><input type="checkbox" id="opt-readlater-default" /> <span data-i18n="optReadlaterDefault">Read Later by default</span></label></div>
       </div>
       <div class="fg fg-stack" role="group" aria-labelledby="bgsave-mode-label">
@@ -308,7 +308,7 @@
       </div>
       <div class="divider"></div>
       <h2 class="section-title" data-i18n="secTags">Tags</h2>
-      <div class="fg"><label><input type="checkbox" id="opt-respect-tag-case" /> <span data-i18n="optRespectTagCase">Respect existing tag case (match most-used casing)</span></label></div>
+      <div class="fg"><label><input type="checkbox" id="opt-respect-tag-case" checked /> <span data-i18n="optRespectTagCase">Respect existing tag case (match most-used casing)</span></label></div>
       <div class="fg fg-stack context-help-host" data-help-role="field" role="group" aria-labelledby="tag-sync-label">
         <label class="bl" id="tag-sync-label" data-i18n="tagSyncLabel">Tag Cache Strategy</label>
         <details class="context-help">
@@ -630,7 +630,7 @@
         </details>
       </div>
       <div class="choice-row context-help-host" data-help-role="choice">
-        <label><input type="checkbox" id="opt-ai-use-transcript" /> <span data-i18n="optAiUseTranscript">Use video captions as the AI content source</span></label>
+        <label><input type="checkbox" id="opt-ai-use-transcript" checked /> <span data-i18n="optAiUseTranscript">Use video captions as the AI content source</span></label>
         <details class="context-help">
           <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
           <p class="hint context-help-body" data-i18n="optAiUseTranscriptHint">On YouTube and bilibili video pages, AI tags and summaries read the subtitles instead of the page text. Active only after you have granted subtitle access; it never prompts on its own.</p>
@@ -645,7 +645,7 @@
         <label class="bl" for="opt-ai-tag-lang" data-i18n="labelAiTagLang">AI Tag Language</label>
         <select id="opt-ai-tag-lang">
           <option value="auto" data-i18n="aiLangAuto">Auto (same as content)</option>
-          <option value="en" data-i18n="langEn">English</option>
+          <option value="en" data-i18n="langEn" selected>English</option>
           <option value="ja" data-i18n="langJa">日本語</option>
           <option value="ko" data-i18n="langKo">한국어</option>
           <option value="de" data-i18n="langDe">Deutsch</option>
@@ -841,7 +841,7 @@
       <details class="disclosure" data-acc-key="vocab-reading">
         <summary data-i18n="vocabReadingSection">Reading hints</summary>
         <div class="disclosure-body">
-          <div class="fg context-help-host" data-help-role="choice"><label><input type="checkbox" id="dict-echo-enabled" /> <span data-i18n="dictEchoToggle">Underline saved words while reading</span></label>
+          <div class="fg context-help-host" data-help-role="choice"><label><input type="checkbox" id="dict-echo-enabled" checked /> <span data-i18n="dictEchoToggle">Underline saved words while reading</span></label>
             <details class="context-help">
               <summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary>
               <p class="hint context-help-body" data-i18n="dictEchoHint">Dotted underlines mark words already in your vocabulary. Click one to open the dictionary.</p>
@@ -1035,7 +1035,7 @@
            it (nothing is submitted to archive.org while archiving is off), so
            it carries the same indent instead of sitting at the parent's own
            level. -->
-      <div class="choice-row fg-indent"><label><input type="checkbox" id="opt-wayback-skip-private" /> <span data-i18n="waybackSkipPrivate">Never archive bookmarks you save as private</span></label></div>
+      <div class="choice-row fg-indent"><label><input type="checkbox" id="opt-wayback-skip-private" checked /> <span data-i18n="waybackSkipPrivate">Never archive bookmarks you save as private</span></label></div>
       </div>
       <div class="divider"></div>
       <div class="fg context-help-host" data-help-role="field">
