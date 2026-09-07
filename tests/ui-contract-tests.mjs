@@ -1601,6 +1601,17 @@ for (const [id, label, heading] of [["opt-lang", "secLanguage", "sec-language"],
 // skipped: a future `s.foo ?? true` or ternary must not quietly drop out of
 // the walk and leave the gate green over an unchecked control (CLAUDE.md:
 // "断言要泛化到类别，别只问现在能不能过").
+//
+// checkMap/fieldMap do not see every checkbox, though: a few (URL Clean's
+// four toggles) are populated from a nested SETTINGS_DEFAULTS object through
+// a hand-written block, never through checkMap at all -- three of them
+// drifted exactly like the six above and were invisible to a walk that only
+// iterates checkMap's own keys (task-7 review, round 1). NESTED_CHECKBOX_
+// DEFAULTS covers that specific shape, and a DOM-wide coverage sweep below
+// requires every OTHER checkbox in options.html to resolve through checkMap,
+// NESTED_CHECKBOX_DEFAULTS, or DEFAULT_EQ_ALLOWLIST -- so the next control
+// added outside all three fails the gate instead of silently going
+// unwatched.
 {
   const DEFAULT_EQ_ALLOWLIST = {
     // customOverlayCSS is not a SETTINGS_DEFAULTS key at all -- it is a
@@ -1619,7 +1630,22 @@ for (const [id, label, heading] of [["opt-lang", "secLanguage", "sec-language"],
     // or a select's `selected` does, so it is a different (and accepted)
     // pattern, not the K79 bug class this gate exists to catch.
     "dict-anki-deck": "placeholder-only field by design, not a value= default",
-    "dict-anki-port": "placeholder-only field by design, not a value= default"
+    "dict-anki-port": "placeholder-only field by design, not a value= default",
+    // The following nine are checkboxes that never go through checkMap OR
+    // NESTED_CHECKBOX_DEFAULTS -- they are populated from runtime/session
+    // state that has no comparable SETTINGS_DEFAULTS entry, not from a
+    // hand-copied default. Reasons mirror the reset-map coverage gate's own
+    // RESET_ALLOWLIST above (same controls, same justification, reused here
+    // because that allowlist is scoped to its own block).
+    "opt-sync-enabled": "device-local flag read directly from chrome.storage.local (shared.js:1407), not part of the SETTINGS_DEFAULTS merge",
+    "opt-sync-api-keys": "account-wide runtime routing state (options.js ~2040-2059 initialSyncState), not a SETTINGS_DEFAULTS default; a reset must never move secrets",
+    "opt-backup-include-secrets": "export picker: per-export session choice, never persisted",
+    "backup-section-settings": "import preview picker: session UI",
+    "backup-section-themes": "import preview picker: session UI",
+    "backup-section-highlights": "import preview picker: session UI",
+    "backup-section-vocabulary": "import preview picker: session UI",
+    "backup-section-secrets": "import preview picker: session UI",
+    "tag-gov-select-all": "list selection helper hard-reset to false at render time (options.js ~4621), not a setting"
   };
 
   const sdStart = sharedJs.indexOf("const SETTINGS_DEFAULTS = {");
@@ -1734,6 +1760,56 @@ for (const [id, label, heading] of [["opt-lang", "secLanguage", "sec-language"],
   };
   walkDefaults(checkMapIds, "checkMap", htmlCheckedDefault, (v) => !!v);
   walkDefaults(fieldMapIds, "fieldMap", htmlValueDefault, (v) => String(v ?? ""));
+
+  // loadSettings also populates a few checkboxes through a hand-written
+  // block instead of checkMap -- URL Clean's four toggles (options.js
+  // ~2031-2035: `$id("opt-urlclean-enabled").checked = !!urlClean.enabled;`)
+  // read a nested SETTINGS_DEFAULTS object (shared.js:488
+  // `urlClean: { enabled: true, onPopupOpen: true, onPaste: true,
+  // aggressiveMode: false, ... }`), not `s.<key>`, so checkMap's shape
+  // parser cannot see them at all. This is exactly how three of them
+  // drifted (default true, options.html shipped without `checked`) and went
+  // undetected by the walk above -- caught only by the DOM-wide coverage
+  // sweep below, which is why that sweep is not optional.
+  const NESTED_CHECKBOX_DEFAULTS = {
+    "opt-urlclean-enabled": ["urlClean", "enabled"],
+    "opt-urlclean-on-open": ["urlClean", "onPopupOpen"],
+    "opt-urlclean-on-paste": ["urlClean", "onPaste"],
+    "opt-urlclean-aggressive": ["urlClean", "aggressiveMode"]
+  };
+  for (const [id, [objKey, propKey]] of Object.entries(NESTED_CHECKBOX_DEFAULTS)) {
+    const nested = settingsDefaults && settingsDefaults[objKey];
+    if (!nested || !Object.prototype.hasOwnProperty.call(nested, propKey)) {
+      eqOffenders.push(`${id}: SETTINGS_DEFAULTS.${objKey}.${propKey} does not exist`);
+      continue;
+    }
+    const expected = !!nested[propKey];
+    const htmlVal = htmlCheckedDefault(id);
+    if (htmlVal === null) { eqOffenders.push(`${id}: no matching HTML element found for the default-equality gate`); continue; }
+    if (htmlVal !== expected) {
+      eqOffenders.push(`${id}: options.html default is ${htmlVal}, SETTINGS_DEFAULTS.${objKey}.${propKey} implies ${expected}`);
+    }
+    if (Object.prototype.hasOwnProperty.call(flatPanelDefaults, id) && !!flatPanelDefaults[id] !== expected) {
+      eqOffenders.push(`${id}: PANEL_DEFAULTS is ${JSON.stringify(flatPanelDefaults[id])}, SETTINGS_DEFAULTS.${objKey}.${propKey} implies ${expected}`);
+    }
+  }
+
+  // Coverage-completeness sweep (task-7 review, round 1): every checkbox id
+  // in options.html must resolve through checkMap, NESTED_CHECKBOX_DEFAULTS,
+  // or DEFAULT_EQ_ALLOWLIST with a documented reason -- falling out of all
+  // three (as URL Clean's toggles did) must fail loud, not pass by omission.
+  // This mirrors the reset-map coverage gate's own DOM walk above (walk
+  // every <input|select|textarea> per panel, check membership in a name
+  // set) applied to the narrower "is this checkbox's VALUE watched" question
+  // instead of "is this checkbox LISTED for reset".
+  const coveredCheckboxIds = new Set([...Object.keys(checkMapIds), ...Object.keys(NESTED_CHECKBOX_DEFAULTS)]);
+  for (const m of optionsHtml.matchAll(/<input\b([^>]*)>/g)) {
+    const attrs = m[1];
+    if (!/\btype="checkbox"/.test(attrs)) continue;
+    const id = (attrs.match(/\bid="([^"]+)"/) || [])[1];
+    if (!id || coveredCheckboxIds.has(id) || DEFAULT_EQ_ALLOWLIST[id]) continue;
+    eqOffenders.push(`${id}: checkbox not resolved through checkMap, NESTED_CHECKBOX_DEFAULTS, or DEFAULT_EQ_ALLOWLIST -- extend one of them with a reason or wire it through checkMap`);
+  }
 
   check(eqOffenders.length === 0,
     "default value drifted between SETTINGS_DEFAULTS / options.html / PANEL_DEFAULTS -> " + eqOffenders.join("; "));
