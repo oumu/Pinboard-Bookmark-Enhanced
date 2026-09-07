@@ -1225,7 +1225,7 @@ function pbpBuildBackupPreview(prepared, currentOwner, syncState) {
       enabled: !!(Object.keys(prepared.safeData || {}).length ||
         prepared.customCSS !== undefined || prepared.customOverlayCSS !== undefined),
     },
-    themes: { enabled: prepared.importedThemes !== undefined },
+    themes: { enabled: Array.isArray(prepared.importedThemes) && prepared.importedThemes.length > 0 },
     highlights: { enabled: prepared.highlights !== undefined && highlightAllowed },
     vocabulary: { enabled: !!vocabulary && !ownerMismatch },
     // Credentials are their own section so "restore my settings" never has to

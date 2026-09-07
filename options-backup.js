@@ -397,7 +397,7 @@ async function pbpApplyBackupPayload(data, {
     }
   }
 
-  if (selected.themes && importedThemes !== undefined) {
+  if (selected.themes && Array.isArray(importedThemes) && importedThemes.length) {
     try {
       const setLarge = typeof globalThis.__pbpTestSyncSetLarge === "function"
         ? globalThis.__pbpTestSyncSetLarge

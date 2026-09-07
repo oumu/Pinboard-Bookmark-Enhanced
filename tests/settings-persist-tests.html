@@ -3285,6 +3285,31 @@ async function run() {
       legacyVocabCalls === 0 && legacyResults.length === 2 &&
       legacyResults.every((result) => result.vocabulary === "skipped"));
 
+    // A backup carrying `savedThemes: []` (every backup does, even one saved
+    // when this machine had zero custom themes) must never wipe local themes,
+    // even when the caller explicitly selects the themes section.
+    let emptyThemeWriteCount = 0;
+    let emptyThemeApplyResult = null;
+    if (task9Ready) {
+      const priorEmptyThemeSetLarge = globalThis.__pbpTestSyncSetLarge;
+      globalThis.__pbpTestSyncSetLarge = async (key) => { if (key === "savedThemes") emptyThemeWriteCount++; };
+      try {
+        emptyThemeApplyResult = await pbpApplyBackupPayload({
+          _schemaVersion: 3, _backup: metadata, savedThemes: [],
+        }, {
+          exportableKeys: [],
+          saveOverlayWithFallback: async () => ({ fellBackToLocal: false }),
+          sections: { settings: false, themes: true, highlights: false, vocabulary: false },
+          readCurrentOwner: async () => backupOwner,
+          importVocabulary: async () => ({ ok: true, processed: 0 }),
+        });
+      } finally {
+        globalThis.__pbpTestSyncSetLarge = priorEmptyThemeSetLarge;
+      }
+    }
+    check("E11 empty savedThemes is never applied even when the themes section is explicitly selected",
+      emptyThemeWriteCount === 0 && emptyThemeApplyResult?.themes === "skipped");
+
     const previewPrepared = task9Ready ? pbpPreflightBackupPayload({
       _schemaVersion: 3,
       _backup: metadata,
@@ -3551,6 +3576,15 @@ async function run() {
     check("E11 clean preview announces readiness through the live status", cleanPreviewAnnounced);
     check("E11 preview counts settings fields", preview?.settingsCount === 2);
     check("E11 preview counts custom themes", preview?.themeCount === 2);
+    const emptyThemesPreview = task9Ready
+      ? pbpBuildBackupPreview({ ...previewPrepared, importedThemes: [] }, backupOwner, {
+          enabled: true,
+          localFallbackKeys: [],
+        })
+      : null;
+    check("E11 an empty theme array in the file disables the themes section instead of offering a wipe",
+      emptyThemesPreview?.sections?.themes?.enabled === false &&
+      emptyThemesPreview?.themeCount === 0);
     check("E11 preview counts highlight pages and entries with owner",
       preview?.highlightPages === 2 && preview?.highlightEntries === 3 &&
       preview?.highlightsOwner === backupOwner);
