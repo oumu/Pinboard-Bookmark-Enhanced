@@ -74,7 +74,22 @@ echo "[render-audit] checking hand-written render oracle (contrast + geometry + 
 # Chromium and the per-shard fixed cost (launch + shard 0's sweep) stops
 # paying past that; 1 shard means no --shard flag at all, i.e. exactly the
 # invocation this line used to be.
-RENDER_SHARDS=$(node -e 'const n=(require("node:os").cpus()||[]).length||1;process.stdout.write(String(Math.max(1,Math.min(4,n))))')
+# PBP_RENDER_SHARDS lets CI override the shard count (e.g. a constrained
+# runner) without editing this script; it must be a positive integer or the
+# computed default below is used instead.
+RENDER_SHARDS_DEFAULT=$(node -e 'const n=(require("node:os").cpus()||[]).length||1;process.stdout.write(String(Math.max(1,Math.min(4,n))))')
+case "${PBP_RENDER_SHARDS:-}" in
+  '')
+    RENDER_SHARDS="$RENDER_SHARDS_DEFAULT"
+    ;;
+  *[!0-9]*|0)
+    echo "[render-audit] ignoring invalid PBP_RENDER_SHARDS=\"$PBP_RENDER_SHARDS\" (must be a positive integer); using $RENDER_SHARDS_DEFAULT" >&2
+    RENDER_SHARDS="$RENDER_SHARDS_DEFAULT"
+    ;;
+  *)
+    RENDER_SHARDS="$PBP_RENDER_SHARDS"
+    ;;
+esac
 if [ "$RENDER_SHARDS" -le 1 ]; then
   node "scripts/ui-render-audit.mjs"
 else
