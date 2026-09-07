@@ -219,6 +219,73 @@ function assertEq(actual, expected, label) {
     !!aTag && !/target=/.test(aTag) && !/rel=/.test(aTag), s);
 })();
 
+// ---- K55: class token allowlist (untrusted markdown must not be able to wear
+// the reader's own chrome class names). renderMarkdown is the lone sanitize
+// point for model output (Ask / skim / translate / dict / video notes) AND for
+// Jina Reader markdown, neither of which passes through turndown's attribute
+// scrub -- so `class` gets the same reject-by-default treatment `id` already
+// has. The allowlist is derived from what THIS pipeline emits into the
+// sanitizer's input string (marked's language-*, renderer.table's
+// pb-table-wrap, _pbpGalleryGridHtml's pbp-gallery), never from CSS.
+(() => {
+  const s = norm(renderMarkdown('<div class="rail-scrim">x</div>'));
+  check("renderMarkdown strips a chrome class name (.rail-scrim is a fixed, inset:0 full-viewport overlay)",
+    /<div>x<\/div>/.test(s) && !/class=/.test(s), s);
+})();
+(() => {
+  const s = norm(renderMarkdown('<div class="confirm-popover"><span class="confirm-msg">session expired</span></div>'));
+  check("renderMarkdown strips the fake-confirm-popover chrome classes but keeps the text",
+    !/class=/.test(s) && /session expired/.test(s), s);
+})();
+(() => {
+  const s = norm(renderMarkdown('<p class="some-unknown-class">t</p>'));
+  check("renderMarkdown drops an unlisted class token and leaves NO empty class attribute behind",
+    /<p>t<\/p>/.test(s) && !/class/.test(s), s);
+})();
+(() => {
+  const s = norm(renderMarkdown('<div class="language-js rail-scrim">x</div>'));
+  check("mixed class attribute keeps ONLY the allowlisted token (per-token filter, not all-or-nothing)",
+    /class="language-js"/.test(s) && !/rail-scrim/.test(s), s);
+})();
+(() => {
+  const s = norm(renderMarkdown("```js\nconst x = 1;\n```"));
+  check("fenced code keeps marked's language-js (highlightCodeBlocks reads it back)",
+    /<code class="language-js">/.test(s), s);
+})();
+(() => {
+  const s = norm(renderMarkdown("```mermaid\ngraph TD;A-->B;\n```"));
+  check("mermaid fence keeps language-mermaid (md-mermaid.js's only selector)",
+    /<code class="language-mermaid">/.test(s), s);
+})();
+(() => {
+  // marked v18 emits NO class on GFM task items (the sole class= in
+  // vendor/marked.min.js is language-*), so task lists are pinned on the
+  // checkbox they really render, not on a task-list-item class they never had.
+  const s = norm(renderMarkdown("- [x] done\n- [ ] todo"));
+  check("GFM task list still renders both checkboxes under the class allowlist",
+    (s.match(/<input[^>]*type="checkbox"/g) || []).length === 2 && !/class=/.test(s), s);
+})();
+(() => {
+  const s = norm(renderMarkdown("| a | b |\n| --- | --- |\n| 1 | 2 |"));
+  check("renderMarkdown keeps renderer.table's pb-table-wrap through sanitize",
+    /<div class="pb-table-wrap">/.test(s), s);
+})();
+(() => {
+  const s = norm(renderMarkdown("| a | b |\n| :-- | --: |\n| 1 | 2 |"));
+  check("table column alignment survives (marked emits align= as an ATTRIBUTE, untouched by the class filter)",
+    /align="left"/.test(s) && /align="right"/.test(s), s);
+})();
+(() => {
+  const galleryMd = htmlToMarkdown('<ul class="gallery">' +
+    '<li><img src="https://e.com/1.jpg" alt="one"><p>Cap one</p></li>' +
+    '<li><img src="https://e.com/2.jpg" alt="two"><p>Cap two</p></li>' +
+    '<li><img src="https://e.com/3.jpg" alt="three"><p>Cap three</p></li>' +
+    '</ul>', {});
+  const s = norm(renderMarkdown(galleryMd));
+  check("renderMarkdown keeps _pbpGalleryGridHtml's pbp-gallery through sanitize",
+    /<div class="pbp-gallery">/.test(s) && /<figure>/.test(s), s);
+})();
+
 // ---- END of existing tests ----
 
   // ---- safeFilename (shared download helper) ----

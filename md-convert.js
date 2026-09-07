@@ -662,6 +662,46 @@ function _configureMarked() {
   _markedConfigured = true;
 }
 
+// Token allowlist for `class` on renderMarkdown's output (D1-3). Untrusted
+// markdown reaches this sanitize point WITHOUT turndown's attribute scrub:
+// model output (Ask answers, skim, translated blocks, dictionary glosses,
+// video notes) is renderMarkdown(model_text), Jina Reader hands over markdown
+// directly (md-preview.js: "Defuddle HTML -> Turndown; Jina already gives MD"),
+// and marked passes raw HTML through. Without a filter, injected content can
+// wear the reader's OWN chrome class names -- md-preview.css styles
+// `.rail-scrim` as a fixed inset:0 full-viewport overlay and `.confirm-popover`
+// as the danger-confirm skin, both plain class selectors with no ancestor
+// qualifier -- and paint a convincing fake panel ("session expired, re-enter
+// your Pinboard token") wrapping a link to a phishing site. `id` is already
+// stripped just below for the mirror-image reason; `class` gets the same
+// reject-by-default treatment, which also converges this path with the
+// raw-HTML passthroughs, where _pbpStripDisallowedAttrs already drops class.
+//
+// Derived from what THIS pipeline emits into the sanitizer's INPUT string,
+// never from CSS -- a denylist of today's chrome names grows a hole the day a
+// new fixed-position component lands:
+//   - language-*     marked's fenced-code renderer, the ONLY class= in
+//                    vendor/marked.min.js; read back by highlightCodeBlocks
+//                    below and by md-mermaid.js's `pre > code.language-mermaid`.
+//   - pb-table-wrap  renderer.table's wrapper (above); md-preview.css scrolls
+//                    the table by it and pbpAiIndexBlocks looks through it.
+//   - pbp-gallery    _pbpGalleryGridHtml's raw-HTML passthrough (that class is
+//                    appended to the STRING after the attribute scrub).
+// Deliberately NOT listed, each verified to live outside this string: `hljs`
+// (added post-sanitize by highlightElement), GFM task-list classes (marked
+// emits none -- a task item is a bare disabled checkbox; `task-list-item` is
+// GitHub's renderer, not marked's), `pb-comment-body` / `pb-tr*` / `pb-mermaid`
+// / `pbp-img-fix-ui` / `katex*` (assigned via DOM className AFTER sanitize),
+// `comment` / `callout` / `callout-title` (consumed by turndown BEFORE marked
+// ever sees them), and `export-doc` / `doc-header` / `doc-title` / `doc-meta`
+// (composeStyledHtml wraps those OUTSIDE the sanitized article string).
+const PBP_RENDER_CLASS_ALLOW = new Set(["pb-table-wrap", "pbp-gallery"]);
+const PBP_RENDER_CLASS_PREFIXES = ["language-"];
+function _pbpRenderClassAllowed(token) {
+  if (PBP_RENDER_CLASS_ALLOW.has(token)) return true;
+  return PBP_RENDER_CLASS_PREFIXES.some((p) => token.length > p.length && token.startsWith(p));
+}
+
 let _purifyHooked = false;
 function _ensurePurifyHook() {
   if (_purifyHooked || typeof DOMPurify === "undefined") return;
@@ -697,6 +737,16 @@ function _ensurePurifyHook() {
     // so strip it post-filter on everything except h1-h6.
     if (!/^H[1-6]$/.test(node.tagName) && node.hasAttribute("id")) {
       node.removeAttribute("id");
+    }
+    // D1-3: same reject-by-default rule for class (see PBP_RENDER_CLASS_ALLOW
+    // above). Filtered per TOKEN rather than all-or-nothing, so a crafted
+    // class="language-js rail-scrim" keeps the fence's language and still loses
+    // the chrome name; an attribute left with no surviving token is removed
+    // outright instead of lingering as class="".
+    if (node.hasAttribute("class")) {
+      const kept = (node.getAttribute("class") || "").split(/\s+/).filter(_pbpRenderClassAllowed);
+      if (kept.length) node.setAttribute("class", kept.join(" "));
+      else node.removeAttribute("class");
     }
   });
   _purifyHooked = true;
