@@ -648,6 +648,16 @@ test("posts/add default remains replace=yes for existing callers", () => {
 
       const loginSection = document.createElement("div");
       loginSection.id = "login-section";
+      // Mirrors the real login form's login-btn: a real focusable control that
+      // is plausibly still document.activeElement at the moment showMain()
+      // runs (submitted by click, or token-input by Enter) -- login-section
+      // being an empty div here was exactly why the fix round 1 regression
+      // test could not catch the fix round 2 finding.
+      const loginBtn = document.createElement("button");
+      loginBtn.type = "button";
+      loginBtn.id = "login-btn";
+      loginBtn.textContent = "Login";
+      loginSection.appendChild(loginBtn);
       const mainSection = document.createElement("div");
       mainSection.id = "main-section";
       mainSection.className = "hidden";
@@ -657,7 +667,7 @@ test("posts/add default remains replace=yes for existing callers", () => {
       document.body.appendChild(mainSection);
 
       return {
-        tagsInput, loginSection, mainSection,
+        tagsInput, loginSection, mainSection, loginBtn,
         cleanup() {
           loginSection.remove();
           mainSection.remove();
@@ -695,6 +705,52 @@ test("posts/add default remains replace=yes for existing callers", () => {
         assert(document.activeElement === fixture.tagsInput,
           "revealing an initially-hidden #main-section via classList.remove(\"hidden\") did not focus #tags-input; activeElement is " +
           (document.activeElement && document.activeElement.tagName));
+      } finally {
+        fixture.cleanup();
+      }
+    });
+
+    // K69 fix round 2 (review finding): the fix round 1 guard
+    // (!activeElement || activeElement === document.body) races Chromium --
+    // hiding #login-section via classList.add("hidden") does NOT synchronously
+    // blur a control focused inside it (login-btn from a click, token-input
+    // from Enter); activeElement only reverts to <body> a couple of rendering
+    // frames later. So on the login-submit / re-login paths, activeElement is
+    // STILL login-btn at the moment this guard runs, the timing-based guard
+    // evaluates false, and #tags-input never gets focused. This test focuses a
+    // real control inside #login-section (mirroring login-btn) immediately
+    // before running the sliced reveal block synchronously -- no intervening
+    // await, exactly like showMain()'s own synchronous classList.add/remove
+    // pair -- and asserts the reveal still lands focus on #tags-input.
+    await testAsync("K69 fix round 2: a control still focused inside the just-hidden #login-section does not block the #tags-input reveal focus", async () => {
+      const showMainStart = source.indexOf("async function showMain(token)");
+      const revealStart = source.indexOf('document.documentElement.dataset.section = "main";', showMainStart);
+      const revealEnd = source.indexOf('const qa = document.querySelector(".quick-actions");', showMainStart);
+      assert(revealStart >= 0 && revealEnd > revealStart, "showMain's section-reveal block not found");
+      const revealBlock = source.slice(revealStart, revealEnd);
+
+      const fixture = buildRevealFixture();
+      try {
+        // Reproduces the login-submit / re-login trigger: a real control inside
+        // #login-section holds focus right up to the moment showMain() runs --
+        // NOT document.body, and NOT yet reverted by Chromium's async blur-on-
+        // hide fixup (that only happens frames later, which this synchronous
+        // test never waits for -- the point is the reveal must not depend on
+        // that async fixup having already happened).
+        fixture.loginBtn.focus();
+        assert(document.activeElement === fixture.loginBtn,
+          "fixture precondition failed: login-btn did not take focus");
+
+        const run = new Function("$id", "document", "localStorage", revealBlock + "\nreturn true;");
+        run(
+          (id) => (id === "login-section" ? fixture.loginSection : id === "main-section" ? fixture.mainSection : id === "tags-input" ? fixture.tagsInput : null),
+          document,
+          { setItem() {} }
+        );
+
+        assert(document.activeElement === fixture.tagsInput,
+          "a control still focused inside the just-hidden #login-section blocked the #tags-input reveal focus; activeElement is " +
+          (document.activeElement && document.activeElement.tagName + (document.activeElement && document.activeElement.id ? "#" + document.activeElement.id : "")));
       } finally {
         fixture.cleanup();
       }

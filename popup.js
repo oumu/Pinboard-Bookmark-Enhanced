@@ -382,11 +382,20 @@ async function showMain(token) {
   // display:none (the .hidden class) whenever the mirror was NOT primed
   // (first-ever popup open, or right after showLogin() removed the mirror),
   // and revealing it here via classList.remove("hidden") does not retroactively
-  // retry autofocus. Cover that transition explicitly, but only when nothing
-  // already has focus (steady-state autofocus already landed on tags-input by
-  // now, and re-focusing it is a harmless no-op; this guard just keeps intent
-  // explicit and never steals focus from something else).
-  if (!document.activeElement || document.activeElement === document.body) {
+  // retry autofocus. Cover that transition explicitly. The guard is structural,
+  // not timing-based: hiding #login-section via classList.add("hidden") does
+  // NOT synchronously blur whatever was focused inside it (login-btn from a
+  // click, or token-input from Enter) -- Chromium only reverts activeElement to
+  // <body> a couple of rendering frames later, well after this line runs. A
+  // guard that only checked "nothing is focused yet" would race that and never
+  // fire on the login-submit / re-login paths (fix round 2). Checking whether
+  // the active element still lives inside the now-visible #main-section instead
+  // treats a control left over from the just-hidden login form as "nothing
+  // useful is focused" -- and is still a no-op when parse-time autofocus already
+  // landed on tags-input, since that IS inside #main-section.
+  const mainSection = $id("main-section");
+  const activeBeforeReveal = document.activeElement;
+  if (!activeBeforeReveal || activeBeforeReveal === document.body || !mainSection.contains(activeBeforeReveal)) {
     $id("tags-input").focus({ preventScroll: true });
   }
   const qa = document.querySelector(".quick-actions");
