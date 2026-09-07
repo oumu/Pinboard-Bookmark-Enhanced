@@ -678,7 +678,9 @@ async function deliverSaveIntent(intent, settings, auth = pbpCapturePinboardAuth
       return { result: pbpSaveFailure("account_changed"), persisted: null, retryable: false };
     }
     let lookup = null;
-    if (intent.mode === "merge" || intent.mode === "skip") {
+    // overwrite pre-reads too: it replaces the tag set only, so it needs the
+    // server's description, note, privacy flag and original time to send back.
+    if (intent.mode === "merge" || intent.mode === "skip" || intent.mode === "overwrite") {
       lookup = await fetchExistingBookmark(intent.url, settings.pinboardToken, auth);
     }
     if (!pbpPinboardAuthIsCurrent(auth)) {
@@ -693,9 +695,11 @@ async function deliverSaveIntent(intent, settings, auth = pbpCapturePinboardAuth
     }
 
     const delivered = await pbpSendResolvedPlan(plan, settings);
+    // Lookup-backed modes can now lose a race between the read and the write
+    // (replace=no answered with "already exists"); one fresh retry resolves it.
     if (delivered.result.reason !== "conflict"
         || recoveredConflict
-        || (intent.mode !== "merge" && intent.mode !== "skip")) return delivered;
+        || (intent.mode !== "merge" && intent.mode !== "skip" && intent.mode !== "overwrite")) return delivered;
     recoveredConflict = true;
   }
 }

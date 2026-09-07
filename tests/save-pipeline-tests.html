@@ -439,6 +439,106 @@ await suite("unified save pipeline", async () => {
     assert(missing.fields.time === undefined, "missing merge must not forward caller dt");
   });
 
+  // Hand-written posts/get body in Pinboard's v1 wire shape (an existing bookmark
+  // of the current account, extra server fields included). Never derived from the
+  // writer side: a fixture echoing buildPostsAddUri would only prove self-consistency.
+  const EXISTING_GET_BODY = Object.freeze({
+    date: "2024-01-02T03:04:05Z",
+    user: "alice",
+    posts: [Object.freeze({
+      href: "https://example.com/article",
+      description: "Existing title",
+      extended: "Notes the user typed by hand",
+      meta: "8f6ab1f0d3d5b8f5c1e0a0f2b6d4c3a1",
+      hash: "0f9a4a1a2c3d4e5f60718293a4b5c6d7",
+      time: "2024-01-02T03:04:05Z",
+      shared: "no",
+      toread: "yes",
+      tags: "Alpha shared",
+    })],
+  });
+  const EMPTY_GET_BODY = Object.freeze({ date: "2024-01-02T03:04:05Z", user: "alice", posts: [] });
+  const existingPost = () => ({ ...EXISTING_GET_BODY.posts[0] });
+
+  await test("resolver overwrite replaces only tags and keeps every existing field", () => {
+    const post = existingPost();
+    const plan = pbpResolveSavePlan(
+      intent({ mode: "overwrite", title: "New title", notes: "New notes", tags: "new-tag", private: false, toread: false }),
+      { exists: true, post }
+    );
+    equal(plan.action, "send");
+    equal(plan.replace, true);
+    equal(plan.fields.tags, "new-tag", "overwrite must replace the tag set, not union it");
+    // Generalized to the category "no existing field may be lost", not to a single
+    // instance: every non-tag field is asserted against the server record, and the
+    // key set is pinned so a newly added field cannot silently arrive from `incoming`.
+    const preserved = {
+      url: BASE_INTENT.url,
+      title: post.description,
+      notes: post.extended,
+      private: post.shared === "no",
+      toread: post.toread === "yes",
+      time: post.time,
+      archive: undefined,
+    };
+    for (const [key, value] of Object.entries(preserved)) {
+      equal(plan.fields[key], value, `overwrite lost the existing ${key}`);
+    }
+    equal(
+      Object.keys(plan.fields).sort().join(","),
+      Object.keys({ ...preserved, tags: "" }).sort().join(","),
+      "overwrite plan carries an unreviewed field"
+    );
+  });
+
+  await test("resolver overwrite still promotes read-later but never demotes it", () => {
+    const promoted = pbpResolveSavePlan(
+      intent({ mode: "overwrite", toread: true }),
+      { exists: true, post: { ...existingPost(), toread: "no" } }
+    );
+    equal(promoted.fields.toread, true, "an explicit Read Later save must still promote");
+    const kept = pbpResolveSavePlan(intent({ mode: "overwrite", toread: false }), { exists: true, post: existingPost() });
+    equal(kept.fields.toread, true, "quick save must not clear the server's read-later flag");
+  });
+
+  await test("resolver overwrite fails closed instead of blind-replacing", () => {
+    const noLookup = pbpResolveSavePlan(intent({ mode: "overwrite" }), null);
+    equal(noLookup.action, "failed", "overwrite without a lookup must not reach posts/add");
+    equal(noLookup.result.reason, "lookup");
+    equal(noLookup.retryable, true);
+    const failed = pbpResolveSavePlan(intent({ mode: "overwrite" }), {
+      exists: false, lookupFailed: true, reason: "http", httpStatus: 503, retryable: true,
+    });
+    equal(failed.action, "failed");
+    equal(failed.result.reason, "http");
+    equal(failed.result.httpStatus, 503);
+    const incomplete = pbpResolveSavePlan(intent({ mode: "overwrite" }), {
+      exists: true, post: { description: "Existing title", extended: "", tags: "Alpha", shared: "no", toread: "yes" },
+    });
+    equal(incomplete.action, "failed", "a non-canonical post must not be overwritten");
+    equal(incomplete.retryable, true);
+  });
+
+  await test("resolver overwrite reports created only when the lookup proves absence", () => {
+    const created = pbpResolveSavePlan(intent({ mode: "overwrite", time: "caller-time" }), { exists: false });
+    equal(created.action, "send");
+    equal(created.replace, false);
+    equal(created.mutation, "created", "a proven-absent overwrite is a plain create");
+    assert(created.fields.time === undefined, "missing overwrite must not forward caller dt");
+    equal(created.fields.tags, "new-tag");
+    const createdPrivate = pbpResolveSavePlan(intent({ mode: "overwrite", private: true, toread: true }), { exists: false });
+    equal(createdPrivate.fields.private, true, "a create must keep the caller's effective privacy flag");
+    equal(createdPrivate.fields.toread, true, "a create must keep the caller's read-later flag");
+    // Undo deletes the bookmark it just created, so "created" must be unreachable
+    // whenever a bookmark already existed — otherwise Undo would delete the user's
+    // pre-existing bookmark.
+    const existed = pbpResolveSavePlan(intent({ mode: "overwrite" }), { exists: true, post: existingPost() });
+    assert(existed.mutation !== "created", "overwrite of an existing bookmark must never register Undo");
+    equal(existed.mutation, "updated");
+    const blind = pbpResolveSavePlan(intent({ mode: "overwrite" }), null);
+    assert(blind.mutation !== "created", "a failed lookup must not be reported as a create");
+  });
+
   await test("cached bookmark data is account-scoped after an account switch", async () => {
     const h = await createStatusCacheHarness("alice:old", async () => {
       throw new Error("unexpected fetch");
@@ -645,17 +745,13 @@ await suite("unified save pipeline", async () => {
     equal(responses.filter((r) => r.status === "started").length, 1);
   });
 
-  await test("resolver update and overwrite keep exact prepared fields", () => {
+  await test("resolver update keeps exact prepared fields", () => {
     const updated = pbpResolveSavePlan(intent({ mode: "update", private: true, toread: false, time: "server-time" }), null);
     equal(updated.replace, true);
     equal(updated.mutation, "updated");
     equal(updated.fields.notes, "New notes");
     equal(updated.fields.private, true);
     equal(updated.fields.time, "server-time");
-    const overwritten = pbpResolveSavePlan(intent({ mode: "overwrite", time: "known-time" }), null);
-    equal(overwritten.replace, true);
-    equal(overwritten.mutation, "unknown");
-    equal(overwritten.fields.time, "known-time");
   });
 
   await test("popup boundary accepts only create/update/merge with safe time rules", async () => {
@@ -680,7 +776,10 @@ await suite("unified save pipeline", async () => {
     const replay = await createHarness({
       settings: { pinboardToken: "alice:old" },
       currentToken: "alice:new",
-      pinboardFetch: async () => response(200, { result_code: "done" }),
+      // overwrite pre-reads like merge/skip, so the replay opens with posts/get.
+      pinboardFetch: async (url) => url.includes("/posts/get?")
+        ? response(200, EMPTY_GET_BODY)
+        : response(200, { result_code: "done" }),
     });
     equal((await replay.sendOfflineItem({ account: "alice", ...intent({ mode: "overwrite" }) })).result.status, "saved");
     equal(new URL(replay.fetchCalls[0]).searchParams.get("auth_token"), "alice:new",
@@ -774,6 +873,60 @@ await suite("unified save pipeline", async () => {
     equal(addParams.get("shared"), "no");
     equal(addParams.get("toread"), "yes");
     equal(addParams.get("dt"), "fresh-time");
+  });
+
+  await test("overwrite delivery reads the existing bookmark and rewrites only its tags", async () => {
+    let addParams;
+    const h = await createHarness({
+      settings: { bgSaveMode: "overwrite" },
+      pinboardFetch: async (url) => {
+        if (url.includes("/posts/get?")) return response(200, EXISTING_GET_BODY);
+        addParams = new URL(url).searchParams;
+        return response(200, { result_code: "done" });
+      },
+    });
+    const delivered = await h.deliverSaveIntent(intent({ mode: "overwrite" }), h.settings);
+    equal(delivered.result.status, "saved");
+    equal(delivered.result.mutation, "updated");
+    equal(h.fetchCalls.length, 2, "overwrite must pre-read before replacing");
+    assert(h.fetchCalls[0].includes("/posts/get?"), "overwrite wrote before reading");
+    equal(addParams.get("tags"), "new-tag", "overwrite must not union tags");
+    equal(addParams.get("description"), "Existing title");
+    equal(addParams.get("extended"), "Notes the user typed by hand");
+    equal(addParams.get("shared"), "no");
+    equal(addParams.get("toread"), "yes");
+    equal(addParams.get("dt"), "2024-01-02T03:04:05Z", "overwrite dropped the original bookmark time");
+    equal(addParams.get("replace"), "yes");
+  });
+
+  await test("overwrite of an unsaved URL creates without dt and earns Undo", async () => {
+    let addParams;
+    const h = await createHarness({
+      settings: { bgSaveMode: "overwrite" },
+      pinboardFetch: async (url) => {
+        if (url.includes("/posts/get?")) return response(200, EMPTY_GET_BODY);
+        addParams = new URL(url).searchParams;
+        return response(200, { result_code: "done" });
+      },
+    });
+    const result = await h.submitSaveIntent(intent({ mode: "overwrite" }));
+    equal(result.status, "saved");
+    equal(result.mutation, "created");
+    equal(result.account, "alice", "created saves must carry the account Undo needs");
+    equal(addParams.get("replace"), "no");
+    equal(addParams.has("dt"), false);
+  });
+
+  await test("overwrite lookup failure sends no posts/add request", async () => {
+    const offline = await createHarness({ pinboardFetch: async () => { throw new TypeError("offline"); } });
+    const delivered = await offline.deliverSaveIntent(intent({ mode: "overwrite" }), offline.settings);
+    equal(delivered.result.status, "failed");
+    equal(delivered.result.reason, "lookup");
+    equal(offline.fetchCalls.length, 1, "a failed lookup must not fall through to a blind replace");
+    const malformed = await createHarness({ pinboardFetch: async () => response(200, { result_code: "weird" }) });
+    const malformedResult = await malformed.deliverSaveIntent(intent({ mode: "overwrite" }), malformed.settings);
+    equal(malformedResult.result.reason, "lookup");
+    equal(malformed.fetchCalls.length, 1, "malformed lookup must not fall through to add");
   });
 
   await test("merge lookup failure sends no posts/add request", async () => {
@@ -995,6 +1148,7 @@ await suite("unified save pipeline", async () => {
       queue: [{ queueId: "rotated", account: "alice", ...intent({ mode: "overwrite" }) }],
       settings: { pinboardToken: "alice:new-token" },
       pinboardFetch: async (url) => {
+        if (url.includes("/posts/get?")) return response(200, EMPTY_GET_BODY);
         addParams = new URL(url).searchParams;
         return response(200, { result_code: "done" });
       },
@@ -1015,6 +1169,7 @@ await suite("unified save pipeline", async () => {
       queue: [queued],
       settings: { pinboardToken: "alice:new-token", bgSaveMode: "overwrite" },
       pinboardFetch: async (url) => {
+        if (url.includes("/posts/get?")) return response(200, EMPTY_GET_BODY);
         addParams = new URL(url).searchParams;
         return response(200, { result_code: "done" });
       },

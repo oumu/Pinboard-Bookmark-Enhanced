@@ -799,7 +799,7 @@ function buildPostsAddUri({ token, url, title = "", extended = "", tags = "", sh
 }
 
 // Resolve save semantics without I/O. Callers must validate the intent first and
-// provide a fresh lookup for merge/skip modes.
+// provide a fresh lookup for merge/skip/overwrite modes.
 function pbpResolveSavePlan(intent, lookup) {
   const incoming = {
     url: intent?.url || "",
@@ -815,8 +815,11 @@ function pbpResolveSavePlan(intent, lookup) {
 
   if (intent?.mode === "create") return send(incoming, false, "created");
   if (intent?.mode === "update") return send(incoming, true, "updated");
-  if (intent?.mode === "overwrite") return send(incoming, true, "unknown");
-  if (intent?.mode !== "merge" && intent?.mode !== "skip") {
+  // merge / skip / overwrite are all resolved against a fresh lookup below.
+  // overwrite means "replace the tag set", not "replace the record": the settings
+  // copy only ever promised tags, so it must fail closed rather than blind-write
+  // over a description, note, privacy flag or bookmark time it never read.
+  if (intent?.mode !== "merge" && intent?.mode !== "skip" && intent?.mode !== "overwrite") {
     return { action: "failed", result: { status: "failed", reason: "invalid" } };
   }
 
@@ -852,7 +855,10 @@ function pbpResolveSavePlan(intent, lookup) {
     time: post.time,
   };
 
-  existing.tags = unionTags(existing.tags, incoming.tags);
+  // overwrite drops the server's tags; merge unions them. Everything else stays
+  // as the server has it — including toread, which is only ever promoted (an
+  // explicit Read Later save must still work, but a quick save never clears it).
+  existing.tags = intent.mode === "overwrite" ? incoming.tags : unionTags(existing.tags, incoming.tags);
   if (incoming.toread) existing.toread = true;
   return send(existing, true, "updated");
 }
