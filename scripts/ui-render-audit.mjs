@@ -17,6 +17,25 @@
 //   node scripts/ui-render-audit.mjs --update-known-failures  # (re)write the baseline
 //   node scripts/ui-render-audit.mjs --sweep               # DISCOVERY mode (see below), not a gate
 //   node scripts/ui-render-audit.mjs --write-spacing-baseline  # (re)freeze the spacingScale ratchet ledger
+//   node scripts/ui-render-audit.mjs --shard=i/n           # run only theme slice i of n (verify.sh)
+//   node scripts/ui-render-audit.mjs --json=<path>         # also dump the raw results array (equivalence checks)
+//
+// --shard=i/n splits the surface x theme matrix across n independent
+// PROCESSES, which is how scripts/verify.sh runs this gate (this one script
+// was ~80% of verify's wall clock: 440s of ~550s; 4 shards run it in 154s).
+// It cannot be a pool of pages inside ONE browser: the theme is written into
+// the extension's SW storage (setTheme), so a context holds exactly one
+// theme at a time. Each
+// shard therefore loads its own unpacked extension and -- by being main()
+// again from the top -- replays the identical fixture seeding, which is what
+// makes a shard's verdict on its own themes identical to the full run's.
+// Shard 0 additionally runs the single --sweep pass that feeds families 4-11
+// and the spacingScale ledger (one pass covers every theme: geometry tokens
+// are theme invariants, .claude/rules/theme-factory.md). A shard reports its
+// own slice against known-failures and exits with its own code, so verify
+// fails when ANY shard fails; the only thing it cannot do is the advisory
+// STALE reconciliation (its seenKeys is a slice) -- see report(). Without
+// the flag this file behaves exactly as it did before the option existed.
 //
 // --sweep is a separate mode from the CHECKS/known-failures gate above: a
 // generic DOM walk (not the hand-written CHECKS list) that hunts for three
@@ -74,6 +93,53 @@ const SWEEP = process.argv.includes("--sweep");
 // docs/theme-surface/tools/override-debt.mjs and scripts/ui-vocabulary-lint.mjs.
 const SPACING_BASELINE_PATH = resolve(ROOT, "tests", "render-audit-spacing-baseline.json");
 const WRITE_SPACING = process.argv.includes("--write-spacing-baseline");
+
+// ---- --shard=i/n (see the USAGE block). Pure read: no --shard flag means
+// SHARD is null and every branch below is the pre-sharding one. ----
+function parseShard() {
+  const arg = process.argv.find((a) => a === "--shard" || a.startsWith("--shard="));
+  if (!arg) return null;
+  const m = /^--shard=(\d+)\/(\d+)$/.exec(arg);
+  if (!m) {
+    console.error(`[render-audit] bad shard argument ${JSON.stringify(arg)} -- expected --shard=i/n with 0 <= i < n`);
+    process.exit(2);
+  }
+  const i = Number(m[1]);
+  const n = Number(m[2]);
+  if (n < 1 || i >= n) {
+    console.error(`[render-audit] bad shard ${i}/${n} -- expected 0 <= i < n and n >= 1`);
+    process.exit(2);
+  }
+  return { i, n };
+}
+const SHARD = parseShard();
+if (SHARD && (UPDATE || SWEEP || WRITE_SPACING)) {
+  // Those three modes write (or print) a whole-matrix artifact; a slice of
+  // the matrix would silently truncate the baseline / the ledger / the hit
+  // list. Refuse instead of producing a plausible-looking partial file.
+  console.error("[render-audit] --shard cannot be combined with --update-known-failures / --sweep / --write-spacing-baseline (they need the whole matrix in one process)");
+  process.exit(2);
+}
+const SHARD_TAG = SHARD ? ` (shard ${SHARD.i}/${SHARD.n})` : "";
+// Round-robin, not contiguous blocks, so the four MEDIA_THEMES (whose legs
+// cost extra CDP probes) spread across shards instead of landing in one.
+const SHARD_THEMES = SHARD ? THEMES.filter((_, idx) => idx % SHARD.n === SHARD.i) : THEMES;
+const RUNS_SWEEP = !SHARD || SHARD.i === 0;
+
+// --json=<path> dumps the raw `results` array (every OK/SKIP/FAIL row, not
+// just the reported ones) next to the normal report. Added for the sharding
+// equivalence proof -- report() console.logs and exits, so without it there
+// is no way to assert "the union of the shards is item-for-item the full
+// run". Read-only for the gate: the verdict and the exit code do not change.
+const JSON_OUT = (() => {
+  const arg = process.argv.find((a) => a.startsWith("--json="));
+  const value = arg ? arg.slice("--json=".length) : "";
+  if (arg && !value) {
+    console.error("[render-audit] --json= needs a path (e.g. --json=/tmp/render-audit-full.json)");
+    process.exit(2);
+  }
+  return value ? resolve(process.cwd(), value) : null;
+})();
 
 let chromium;
 try {
@@ -3052,10 +3118,20 @@ function report(results) {
     else violations.push(r);
   }
   const seenKeys = new Set(fails.map(keyOf));
-  const stale = Object.keys(known).filter((k) => !seenKeys.has(k));
+  // A shard ran a SLICE of THEMES, so its seenKeys cannot answer "which
+  // known-failure keys no longer reproduce" -- every key belonging to another
+  // shard's theme would be reported STALE. That reconciliation is advisory
+  // (a console.log, never an exit code), so a shard declines to guess rather
+  // than the whole gate growing a cross-process seenKeys merge protocol; a
+  // full run (no --shard: verify.sh's single-shard path and every manual
+  // invocation) still does it exactly as before.
+  const stale = SHARD ? [] : Object.keys(known).filter((k) => !seenKeys.has(k));
 
-  console.log(`[render-audit] ${okCount} OK, ${skipCount} SKIP, ${warnings.length} WARN (known), ${violations.length} FAIL (new)`);
+  console.log(`[render-audit] ${okCount} OK, ${skipCount} SKIP, ${warnings.length} WARN (known), ${violations.length} FAIL (new)${SHARD_TAG}`);
   if (skipCount) console.log(`[render-audit] SKIP = disabled controls exempted from contrast checks (WCAG 1.4.3), not a failure`);
+  if (SHARD && Object.keys(known).length) {
+    console.log(`[render-audit] stale known-failure reconciliation skipped${SHARD_TAG} -- rerun without --shard to find ledger entries that no longer reproduce`);
+  }
   if (warnings.length) {
     console.log(`[render-audit] known failures still outstanding (see ${KNOWN_FAILURES_PATH}):`);
     for (const r of warnings) console.log(`  WARN  ${keyOf(r)}  actual=${r.actual}  expected=${r.expected}`);
@@ -3074,6 +3150,9 @@ function report(results) {
 }
 
 async function main() {
+  if (SHARD) {
+    console.log(`[render-audit] shard ${SHARD.i}/${SHARD.n}: ${SHARD_THEMES.length}/${THEMES.length} theme(s) [${SHARD_THEMES.map((t) => t || "(default)").join(", ")}]${RUNS_SWEEP ? " + the single sweep pass (families 4-11 and the spacingScale ledger)" : ""}`);
+  }
   const userDataDir = mkdtempSync(join(tmpdir(), "pbp-render-audit-"));
   let ctx;
   try {
@@ -3210,7 +3289,7 @@ async function main() {
     for (const surface of Object.keys(SURFACE_PAGES)) {
       const checks = CHECKS.filter((c) => c.surface === surface);
       if (!checks.length) continue;
-      for (const theme of THEMES) {
+      for (const theme of SHARD_THEMES) {
         // No bare-dark state on any surface: no-preset+dark resolves to
         // data-theme="flexoki-dark" on popup, options and library alike (batch
         // 2 D6), so the "flexoki-dark" THEMES entry covers it everywhere.
@@ -3232,7 +3311,13 @@ async function main() {
     // through the same known-failures reconciliation as the hand-enumerated
     // checks above -- see sweepProbe's family-4 comment for why one pass
     // (not one per THEMES entry) is sufficient coverage.
-    const sweepHits = await runSweep(page, sw, extBase);
+    //
+    // That single pass is exactly why sharding hands it to shard 0 alone
+    // (RUNS_SWEEP): families 4-11 are theme-invariant geometry, so running
+    // them once is full coverage, while running them in every shard would
+    // pay the sweep N times and report each hit N times. The other shards
+    // get an empty hit list, so all six family loops below are no-ops there.
+    const sweepHits = RUNS_SWEEP ? await runSweep(page, sw, extBase) : [];
     const hitAreaHits = sweepHits.filter((h) => h.kind === "hitAreaMin");
     for (const h of hitAreaHits) {
       results.push({
@@ -3278,13 +3363,17 @@ async function main() {
     }
     // ---- family 11 spacingScale: ratchet against its own ledger; only hits
     // the ledger does not hold become FAIL rows (then known-failures applies
-    // as for every other check).
-    for (const h of reconcileSpacing(sweepHits)) {
-      results.push({
-        surface: h.surface, theme: "", selector: h.path, state: h.prop, check: "spacingScale", status: "FAIL",
-        actual: `${h.value}px`, expected: h.scale.map((t) => t + "px").join("|"),
-        note: "margin/padding/gap off the surface's live --*-sp-N scale; move the rule onto a token or (deliberately) add it to tests/render-audit-spacing-baseline.json",
-      });
+    // as for every other check). Guarded (not just fed an empty array) so a
+    // shard that did not sweep never reconciles the ledger against nothing
+    // and calls every entry in it stale.
+    if (RUNS_SWEEP) {
+      for (const h of reconcileSpacing(sweepHits)) {
+        results.push({
+          surface: h.surface, theme: "", selector: h.path, state: h.prop, check: "spacingScale", status: "FAIL",
+          actual: `${h.value}px`, expected: h.scale.map((t) => t + "px").join("|"),
+          note: "margin/padding/gap off the surface's live --*-sp-N scale; move the rule onto a token or (deliberately) add it to tests/render-audit-spacing-baseline.json",
+        });
+      }
     }
   } finally {
     await mediaSession.detach().catch(() => {});
@@ -3293,7 +3382,14 @@ async function main() {
     rmSync(userDataDir, { recursive: true, force: true });
   }
 
-  console.log(`[render-audit] media preferences: ${mediaProbeCount} probes across ${MEDIA_THEMES.length} themes x ${MEDIA_CHECKS.length} surfaces x ${MEDIA_SCENARIOS.length} scenarios`);
+  // Denominator is what THIS process ran: MEDIA_THEMES for a full run (all
+  // four are THEMES entries), a shard's slice of them under --shard.
+  const mediaThemes = SHARD_THEMES.filter((t) => MEDIA_THEME_SET.has(t)).length;
+  console.log(`[render-audit] media preferences: ${mediaProbeCount} probes across ${mediaThemes} themes x ${MEDIA_CHECKS.length} surfaces x ${MEDIA_SCENARIOS.length} scenarios${SHARD_TAG}`);
+  if (JSON_OUT) {
+    writeFileSync(JSON_OUT, JSON.stringify(results, null, 2) + "\n");
+    console.log(`[render-audit] wrote ${results.length} result row(s) to ${JSON_OUT}`);
+  }
   report(results);
 }
 
