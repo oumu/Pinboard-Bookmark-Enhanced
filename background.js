@@ -1702,6 +1702,49 @@ async function migrateGithubModelsRetirement() {
 }
 migrateGithubModelsRetirement();
 
+// One-time data fix: both factory model ids died upstream. Groq decommissioned
+// llama-3.1-8b-instant on 2026-08-16 and its deprecation table names
+// openai/gpt-oss-20b as the replacement; OpenRouter's openai/gpt-oss-20b:free
+// lost every serving endpoint (the /endpoints listing is an empty array), so the
+// plain openai/gpt-oss-20b slug is the live one there too. Swapping the source
+// literals reaches new profiles only: primeSettings() writes every missing
+// SETTINGS_DEFAULTS key on install/update/startup and neither model key sits in
+// PRIME_EXCLUDED_KEYS, so every existing install already has a dead id on disk
+// and options.js's `|| default` fallback never runs. Rewrite ONLY a value still
+// byte-identical to the retired default — a model the user typed (including a
+// deliberate re-pick of the dead id) stays untouched. Flag-gated one-shot; both
+// areas are swept because settings routing (optSyncEnabled) may have left the
+// value in either. Retire by 2026-10-31 (CLAUDE.md 临时事项).
+const PBP_RETIRED_MODEL_FLAG = "_retiredModelDefaultsDone";
+const PBP_RETIRED_MODEL_DEFAULTS = Object.freeze({
+  groqModel: { retired: "llama-3.1-8b-instant", replacement: "openai/gpt-oss-20b" },
+  openrouterModel: { retired: "openai/gpt-oss-20b:free", replacement: "openai/gpt-oss-20b" },
+});
+async function migrateRetiredProviderModels() {
+  try {
+    const flag = await chrome.storage.local.get(PBP_RETIRED_MODEL_FLAG);
+    if (flag[PBP_RETIRED_MODEL_FLAG]) return;
+    const keys = Object.keys(PBP_RETIRED_MODEL_DEFAULTS);
+    for (const area of [chrome.storage.local, chrome.storage.sync]) {
+      const raw = await area.get(keys);
+      const fixed = {};
+      for (const key of keys) {
+        if (raw[key] === PBP_RETIRED_MODEL_DEFAULTS[key].retired) {
+          fixed[key] = PBP_RETIRED_MODEL_DEFAULTS[key].replacement;
+        }
+      }
+      if (Object.keys(fixed).length) await area.set(fixed);
+    }
+    await chrome.storage.local.set({ [PBP_RETIRED_MODEL_FLAG]: true });
+  } catch (e) {
+    // MV3 rule: leave a trace before folding a platform failure away. Model ids
+    // and key names only — no credential ever passes through here. The flag stays
+    // unset so the next worker generation retries; every step is idempotent.
+    console.warn("retired model default rewrite failed:", e?.name, e?.message);
+  }
+}
+migrateRetiredProviderModels();
+
 // One-shot legacy scrub (roadmap #24; retires shared.js's "two-release
 // cleanup" TODO): keys-off migration used to strip only the token field,
 // leaving a legacy plaintext webhook capability URL in chrome.storage.sync

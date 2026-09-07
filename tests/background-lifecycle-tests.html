@@ -160,6 +160,49 @@ function buildBootVocabSyncHarness(source, opts) {
   return { ...factory(...Object.values(deps)), syncs, local };
 }
 
+// ---- Retired provider model defaults harness ----
+// primeSettings() writes every missing SETTINGS_DEFAULTS key on install/update/
+// startup, so an existing install already holds the retired model id on disk and
+// swapping the source literals reaches new profiles only. The one-shot rewrite is
+// the only thing that reaches existing users — and it must move a value ONLY while
+// that value is still byte-identical to the retired default.
+function buildRetiredModelHarness(source, opts) {
+  const start = source.indexOf("const PBP_RETIRED_MODEL_FLAG");
+  const end = source.indexOf("migrateRetiredProviderModels();", start);
+  if (start < 0 || end <= start) return null;
+  const o = opts || {};
+  const warns = [];
+  const writes = { local: [], sync: [] };
+  // chrome.storage hands back a structured clone; a fake that leaked the stored
+  // object would make a missing write-back read as a success.
+  const area = (name, seed) => {
+    const data = structuredClone(seed || {});
+    return {
+      data,
+      async get(query) {
+        if (o.rejectArea === name) throw new Error(name + " unavailable");
+        const out = {};
+        for (const key of [].concat(query)) if (key in data) out[key] = structuredClone(data[key]);
+        return out;
+      },
+      async set(obj) {
+        if (o.rejectArea === name) throw new Error(name + " unavailable");
+        writes[name].push(structuredClone(obj));
+        Object.assign(data, structuredClone(obj));
+      },
+    };
+  };
+  const local = area("local", o.local);
+  const sync = area("sync", o.sync);
+  const deps = {
+    chrome: { storage: { local, sync } },
+    console: { warn: (...args) => warns.push(args) },
+  };
+  const factory = new Function(...Object.keys(deps), `${source.slice(start, end)}
+    return { PBP_RETIRED_MODEL_FLAG, PBP_RETIRED_MODEL_DEFAULTS, migrateRetiredProviderModels };`);
+  return { ...factory(...Object.values(deps)), local, sync, writes, warns };
+}
+
 // ---- Undo notification harness ----
 function buildUndoHarness(source, opts) {
   const start = source.indexOf("// F7: Track recent saves");
@@ -432,6 +475,72 @@ function buildUndoHarness(source, opts) {
     check("alarm-driven vocabulary syncs are never throttled",
       alarmDriven.syncs.length === 3 &&
       /pbpBootVocabDriveSync\(\)\.catch/.test(alarmBranch.slice(0, 400)));
+  }
+
+  // ---- Retired provider model defaults ----
+  {
+    const h = buildRetiredModelHarness(source, {
+      local: { groqModel: "llama-3.1-8b-instant", openrouterModel: "openai/gpt-oss-20b:free" },
+    });
+    h && await h.migrateRetiredProviderModels();
+    check("retired model defaults: a dead factory id already on disk in local is rewritten to the live replacement",
+      !!h && h.local.data.groqModel === "openai/gpt-oss-20b" &&
+      h.local.data.openrouterModel === "openai/gpt-oss-20b" && h.warns.length === 0);
+  }
+  {
+    // Settings route to sync or local per optSyncEnabled, and a value synced in
+    // from another device lands in sync — sweeping one area would leave half the
+    // installed base broken.
+    const h = buildRetiredModelHarness(source, {
+      sync: { groqModel: "llama-3.1-8b-instant", openrouterModel: "openai/gpt-oss-20b:free" },
+    });
+    h && await h.migrateRetiredProviderModels();
+    check("retired model defaults: the sync copy is swept too, not just local",
+      !!h && h.sync.data.groqModel === "openai/gpt-oss-20b" &&
+      h.sync.data.openrouterModel === "openai/gpt-oss-20b" && h.writes.sync.length === 1);
+  }
+  {
+    const h = buildRetiredModelHarness(source, {
+      local: { groqModel: "llama-3.3-70b-versatile" },
+      sync: { openrouterModel: "anthropic/claude-haiku-4.5" },
+    });
+    h && await h.migrateRetiredProviderModels();
+    // A near-miss must miss: trimming/normalising before the comparison would
+    // silently overwrite a value the user typed.
+    const variant = buildRetiredModelHarness(source, { local: { groqModel: "  llama-3.1-8b-instant  " } });
+    variant && await variant.migrateRetiredProviderModels();
+    check("retired model defaults: only a byte-identical dead default moves; a user-picked model is never touched",
+      !!h && !!variant && h.local.data.groqModel === "llama-3.3-70b-versatile" &&
+      h.sync.data.openrouterModel === "anthropic/claude-haiku-4.5" &&
+      !h.writes.local.some((w) => "groqModel" in w) && h.writes.sync.length === 0 &&
+      variant.local.data.groqModel === "  llama-3.1-8b-instant  ");
+  }
+  {
+    const first = buildRetiredModelHarness(source, {
+      local: { groqModel: "llama-3.1-8b-instant", openrouterModel: "openai/gpt-oss-20b:free" },
+    });
+    first && await first.migrateRetiredProviderModels();
+    // A later worker generation inherits the same local area — and by then the
+    // user may have deliberately gone back to the retired id.
+    const carried = structuredClone(first ? first.local.data : {});
+    carried.groqModel = "llama-3.1-8b-instant";
+    const second = buildRetiredModelHarness(source, { local: carried });
+    second && await second.migrateRetiredProviderModels();
+    check("retired model defaults: the done-flag makes it a true one-shot; a later worker writes nothing",
+      !!first && !!second && first.local.data[first.PBP_RETIRED_MODEL_FLAG] === true &&
+      second.local.data.groqModel === "llama-3.1-8b-instant" &&
+      second.writes.local.length === 0 && second.writes.sync.length === 0);
+  }
+  {
+    const h = buildRetiredModelHarness(source, {
+      local: { groqModel: "llama-3.1-8b-instant" },
+      sync: { openrouterModel: "openai/gpt-oss-20b:free" },
+      rejectArea: "sync",
+    });
+    h && await h.migrateRetiredProviderModels();
+    check("retired model defaults: a storage failure is traced and leaves the flag unset so the next worker retries",
+      !!h && h.warns.length === 1 && h.local.data.groqModel === "openai/gpt-oss-20b" &&
+      h.local.data[h.PBP_RETIRED_MODEL_FLAG] === undefined);
   }
 
   // ---- Undo notification record ----

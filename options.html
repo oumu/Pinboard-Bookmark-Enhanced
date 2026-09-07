@@ -499,7 +499,7 @@
       <div class="pf" hidden id="fields-openrouter">
         <h3 data-i18n="provOpenrouter">OpenRouter</h3>
         <div class="fg context-help-host" data-help-role="field"><label class="bl" for="opt-openrouter-key" data-i18n="labelApiKey">API Key</label><details class="context-help"><summary class="btn btn-sm ghost context-help-toggle" title="More information" aria-label="More information" data-i18n-title="contextHelpTitle" data-i18n-aria="contextHelpTitle"><span class="btn-ic" data-ic="help"></span></summary><p class="hint context-help-body" data-i18n="openrouterTagline">Access 100+ models from one API.</p></details><span class="key-wrap"><input type="password" id="opt-openrouter-key" placeholder="sk-or-…" /><button type="button" class="key-toggle" data-target="opt-openrouter-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://openrouter.ai/keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
-        <div class="fg"><label class="bl" for="opt-openrouter-model" data-i18n="labelModel">Model</label><input type="text" id="opt-openrouter-model" value="openai/gpt-oss-20b:free" /><p class="hint"><span data-i18n="browseModelsAt">Browse models at</span> <a href="https://openrouter.ai/models" target="_blank" rel="noopener">openrouter.ai/models</a></p></div>
+        <div class="fg"><label class="bl" for="opt-openrouter-model" data-i18n="labelModel">Model</label><input type="text" id="opt-openrouter-model" value="openai/gpt-oss-20b" /><p class="hint"><span data-i18n="browseModelsAt">Browse models at</span> <a href="https://openrouter.ai/models" target="_blank" rel="noopener">openrouter.ai/models</a></p></div>
         <div class="fg-actions">
           <button class="btn btn-sm" id="test-openrouter" data-i18n="testConnection">Test Connection</button>
           <span class="save-status" id="test-openrouter-status" role="status" aria-live="polite"></span>
@@ -510,7 +510,7 @@
       <div class="pf" hidden id="fields-groq">
         <h3 data-i18n="provGroq">Groq</h3>
         <div class="fg"><label class="bl" for="opt-groq-key" data-i18n="labelApiKey">API Key</label><span class="key-wrap"><input type="password" id="opt-groq-key" placeholder="gsk_…" /><button type="button" class="key-toggle" data-target="opt-groq-key" title="Show/hide key" data-i18n-title="showHideKey" data-i18n-aria="showHideKey" aria-label="Show/hide key"></button></span><p class="hint"><a href="https://console.groq.com/keys" target="_blank" data-i18n="getKey" rel="noopener">Get key</a></p></div>
-        <div class="fg"><label class="bl" for="opt-groq-model" data-i18n="labelModel">Model</label><input type="text" id="opt-groq-model" value="llama-3.1-8b-instant" /></div>
+        <div class="fg"><label class="bl" for="opt-groq-model" data-i18n="labelModel">Model</label><input type="text" id="opt-groq-model" value="openai/gpt-oss-20b" /></div>
         <div class="fg-actions">
           <button class="btn btn-sm" id="test-groq" data-i18n="testConnection">Test Connection</button>
           <span class="save-status" id="test-groq-status" role="status" aria-live="polite"></span>

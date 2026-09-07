@@ -151,6 +151,7 @@ bash scripts/release.sh         # 打 ZIP + GH release + changelog；--build-onl
 - **`pbpClaimLegacyHighlightOwners` 可退役（到期日 2026-12-31）**：background.js 的一次性认领（2026-08-29 上线，flag `_hlOwnerClaimDone`）——把无 owner 的存量高亮 item 认领给当前账号（高亮按账号过滤，用户拍板）。未登录用户的 flag 不落，到期删函数与调用行时若 flag 仍未落，存量保持无主（人人可见）属可接受终态。
 - **`pbpScrubLegacySyncWebhookUrls` 可退役（到期日 2026-12-31）**：background.js 的一次性 scrub（2026-08-29 上线，flag `_webhookSyncScrubDone`）——keys-off 用户遗留在 chrome.storage.sync 的明文 webhook capability URL 先救进 local 再全剥。到期直接删函数与调用行；届时 `pbpStripExportTargetTokensOnly`（shared.js）若 migrate 路径仍在用则保留，其注释同步改。
 - **`migrateGithubModelsRetirement` 可退役（到期日 2026-10-15）**：GitHub Models 服务 2026-07-30 整体退役（端点 HTTP 410），provider 已于 2026-08-29 下线；background.js 的该迁移负责重置存量用户的 `aiProvider` 并清理两个 storage area 里的 `githubModelsApiKey`/`githubModelsModel`。按 WebDAV 先例（10 个版本/33 天）到期直接删函数与调用行即可，无接线门。
+- **`migrateRetiredProviderModels` 可退役（到期日 2026-10-31）**：background.js 的一次性改写（2026-09-07 上线，flag `_retiredModelDefaultsDone`、常量 `PBP_RETIRED_MODEL_FLAG` / `PBP_RETIRED_MODEL_DEFAULTS`）——Groq 的 `llama-3.1-8b-instant`（上游 2026-08-16 关停）与 OpenRouter 的 `openai/gpt-oss-20b:free`（0 个服务端点）两个出厂默认已被 `primeSettings()` 落盘到每个存量安装，只换字面量修不到它们；迁移在两个 storage area 里把**恰好等于旧默认值**的 `groqModel` / `openrouterModel` 改写为 `openai/gpt-oss-20b`，用户自填值一律不动。按 WebDAV 先例到期直接删常量、函数与调用行即可，无接线门；`tests/background-lifecycle-tests.html` 的 5 条断言与 run-test.mjs 计数同步撤。
 
 ## 与 Claude Code 协作
 
