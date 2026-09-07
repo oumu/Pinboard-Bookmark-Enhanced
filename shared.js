@@ -1367,6 +1367,24 @@ function classifyPinboardError(input) {
   return "pinboardErrorOffline";
 }
 
+// ---- test_pinboard_token response classifier (popup login + options
+// connectivity test share this one call) ----
+// Input shape is exactly what background.js's test_pinboard_token handler
+// sends back: on a settled fetch, { ok, status }; on a rejected fetch,
+// { ok:false, error:"timeout"|"network" } with NO status field. error must be
+// checked before status -- an undefined status handed to classifyPinboardError
+// would fall through its number branch to "offline", misreporting a timeout as
+// a dropped connection. 401/403 and any other status (400/404/…) keep the
+// existing loginFailed copy: promoting them to pinboardErrorAuth would orphan
+// loginFailed across all 9 locales, out of scope for this fix.
+function pbpPinboardTestErrorKey(res) {
+  if (res && res.error === "timeout") return "pinboardErrorTimeout";
+  if (res && res.error === "network") return "pinboardErrorOffline";
+  const status = res && res.status;
+  if (status === 429 || status >= 500) return classifyPinboardError(status);
+  return "loginFailed";
+}
+
 // ---- Settings storage selector (sync vs local based on user preference) ----
 // The preference itself is always stored in chrome.storage.local (bootstrap location).
 // R5: cached + invalidated on optSyncEnabled change. First call seeds from localStorage

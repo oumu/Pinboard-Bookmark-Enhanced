@@ -108,6 +108,28 @@ async function run() {
       classifyPinboardError(new TypeError("Failed to fetch")) === "pinboardErrorOffline");
   }
 
+  // ---------- P0b3: test_pinboard_token's own reply shape classifies by severity ----------
+  // background.js's test_pinboard_token handler never hands classifyPinboardError
+  // a Response or Error -- a settled fetch gives {ok,status}, a rejected one
+  // gives {ok:false,error:"timeout"|"network"} with no status at all. This is
+  // the one call popup.js's login submit and options-connectivity.js's Test
+  // button both make, so K155 (429/5xx/timeout/network no longer read as "bad
+  // token") is proven once here for both surfaces.
+  {
+    check("P0b3 a rate-limited reply is not blamed on the token",
+      pbpPinboardTestErrorKey({ ok: false, status: 429 }) === "pinboardErrorRateLimit");
+    check("P0b3 a 5xx reply is not blamed on the token",
+      pbpPinboardTestErrorKey({ ok: false, status: 503 }) === "pinboardErrorServer");
+    check("P0b3 a rejected fetch with no status still classifies as a timeout, not offline",
+      pbpPinboardTestErrorKey({ ok: false, error: "timeout" }) === "pinboardErrorTimeout");
+    check("P0b3 a rejected fetch with no status still classifies as offline",
+      pbpPinboardTestErrorKey({ ok: false, error: "network" }) === "pinboardErrorOffline");
+    check("P0b3 a real 401 auth rejection keeps the existing copy",
+      pbpPinboardTestErrorKey({ ok: false, status: 401 }) === "loginFailed");
+    check("P0b3 an unclassified status keeps the existing copy rather than claiming offline",
+      pbpPinboardTestErrorKey({ ok: false, status: 404 }) === "loginFailed");
+  }
+
   // ---------- P0c: free-text setting lists stay under the sync per-item cap ----------
   // persistSettings writes every non-chunked key in ONE storage.set(), so a
   // single value over QUOTA_BYTES_PER_ITEM (8192) rejects the whole batch.

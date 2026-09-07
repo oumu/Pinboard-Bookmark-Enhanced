@@ -183,8 +183,12 @@ function setupApiTests() {
         setStatusResult(statusEl, false, t("networkError"));
         recordHealth("pinboard", false, "network");
       } else {
-        setStatusResult(statusEl, false, t("loginFailed"));
-        recordHealth("pinboard", false, "auth");
+        // Same call as popup.js's login submit: a 429/5xx status must not
+        // read (or log) as "your token is wrong" (K155).
+        const key = pbpPinboardTestErrorKey(resp);
+        setStatusResult(statusEl, false, t(key));
+        recordHealth("pinboard", false,
+          key === "pinboardErrorRateLimit" ? "rate_limit" : key === "pinboardErrorServer" ? "server" : "auth");
       }
     } catch (e) {
       console.warn("[connectivity] Pinboard test failed:", e?.name, e?.message);

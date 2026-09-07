@@ -1461,6 +1461,48 @@ test("posts/add default remains replace=yes for existing callers", () => {
       assert(errors.some((args) => args[0] === "login-error" && args[1] === "networkError"), "persistence failure was not surfaced on login");
     });
 
+    // K155: the first-run login form used to collapse every non-ok
+    // test_pinboard_token reply -- 429 rate limit, a 5xx blip, a dropped
+    // connection, the 15s timeout -- into one "your token is wrong" message,
+    // which pushes a new user to burn a perfectly valid token regenerating it
+    // (and logs out every other device with it). Each shape below is the real
+    // reply background.js's handler sends for that outcome.
+    await testAsync("login failure reads the reply's own status/error instead of always blaming the token", async () => {
+      async function loginErrorKeyFor(res) {
+        const loginSource = source.slice(source.indexOf('$id("login-form").addEventListener'), source.indexOf("// ===================== Main"));
+        let loginHandler;
+        const errors = [];
+        const loginButton = { disabled: false, addEventListener: (_type, fn) => { loginHandler = fn; } };
+        const loginForm = { addEventListener: (_type, fn) => { loginHandler = fn; } };
+        const tokenInput = { value: "alice:test-token" };
+        const deps = {
+          $id: (id) => id === "login-form" ? loginForm : (id === "login-btn" ? loginButton : tokenInput),
+          showElement: (...args) => errors.push(args),
+          t: (key) => key,
+          chrome: {
+            runtime: {
+              lastError: null,
+              sendMessage: (_message, callback) => callback(res),
+            },
+          },
+          persistSettings: async () => ({ ok: true }),
+          obfuscateKey,
+          settings: {},
+          showMain: () => {},
+        };
+        new Function(...Object.keys(deps), loginSource)(...Object.values(deps));
+        await loginHandler({ preventDefault() {} });
+        const shown = errors.find((args) => args[0] === "login-error");
+        return shown && shown[1];
+      }
+      assert((await loginErrorKeyFor({ ok: false, status: 429 })) === "pinboardErrorRateLimit", "a 429 still told the user their token is wrong");
+      assert((await loginErrorKeyFor({ ok: false, status: 503 })) === "pinboardErrorServer", "a 503 still told the user their token is wrong");
+      assert((await loginErrorKeyFor({ ok: false, error: "timeout" })) === "pinboardErrorTimeout", "the 15s timeout still told the user their token is wrong");
+      assert((await loginErrorKeyFor({ ok: false, error: "network" })) === "pinboardErrorOffline", "a dropped connection still told the user their token is wrong");
+      assert((await loginErrorKeyFor({ ok: false, status: 401 })) === "loginFailed", "a real auth rejection stopped being reported");
+      assert((await loginErrorKeyFor({ ok: false, status: 404 })) === "loginFailed", "an unclassified status started claiming a network problem");
+    });
+
     test("both Pinboard 401 paths share reset-and-reload behavior", () => {
       const fetch401 = source.slice(source.indexOf("function _pbpProxyPinboardFetch"), source.indexOf("let currentTags"));
       const loginSource = source.slice(source.indexOf('$id("login-form").addEventListener'), source.indexOf("// ===================== Main"));

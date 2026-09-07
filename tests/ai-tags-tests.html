@@ -679,6 +679,42 @@ suite("endpoint origin policy", () => {
       }
     });
 
+    // K155: the options-page Pinboard Test button shares popup.js's login
+    // classifier now -- a 429/5xx reply must stop reading as "your token is
+    // wrong", and the health-log reason has to follow the same split so the
+    // connection-health record isn't still filed under "auth" for a rate
+    // limit or a server blip.
+    await atest("Pinboard test button classifies rate-limit/server status instead of always blaming the token", async () => {
+      const fixture = document.createElement("div");
+      fixture.innerHTML = '<input id="opt-pinboard-token" value="user:0123456789abcdef">' +
+        '<span id="token-format-warn"></span>' +
+        '<button id="test-pinboard-token"></button><span id="test-pinboard-status"></span>';
+      document.body.appendChild(fixture);
+      const realRecordHealth = window.pbpRecordConnectionHealth;
+      const healthCalls = [];
+      window.pbpRecordConnectionHealth = (id, ok, code) => { healthCalls.push({ id, ok, code }); return Promise.resolve(); };
+      try {
+        window.chrome = { i18n: { getMessage: (key) => key }, runtime: { sendMessage: async () => ({ ok: false, status: 429 }) } };
+        setupApiTests();
+        async function runWith(res) {
+          window.chrome.runtime.sendMessage = async () => res;
+          document.getElementById("test-pinboard-token").click();
+          await new Promise((resolve) => setTimeout(resolve, 0));
+          return document.getElementById("test-pinboard-status").textContent;
+        }
+        assert((await runWith({ ok: false, status: 429 })).includes("pinboardErrorRateLimit"), "a 429 still told the user their token is wrong");
+        assertEq(healthCalls.at(-1).code, "rate_limit", "429 health reason still filed under auth");
+        assert((await runWith({ ok: false, status: 503 })).includes("pinboardErrorServer"), "a 503 still told the user their token is wrong");
+        assertEq(healthCalls.at(-1).code, "server", "503 health reason still filed under auth");
+        assert((await runWith({ ok: false, status: 401 })).includes("loginFailed"), "a real auth rejection stopped being reported");
+        assertEq(healthCalls.at(-1).code, "auth", "401 health reason changed");
+        assert((await runWith({ ok: false, status: 404 })).includes("loginFailed"), "an unclassified status started claiming a network problem");
+      } finally {
+        window.pbpRecordConnectionHealth = realRecordHealth;
+        fixture.remove();
+      }
+    });
+
     await atest("live AI settings snapshot preserves the selected unsaved endpoint", async () => {
       const fixture = document.createElement("div");
       fixture.innerHTML = '<input id="opt-custom-key" value=" live-key ">' +

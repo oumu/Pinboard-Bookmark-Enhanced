@@ -363,7 +363,7 @@ $id("login-form").addEventListener("submit", async (event) => {
       const recent = $id("recent-bookmarks");
       if (recent) { recent.replaceChildren(); recent.classList.add("hidden"); }
       showMain(token);
-    } else showElement("login-error", t("loginFailed"));
+    } else showElement("login-error", t(pbpPinboardTestErrorKey(res)));
   } catch (e) { showElement("login-error", t("networkError")); }
   finally { loginBtn.disabled = false; }
 });
