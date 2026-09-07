@@ -9846,4 +9846,251 @@ window._t5AsyncDone = (async function () {
   });
 })();
 </script>
+<script>
+// ============ K133: OpenAI-compat body-parameter dialect + 400 self-heal ============
+// Pure half. The output-budget field name is a per-PROVIDER dialect (OpenAI's
+// Chat Completions renamed max_tokens -> max_completion_tokens); temperature
+// support varies per MODEL, so it is never declared -- only dropped after the
+// server itself refuses the value.
+suite("_aiBodyDialect / _aiParamRepair (K133)", () => {
+  test("default dialect: max_tokens, temperature kept", () => {
+    const d = _aiBodyDialect(OPENAI_COMPAT_PROVIDERS.deepseek, null);
+    assertEq(d.tokenField, "max_tokens", "field");
+    assertEq(d.omitTemperature, false, "temperature kept");
+  });
+  test("openai declares max_completion_tokens (per-provider dialect, not a model allowlist)", () => {
+    assertEq(_aiBodyDialect(OPENAI_COMPAT_PROVIDERS.openai, null).tokenField, "max_completion_tokens", "openai");
+  });
+  test("memo overrides both the default and the declared field", () => {
+    assertEq(_aiBodyDialect(OPENAI_COMPAT_PROVIDERS.deepseek, { tokenField: "max_completion_tokens" }).tokenField,
+      "max_completion_tokens", "memo wins over default");
+    assertEq(_aiBodyDialect(OPENAI_COMPAT_PROVIDERS.openai, { tokenField: "max_tokens" }).tokenField,
+      "max_tokens", "memo wins over declared");
+    assertEq(_aiBodyDialect(OPENAI_COMPAT_PROVIDERS.openai, { omitTemperature: true }).omitTemperature, true, "temperature memo");
+  });
+  test("refused max_tokens -> switch to max_completion_tokens", () => {
+    const r = _aiParamRepair({ paramHint: "max_tokens" }, { tokenField: "max_tokens", omitTemperature: false });
+    assertEq(JSON.stringify(r), '{"tokenField":"max_completion_tokens"}', "repair");
+  });
+  test("refused max_completion_tokens -> switch back to max_tokens", () => {
+    const r = _aiParamRepair({ paramHint: "max_completion_tokens" }, { tokenField: "max_completion_tokens", omitTemperature: false });
+    assertEq(JSON.stringify(r), '{"tokenField":"max_tokens"}', "old proxy");
+  });
+  test("a field we are not sending is never repaired (this is what bounds the retry ladder)", () => {
+    assertEq(_aiParamRepair({ paramHint: "max_tokens" }, { tokenField: "max_completion_tokens", omitTemperature: false }), null, "stale complaint");
+  });
+  test("temperature is dropped once, then there is nothing left to try", () => {
+    assertEq(JSON.stringify(_aiParamRepair({ paramHint: "temperature" }, { tokenField: "max_tokens", omitTemperature: false })),
+      '{"omitTemperature":true}', "first refusal");
+    assertEq(_aiParamRepair({ paramHint: "temperature" }, { tokenField: "max_tokens", omitTemperature: true }), null, "already dropped");
+  });
+  test("no paramHint -> no repair", () => {
+    assertEq(_aiParamRepair({ status: 400 }, { tokenField: "max_tokens", omitTemperature: false }), null, "no hint");
+    assertEq(_aiParamRepair(null, { tokenField: "max_tokens", omitTemperature: false }), null, "no error");
+  });
+});
+</script>
+<script>
+// ============ K133 (async): the 400 self-heal end to end ============
+// Response fixtures are hand-written from the SERVER's real 400 bodies
+// (mem0ai/mem0#5054, actions/ai-inference#116, getzep/graphiti#874), never
+// echoed back from this repo's request builder.
+//
+// All cases run inside ONE turn of the shared network-stub queue: this block
+// swaps window.chrome (the memo's storage) as well as window.fetch, and a
+// per-case turn would leave those stubs live while an interleaved block from
+// another suite ran its own case against them.
+(async function () {
+  const host = document.createElement("div");
+  host.className = "suite";
+  const h = document.createElement("h2");
+  h.textContent = "K133 OpenAI-compat parameter self-heal (async)";
+  host.appendChild(h);
+  document.getElementById("results").appendChild(host);
+  function report(name, err) {
+    const div = document.createElement("div");
+    if (!err) { PASS++; div.className = "case pass"; div.textContent = "PASS " + name; }
+    else { FAIL++; div.className = "case fail"; div.textContent = "FAIL " + name + "\n  " + err.message; }
+    host.appendChild(div);
+  }
+  function ok(cond, msg) { if (!cond) throw new Error(msg || "assert"); }
+
+  const OPENAI_400_MAX_TOKENS = { error: { message: "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.", type: "invalid_request_error", param: "max_tokens", code: "unsupported_parameter" } };
+  const OPENAI_400_TEMPERATURE = { error: { message: "Unsupported value: 'temperature' does not support 0.3 with this model. Only the default (1) is supported.", type: "invalid_request_error", param: "temperature", code: "unsupported_value" } };
+  const COMPAT_400_MESSAGE_ONLY = { error: { message: "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.", type: "invalid_request_error" } };
+  const PROXY_400_OLD_FIELD = { error: { message: "Unrecognized request argument supplied: max_completion_tokens", type: "invalid_request_error", param: null, code: null } };
+  const OPENAI_400_CONTEXT = { error: { message: "This model's maximum context length is 128000 tokens, however you requested 130000 tokens (2000 in the messages, 128000 in the max_tokens). Please reduce the length of the messages or completion.", type: "invalid_request_error", param: "messages", code: "context_length_exceeded" } };
+  const OPENAI_401_BAD_KEY = { error: { message: "Incorrect API key provided: sk-***. You can find your API key at https://platform.openai.com/account/api-keys.", type: "invalid_request_error", param: null, code: "invalid_api_key" } };
+
+  async function hintOf(status, body) {
+    try { await handleAIError({ ok: false, status, json: async () => body }, "API"); }
+    catch (e) { return e; }
+    throw new Error("handleAIError must always throw");
+  }
+
+  // Captured when the turn STARTS, never at parse time: other blocks install
+  // their own window.chrome / window.fetch synchronously while this file is
+  // being parsed and restore them from their own finally, so a parse-time
+  // snapshot would resurrect a stale stub for every block that runs after us.
+  let realFetch = null;
+  let realChrome = null;
+  const OK_BODY = { choices: [{ message: { content: "ok" } }], content: [{ type: "text", text: "ok" }] };
+  const enc = new TextEncoder();
+  // One SSE fixture both stream parsers understand: each ignores the other's
+  // event shape, so a single "stream" response serves the compat and the
+  // Anthropic caller alike.
+  const SSE = [
+    'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n',
+    'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"ok"}}\n\n',
+    "data: [DONE]\n\n"
+  ];
+  const store = {};               // survives the whole block: this IS the memo under test
+  let script = [];                // scripted responses, one per request
+  const sent = [];                // parsed request bodies, in order
+  function install() {
+    realFetch = window.fetch;
+    realChrome = window.chrome;
+    window.chrome = {
+      i18n: { getMessage: () => "" },
+      storage: { local: {
+        get: async (keys) => {
+          const list = Array.isArray(keys) ? keys : [keys];
+          const out = {};
+          for (const k of list) if (k in store) out[k] = store[k];
+          return out;
+        },
+        set: async (obj) => { Object.assign(store, obj); }
+      } }
+    };
+    window.fetch = async (url, init) => {
+      let body = {};
+      try { body = JSON.parse((init && init.body) || "{}"); } catch (_) {}
+      sent.push({ url: String(url), body });
+      const next = script.shift() || { kind: "ok" };
+      if (next.kind === "err") return { ok: false, status: next.status, json: async () => next.body };
+      if (next.kind === "stream") {
+        let i = 0;
+        return { ok: true, status: 200, body: { getReader: () => ({
+          async read() { return i < SSE.length ? { done: false, value: enc.encode(SSE[i++]) } : { done: true, value: undefined }; },
+          async cancel() {}
+        }) } };
+      }
+      return { ok: true, status: 200, json: async () => OK_BODY };
+    };
+  }
+  function restore() { window.fetch = realFetch; window.chrome = realChrome; }
+  function reset(...responses) { sent.length = 0; script = responses; }
+  const compat = (model) => ({ aiProvider: "custom", customApiKey: "k", customBaseUrl: "https://proxy.example/v1", customModel: model });
+
+  if (typeof callAI !== "function" || typeof handleAIError !== "function") { report("SKIP K133 suite (ai.js not loaded)"); return; }
+
+  const cases = [
+    ["OpenAI's max_tokens 400 carries paramHint=max_tokens (status + message untouched)", async () => {
+      const e = await hintOf(400, OPENAI_400_MAX_TOKENS);
+      ok(e.paramHint === "max_tokens", "paramHint was " + e.paramHint);
+      ok(e.status === 400, "status " + e.status);
+      ok(/Unsupported parameter: 'max_tokens'/.test(e.message), "message passes through: " + e.message);
+    }],
+    ["OpenAI's temperature 400 carries paramHint=temperature", async () => {
+      const e = await hintOf(400, OPENAI_400_TEMPERATURE);
+      ok(e.paramHint === "temperature", "paramHint was " + e.paramHint);
+    }],
+    ["message-only server: the REFUSED field wins over the suggested replacement", async () => {
+      const e = await hintOf(400, COMPAT_400_MESSAGE_ONLY);
+      ok(e.paramHint === "max_tokens", "must not latch onto the 'use X instead' name, got " + e.paramHint);
+    }],
+    ["a proxy refusing max_completion_tokens is heard too", async () => {
+      const e = await hintOf(400, PROXY_400_OLD_FIELD);
+      ok(e.paramHint === "max_completion_tokens", "paramHint was " + e.paramHint);
+    }],
+    ["a context-length 400 that merely mentions max_tokens is not a parameter refusal", async () => {
+      const e = await hintOf(400, OPENAI_400_CONTEXT);
+      ok(!e.paramHint, "must not rewrite the body, got " + e.paramHint);
+    }],
+    ["an auth failure carries no paramHint", async () => {
+      const e = await hintOf(401, OPENAI_401_BAD_KEY);
+      ok(!e.paramHint, "got " + e.paramHint);
+    }],
+    ["non-stream: a max_tokens 400 retries once with max_completion_tokens", async () => {
+      reset({ kind: "err", status: 400, body: OPENAI_400_MAX_TOKENS }, { kind: "ok" });
+      const out = await callAI(compat("gpt-5.4-nano"), "hi");
+      ok(out === "ok", "call must succeed after the repair, got " + out);
+      ok(sent.length === 2, "exactly one retry, saw " + sent.length + " requests");
+      ok(sent[0].body.max_tokens === 1024, "first request carried max_tokens: " + JSON.stringify(sent[0].body));
+      ok(sent[1].body.max_completion_tokens === 1024, "retry carried max_completion_tokens: " + JSON.stringify(sent[1].body));
+      ok(!("max_tokens" in sent[1].body), "retry must NOT also carry max_tokens: " + JSON.stringify(sent[1].body));
+    }],
+    ["the repair is memoized: the next call sends the right field on the FIRST request", async () => {
+      reset({ kind: "ok" });
+      await callAI(compat("gpt-5.4-nano"), "hi");
+      ok(sent.length === 1, "no wasted round trip, saw " + sent.length);
+      ok(sent[0].body.max_completion_tokens === 1024 && !("max_tokens" in sent[0].body), "memoized field: " + JSON.stringify(sent[0].body));
+    }],
+    ["the memo is per (provider, model): another model starts over", async () => {
+      reset({ kind: "ok" });
+      await callAI(compat("gpt-4.1-mini"), "hi");
+      ok(sent[0].body.max_tokens === 1024, "other model must not inherit the memo: " + JSON.stringify(sent[0].body));
+    }],
+    ["the memo is per (provider, model): another provider with the same model id starts over", async () => {
+      reset({ kind: "ok" });
+      await callAI({ aiProvider: "groq", groqApiKey: "k", groqModel: "gpt-5.4-nano" }, "hi");
+      ok(sent[0].body.max_tokens === 1024, "other provider must not inherit the memo: " + JSON.stringify(sent[0].body));
+    }],
+    ["a 400 that names no healable parameter still surfaces unchanged, with no retry", async () => {
+      reset({ kind: "err", status: 400, body: OPENAI_400_CONTEXT });
+      let caught = null;
+      try { await callAI(compat("no-heal-model"), "hi"); } catch (e) { caught = e; }
+      ok(caught, "expected a rejection");
+      ok(sent.length === 1, "must not retry, saw " + sent.length + " requests");
+      ok(/maximum context length/.test(caught.message), "original message survives: " + caught.message);
+      ok(caught.status === 400, "status preserved: " + caught.status);
+    }],
+    ["a temperature refusal drops the field and is memoized", async () => {
+      reset({ kind: "err", status: 400, body: OPENAI_400_TEMPERATURE }, { kind: "ok" });
+      await callAI(compat("temp-picky"), "hi");
+      ok(sent.length === 2, "one retry, saw " + sent.length);
+      ok(sent[0].body.temperature === 0.3, "first request carried temperature");
+      ok(!("temperature" in sent[1].body), "retry must omit temperature: " + JSON.stringify(sent[1].body));
+      reset({ kind: "ok" });
+      await callAI(compat("temp-picky"), "hi");
+      ok(sent.length === 1 && !("temperature" in sent[0].body), "memoized: " + JSON.stringify(sent));
+    }],
+    ["openai sends max_completion_tokens on the very first request (declared dialect, zero retries)", async () => {
+      reset({ kind: "ok" });
+      await callAI({ aiProvider: "openai", openaiApiKey: "k", openaiModel: "gpt-5.4-nano" }, "hi");
+      ok(sent.length === 1, "no retry needed, saw " + sent.length);
+      ok(sent[0].body.max_completion_tokens === 1024 && !("max_tokens" in sent[0].body), "body: " + JSON.stringify(sent[0].body));
+    }],
+    ["the streaming path heals the same way (not a non-stream-only fix)", async () => {
+      reset({ kind: "err", status: 400, body: OPENAI_400_MAX_TOKENS }, { kind: "stream" });
+      const out = await callAIStream(compat("stream-model"), "hi", {}, () => {});
+      ok(out === "ok", "stream must succeed after the repair, got " + JSON.stringify(out));
+      ok(sent.length === 2, "one retry, saw " + sent.length);
+      ok(sent[0].body.max_tokens === 1024 && sent[0].body.stream === true, "first stream request: " + JSON.stringify(sent[0].body));
+      ok(sent[1].body.max_completion_tokens === 1024 && !("max_tokens" in sent[1].body), "retry: " + JSON.stringify(sent[1].body));
+    }],
+    ["Anthropic's max_tokens is a required Messages-API field and is never renamed", async () => {
+      reset({ kind: "ok" }, { kind: "stream" });
+      await callAI({ aiProvider: "claude", claudeApiKey: "k", claudeModel: "claude-haiku-4-5" }, "hi");
+      await callAIStream({ aiProvider: "claude", claudeApiKey: "k", claudeModel: "claude-haiku-4-5" }, "hi", {}, () => {});
+      ok(sent.length === 2, "two requests, saw " + sent.length);
+      for (const r of sent) {
+        ok(r.body.max_tokens === 1024, "claude keeps max_tokens: " + JSON.stringify(r.body));
+        ok(!("max_completion_tokens" in r.body), "claude must never get the OpenAI spelling: " + JSON.stringify(r.body));
+      }
+    }]
+  ];
+
+  // One queue turn for the whole block (see the header note). The loop itself
+  // cannot throw, so the wrapper never needs to report a row of its own.
+  await atestNetSerial("K133 self-heal block", async () => {
+    install();
+    try {
+      for (const [name, fn] of cases) {
+        try { await fn(); report(name); } catch (e) { report(name, e); }
+      }
+    } finally { restore(); }
+  }, () => {});
+})();
+</script>
 </body></html>

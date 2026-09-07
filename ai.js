@@ -187,9 +187,33 @@ function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
 }
 
 // ---- Unified AI error handler ----
+// Which request-body parameter did the server refuse? OpenAI names it in
+// error.param ("max_tokens"); leaner OpenAI-compat servers only mention it in
+// the message. Read off the SERVER's own answer, never off a model allowlist
+// (rules/ai-providers.md: the model field is free text), and consumed by the
+// body-dialect self-heal below.
+const _AI_HEALABLE_PARAMS = ["max_tokens", "max_completion_tokens", "temperature"];
+function _aiRejectedParam(body, detail) {
+  const param = String((body && body.error && body.error.param) || "").trim();
+  if (_AI_HEALABLE_PARAMS.indexOf(param) !== -1) return param;
+  // Message-only servers: demand refusal wording, so an incidental mention
+  // ("128000 in the max_tokens" inside a context-length error) never rewrites
+  // the request body.
+  if (!/unsupported|unrecognized|not\s+supported|does\s+not\s+support|unknown\s+(?:parameter|argument|field)|extra\s+inputs/.test(detail)) return null;
+  // The refused field is named BEFORE the suggested replacement ("...'max_tokens'
+  // is not supported... Use 'max_completion_tokens' instead."), so first mention wins.
+  let best = null, bestAt = Infinity;
+  for (const p of _AI_HEALABLE_PARAMS) {
+    const at = detail.search(new RegExp("\\b" + p + "\\b"));
+    if (at !== -1 && at < bestAt) { best = p; bestAt = at; }
+  }
+  return best;
+}
+
 async function handleAIError(res, provider) {
   let msg = `${provider} failed (HTTP ${res.status})`;
   let errorType = null;
+  let paramHint = null;
   try {
     const body = await res.json();
     if (body.error?.message) msg = `${provider}: ${body.error.message}`;
@@ -207,9 +231,11 @@ async function handleAIError(res, provider) {
     if (res.status === 404 || modelErr) {
       errorType = "model_not_found";
     }
+    paramHint = _aiRejectedParam(body, detail);
   } catch (_) {}
   const err = new Error(msg);
   if (errorType) err.code = errorType;
+  if (paramHint) err.paramHint = paramHint;
   err.status = res.status;
   throw err;
 }
@@ -223,8 +249,14 @@ async function handleAIError(res, provider) {
 //   baseField    optional settings key whose value overrides `base` (openai/custom)
 //   modelField   settings key holding the model id
 //   defaultModel fallback when the model setting is blank
+//   tokenField   optional output-budget field name (default "max_tokens"): OpenAI's
+//                Chat Completions renamed it to max_completion_tokens and the gpt-5
+//                family hard-rejects the old spelling. A per-PROVIDER dialect like
+//                thinkingOff, not a model allowlist — every current OpenAI chat model
+//                accepts the new name, and a base URL pointed at an older third-party
+//                proxy heals back via the 400 self-heal below.
 const OPENAI_COMPAT_PROVIDERS = {
-  openai:      { keyField: "openaiApiKey",      base: "https://api.openai.com/v1",                         baseField: "openaiBaseUrl", modelField: "openaiModel",      defaultModel: "gpt-5.4-nano",                thinkingOff: { reasoning_effort: "none" } },
+  openai:      { keyField: "openaiApiKey",      base: "https://api.openai.com/v1",                         baseField: "openaiBaseUrl", modelField: "openaiModel",      defaultModel: "gpt-5.4-nano",                thinkingOff: { reasoning_effort: "none" }, tokenField: "max_completion_tokens" },
   deepseek:    { keyField: "deepseekApiKey",    base: "https://api.deepseek.com/v1",                                            modelField: "deepseekModel",    defaultModel: "deepseek-v4-flash",               thinkingOff: { thinking: { type: "disabled" } } },  // v4-flash defaults thinking ON; 4xx self-heal (deepseek-reasoner rejects it)
   qwen:        { keyField: "qwenApiKey",        base: "https://dashscope.aliyuncs.com/compatible-mode/v1",                      modelField: "qwenModel",        defaultModel: "qwen-flash",                      thinkingOff: { enable_thinking: false } },
   minimax:     { keyField: "minimaxApiKey",     base: "https://api.minimaxi.com/v1",                                            modelField: "minimaxModel",     defaultModel: "MiniMax-M2",                      thinkingOff: { thinking: { type: "disabled" } } },  // M2 no-op but harmless; M3-ready
@@ -276,18 +308,90 @@ async function _aiThinkReject(memoKey) {
   } catch (_) { /* storage unavailable: skip memo, fallback still works per-call */ }
 }
 
-async function _aiWithThinkingFallback(provider, model, cfg, makeCall) {
-  const memoKey = provider + ":" + (model || "");
-  const rejected = await _aiThinkRejected(memoKey);
+// ---- Body-parameter dialect: declared default + 4xx self-heal + memo (K133) ----
+// One level down from thinkingOff, same three-part shape. The OUTPUT-BUDGET field
+// name is a per-provider dialect (cfg.tokenField); temperature support varies by
+// MODEL inside a single provider (the gpt-5 family accepts only the default 1),
+// so it is never declared — only dropped once the server itself refuses the value.
+// Both repairs are learned from the server's own 400 and memoized per (provider,
+// model), so the doubled round trip is paid at most once per model.
+function _aiBodyDialect(cfg, memo) {
+  return {
+    tokenField: (memo && memo.tokenField) || (cfg && cfg.tokenField) || "max_tokens",
+    omitTemperature: !!(memo && memo.omitTemperature)
+  };
+}
+
+// The repair a refusal asks for, or null when there is nothing new to try —
+// which is what bounds the retry ladder: a field we are not sending is never
+// "repaired", and temperature can only be dropped once.
+function _aiParamRepair(err, dialect) {
+  const hint = err && err.paramHint;
+  if (!hint || !dialect) return null;
+  if (hint === "temperature") return dialect.omitTemperature ? null : { omitTemperature: true };
+  if (hint !== dialect.tokenField) return null;
+  return { tokenField: hint === "max_tokens" ? "max_completion_tokens" : "max_tokens" };
+}
+
+const _PBP_PARAM_FIX_KEY = "pbpAiParamFix";
+async function _aiParamFixGet(memoKey) {
   try {
-    return await makeCall(_aiEffectiveExtraBody(cfg, rejected));
-  } catch (e) {
-    if (_aiShouldRetryNoThink(cfg, rejected, e && e.status)) {
-      const out = await makeCall(_aiEffectiveExtraBody(cfg, true)); // retry without thinkingOff
-      await _aiThinkReject(memoKey);                                // memo only on retry success
+    if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return null;
+    const o = await chrome.storage.local.get(_PBP_PARAM_FIX_KEY);
+    const rec = o && o[_PBP_PARAM_FIX_KEY] && o[_PBP_PARAM_FIX_KEY][memoKey];
+    return (rec && typeof rec === "object") ? rec : null;
+  } catch (_) { return null; }
+}
+// Written the moment the server NAMES the field, not on retry success: the
+// refusal is evidence on its own, and waiting for the retry to also succeed is
+// what makes an unrelated later failure (bad key, rate limit) re-pay the
+// doubled round trip on every single call.
+async function _aiParamFixLearn(memoKey, repair) {
+  try {
+    if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) return;
+    const o = await chrome.storage.local.get(_PBP_PARAM_FIX_KEY);
+    const m = (o && o[_PBP_PARAM_FIX_KEY]) || {};
+    m[memoKey] = { ...(m[memoKey] || {}), ...repair };
+    await chrome.storage.local.set({ [_PBP_PARAM_FIX_KEY]: m });
+  } catch (_) { /* storage unavailable: skip memo, self-heal still works per-call */ }
+}
+
+// One initial attempt plus at most one retry per distinct repair (token field,
+// temperature, thinkingOff). A well-behaved server converges well inside this:
+// each repair stops being offered once applied. The cap is what bounds the one
+// pathological case — a server that refuses BOTH spellings of the budget field
+// and would otherwise be flipped back and forth forever.
+const _AI_DIALECT_MAX_ATTEMPTS = 4;
+
+// makeCall(extraBody, dialect) — dialect is null for bespoke bodies (Gemini),
+// which have no max_tokens/temperature of the OpenAI-compat spelling to repair.
+async function _aiWithDialectFallback(provider, model, cfg, makeCall) {
+  const memoKey = provider + ":" + (model || "");
+  const [thinkMemo, paramMemo] = await Promise.all([_aiThinkRejected(memoKey), _aiParamFixGet(memoKey)]);
+  let thinkRejected = thinkMemo;
+  let dialect = (cfg && cfg.bespokeBody) ? null : _aiBodyDialect(cfg, paramMemo);
+  let healedThink = false;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const out = await makeCall(_aiEffectiveExtraBody(cfg, thinkRejected), dialect);
+      if (healedThink) await _aiThinkReject(memoKey);   // memo only on retry success
       return out;
+    } catch (e) {
+      const status = e && e.status;
+      if (attempt >= _AI_DIALECT_MAX_ATTEMPTS) throw e;
+      const repair = (status === 400 || status === 422) ? _aiParamRepair(e, dialect) : null;
+      if (repair) {
+        dialect = { ...dialect, ...repair };
+        await _aiParamFixLearn(memoKey, repair);
+        continue;
+      }
+      if (_aiShouldRetryNoThink(cfg, thinkRejected, status)) {
+        thinkRejected = true;                          // retry without thinkingOff
+        healedThink = true;
+        continue;
+      }
+      throw e;
     }
-    throw e;
   }
 }
 
@@ -409,8 +513,8 @@ async function callAI(s, prompt, opts = {}) {
   const cfg = OPENAI_COMPAT_PROVIDERS[p];
   if (!cfg) throw new Error("Unknown provider: " + p);
   const model = opts.model || s[cfg.modelField] || cfg.defaultModel;
-  return _aiWithThinkingFallback(p, model, cfg, (extraBody) =>
-    callOpenAICompat(_openaiCompatBase(cfg, s), s[cfg.keyField], model, prompt, { ...opts, extraBody }));
+  return _aiWithDialectFallback(p, model, cfg, (extraBody, dialect) =>
+    callOpenAICompat(_openaiCompatBase(cfg, s), s[cfg.keyField], model, prompt, { ...opts, extraBody, ...dialect }));
 }
 
 // Non-streaming Gemini rides the same thinking-off self-heal as the OpenAI-
@@ -422,11 +526,13 @@ async function callAI(s, prompt, opts = {}) {
 // models that reject a zero budget (e.g. gemini-2.5-pro) heal via the shared
 // 400/422 strip-and-retry with the per-model memo — never a static allowlist,
 // because the model field is free text.
-const _GEMINI_THINKING_CFG = { thinkingOff: { thinkingConfig: { thinkingBudget: 0 } } };
+// bespokeBody: generationConfig, not the OpenAI-compat body — the token-field /
+// temperature repairs below have nothing to rewrite here and must not be tried.
+const _GEMINI_THINKING_CFG = { thinkingOff: { thinkingConfig: { thinkingBudget: 0 } }, bespokeBody: true };
 
 async function callGemini(s, prompt, opts = {}) {
   const model = opts.model || s.geminiModel || "gemini-3.5-flash-lite";
-  return _aiWithThinkingFallback("gemini", model, _GEMINI_THINKING_CFG, (extraBody) =>
+  return _aiWithDialectFallback("gemini", model, _GEMINI_THINKING_CFG, (extraBody) =>
     _callGeminiOnce(s, model, prompt, opts, extraBody));
 }
 
@@ -466,7 +572,13 @@ async function callOpenAICompat(baseUrl, apiKey, model, prompt, opts = {}) {
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
   const res = await fetchWithTimeout(`${baseUrl.replace(/\/+$/, "")}/chat/completions`, {
     method: "POST", headers, signal: opts.signal,
-    body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], temperature: 0.3, max_tokens: maxTokens, ...(opts.extraBody || {}) })
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      ...(opts.omitTemperature ? {} : { temperature: 0.3 }),
+      [opts.tokenField || "max_tokens"]: maxTokens,
+      ...(opts.extraBody || {})
+    })
   });
   if (!res.ok) await handleAIError(res, "API");
   const text = (await res.json()).choices?.[0]?.message?.content?.trim();
@@ -765,8 +877,8 @@ async function _streamOpenAICompat(baseUrl, apiKey, model, prompt, opts, onDelta
       body: JSON.stringify({
         model,
         messages,
-        temperature: opts.temperature !== undefined ? opts.temperature : 0.3,
-        max_tokens: opts.maxTokens || 1024,
+        ...(opts.omitTemperature ? {} : { temperature: opts.temperature !== undefined ? opts.temperature : 0.3 }),
+        [opts.tokenField || "max_tokens"]: opts.maxTokens || 1024,
         stream: true,
         ...(opts.extraBody || {})
       })
@@ -884,7 +996,8 @@ async function _streamOllama(s, prompt, opts, onDelta) {
 // ---- Streaming AI dispatcher ----
 // callAIStream(s, prompt, opts, onDelta) -> Promise<string fullText>
 //   opts: { maxTokens?, model? (override provider default), system?,
-//           signal? (AbortSignal), temperature? (default 0.3),
+//           signal? (AbortSignal), temperature? (default 0.3; dropped entirely
+//             once a model refuses it — see the body dialect above),
 //           noThinking? (Gemini only — rides the shared 400/422 self-heal),
 //           onUsage?({inTok,outTok}) — T4: fired at most once after a NORMAL
 //             stream end IFF the provider opportunistically emitted usage in the
@@ -908,7 +1021,7 @@ async function callAIStream(s, prompt, opts = {}, onDelta) {
     // even after callGemini already memoized the rejection for that model.
     if (!opts.noThinking) return _streamGemini(s, prompt, opts, cb);
     const gModel = opts.model || s.geminiModel || "gemini-3.5-flash-lite";
-    return _aiWithThinkingFallback("gemini", gModel, _GEMINI_THINKING_CFG, (extraBody) =>
+    return _aiWithDialectFallback("gemini", gModel, _GEMINI_THINKING_CFG, (extraBody) =>
       _streamGemini(s, prompt, { ...opts, model: gModel, extraBody }, cb));
   }
   if (p === "claude") return _streamClaude(s, prompt, opts, cb);
@@ -916,8 +1029,8 @@ async function callAIStream(s, prompt, opts = {}, onDelta) {
   const cfg = OPENAI_COMPAT_PROVIDERS[p];
   if (!cfg) throw new Error("Unknown provider: " + p);
   const model = opts.model || s[cfg.modelField] || cfg.defaultModel;
-  return _aiWithThinkingFallback(p, model, cfg, (extraBody) =>
-    _streamOpenAICompat(_openaiCompatBase(cfg, s), s[cfg.keyField], model, prompt, { ...opts, extraBody }, cb));
+  return _aiWithDialectFallback(p, model, cfg, (extraBody, dialect) =>
+    _streamOpenAICompat(_openaiCompatBase(cfg, s), s[cfg.keyField], model, prompt, { ...opts, extraBody, ...dialect }, cb));
 }
 
 // ---- Shared prompt fragments (used by tag, summary, and combined builders) ----
