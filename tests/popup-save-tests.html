@@ -614,6 +614,92 @@ test("posts/add default remains replace=yes for existing callers", () => {
       }
     });
 
+    // K69 fix round 1 (review finding): HTML autofocus only fires when the
+    // element is a focusable candidate AT PARSE TIME. Whenever the localStorage
+    // mirror was NOT primed at parse time -- first-ever popup open (even with a
+    // valid token already in chrome.storage), or right after showLogin()
+    // removed the mirror on logout/invalidated-token -- #main-section starts
+    // display:none and showMain() reveals it later via classList.remove, purely
+    // in JS. Real Chromium does not retroactively retry a failed autofocus
+    // candidate on that kind of reveal, so #tags-input was left unfocused: a
+    // real regression versus the pre-diff code, which used an unconditional
+    // setTimeout that worked regardless of parse-time visibility. Fixed by a
+    // guarded imperative focus call inside showMain() itself, run here as the
+    // ACTUAL sliced source (not a reimplementation) against a fixture that
+    // starts hidden and gets revealed exactly like production.
+    function buildRevealFixture() {
+      const cssLines = popupCss.split("\n");
+      const hiddenRule = cssLines.find((line) => line.trim() === ".hidden { display: none !important; }");
+      const sectionRule = cssLines.find((line) => line.includes('html[data-section="main"] #main-section'));
+      assert(hiddenRule, "popup.css .hidden rule not found (fixture out of sync with production CSS)");
+      assert(sectionRule, "popup.css main-section visibility rule not found (fixture out of sync with production CSS)");
+      const tagsInputMatch = popupHtml.match(/<input[^>]*id="tags-input"[^>]*\/>/);
+      assert(tagsInputMatch, "tags-input markup not found in popup.html");
+
+      const style = document.createElement("style");
+      style.textContent = hiddenRule + "\n" + sectionRule;
+      document.head.appendChild(style);
+
+      const hadSection = "section" in document.documentElement.dataset;
+      const previousSection = document.documentElement.dataset.section;
+      // Unprimed mirror: popup-theme-early.js would have left data-section
+      // unset/"login" at parse time.
+      delete document.documentElement.dataset.section;
+
+      const loginSection = document.createElement("div");
+      loginSection.id = "login-section";
+      const mainSection = document.createElement("div");
+      mainSection.id = "main-section";
+      mainSection.className = "hidden";
+      mainSection.innerHTML = tagsInputMatch[0];
+      const tagsInput = mainSection.querySelector("#tags-input");
+      document.body.appendChild(loginSection);
+      document.body.appendChild(mainSection);
+
+      return {
+        tagsInput, loginSection, mainSection,
+        cleanup() {
+          loginSection.remove();
+          mainSection.remove();
+          style.remove();
+          if (hadSection) document.documentElement.dataset.section = previousSection;
+          else delete document.documentElement.dataset.section;
+          if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) {
+            document.activeElement.blur();
+          }
+        },
+      };
+    }
+
+    await testAsync("K69 fix round 1: showMain reveals an initially-hidden #main-section (unprimed mirror) and still focuses #tags-input", async () => {
+      const showMainStart = source.indexOf("async function showMain(token)");
+      const revealStart = source.indexOf('document.documentElement.dataset.section = "main";', showMainStart);
+      const revealEnd = source.indexOf('const qa = document.querySelector(".quick-actions");', showMainStart);
+      assert(revealStart >= 0 && revealEnd > revealStart, "showMain's section-reveal block not found");
+      const revealBlock = source.slice(revealStart, revealEnd);
+
+      const fixture = buildRevealFixture();
+      try {
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        assert(getComputedStyle(fixture.mainSection).display === "none",
+          "fixture must start hidden, matching an unprimed mirror at parse time");
+
+        const run = new Function("$id", "document", "localStorage", revealBlock + "\nreturn true;");
+        run(
+          (id) => (id === "login-section" ? fixture.loginSection : id === "main-section" ? fixture.mainSection : id === "tags-input" ? fixture.tagsInput : null),
+          document,
+          { setItem() {} }
+        );
+
+        assert(getComputedStyle(fixture.mainSection).display !== "none", "the reveal did not unhide #main-section");
+        assert(document.activeElement === fixture.tagsInput,
+          "revealing an initially-hidden #main-section via classList.remove(\"hidden\") did not focus #tags-input; activeElement is " +
+          (document.activeElement && document.activeElement.tagName));
+      } finally {
+        fixture.cleanup();
+      }
+    });
+
     test("update forwards only the exact loaded server time", () => {
       const timeStart = submit.indexOf('if (savePolicy.mode === "update")', intentIndex);
       const timeBlock = submit.slice(timeStart, submit.indexOf("let attemptsStored", timeStart));

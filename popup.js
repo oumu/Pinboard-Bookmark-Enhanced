@@ -375,6 +375,20 @@ async function showMain(token) {
   try { localStorage.setItem("pp-logged-in", "1"); } catch (_) {}
   $id("login-section").classList.add("hidden");
   $id("main-section").classList.remove("hidden");
+  // #tags-input's HTML autofocus only fires when it is a focusable candidate
+  // AT PARSE TIME (see popup.html:62 / popup-theme-early.js). That covers the
+  // steady-state reopen where the localStorage mirror already primed
+  // data-section="main" before <body> parsed -- but #main-section starts
+  // display:none (the .hidden class) whenever the mirror was NOT primed
+  // (first-ever popup open, or right after showLogin() removed the mirror),
+  // and revealing it here via classList.remove("hidden") does not retroactively
+  // retry autofocus. Cover that transition explicitly, but only when nothing
+  // already has focus (steady-state autofocus already landed on tags-input by
+  // now, and re-focusing it is a harmless no-op; this guard just keeps intent
+  // explicit and never steals focus from something else).
+  if (!document.activeElement || document.activeElement === document.body) {
+    $id("tags-input").focus({ preventScroll: true });
+  }
   const qa = document.querySelector(".quick-actions");
   if (qa) qa.classList.remove("hidden");
   const username = token.split(":")[0];
